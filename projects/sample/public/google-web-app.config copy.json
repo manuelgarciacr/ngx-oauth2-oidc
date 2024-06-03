@@ -1,0 +1,53 @@
+{
+    "tag": "google-web-app",
+    "grant": "code",
+    "configuration": {
+        "authorization_params": [
+            "response_type",
+            "client_id",
+            "redirect_uri",
+            "scope",
+            "state",
+
+            "login_hint",
+            "prompt",
+            ["access_type", "online"],
+            ["include_granted_scopes", null],
+            ["enable_granular_consent", null]
+        ],
+        "token_params": [
+            "client_id",
+            "client_secret",
+            "code",
+            "grant_type",
+            "redirect_uri",
+            "code_verifier"
+        ],
+        "refresh_params": [
+            "client_id",
+            "client_secret",
+            "refresh_token",
+            ["grant_type", "refresh_token"]
+        ],
+        "revocation_params": [
+            "access_token"
+        ],
+        "id_token_verify": {
+            "algorithms": ["RS256"],
+            "issuer": ["https://accounts.google.com", "accounts.google.com"],
+            "audience": "#client_id"
+        }
+    },
+    "metadata": {
+        "issuer": "https://accounts.google.com"
+    },
+    "parameters": {
+        "client_id":
+            "115940404174-2re8nu673gkn13jclq25spmgo9sdh1t2.apps.googleusercontent.com",
+        "redirect_uri": "http://localhost:4300/login",
+        "response_type": "code",
+        "scope": ["openid", "email", "profile"],
+        "code_challenge_method": "S256",
+        "grant_type": "authorization_code"
+    }
+}

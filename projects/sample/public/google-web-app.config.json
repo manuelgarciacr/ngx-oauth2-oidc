@@ -1,0 +1,26 @@
+{
+    "configuration": {
+        "tag": "google-web-app",
+        "authorization_grant_type": "code",
+        "authorization": {
+            "access_type": "online"
+        },
+        "id_token_verify": {
+            "algorithms": ["RS256"],
+            "issuer": ["https://accounts.google.com", "accounts.google.com"],
+            "audience": "#client_id"
+        }
+    },
+    "metadata": {
+        "issuer": "https://accounts.google.com"
+    },
+    "parameters": {
+        "client_id":
+            "115940404174-2re8nu673gkn13jclq25spmgo9sdh1t2.apps.googleusercontent.com",
+        "redirect_uri": "http://localhost:4300/login",
+        "response_type": "code",
+        "scope": ["openid", "email", "profile"],
+        "code_challenge_method": "S256",
+        "grant_type": "authorization_code"
+    }
+}

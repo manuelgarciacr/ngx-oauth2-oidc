@@ -1,0 +1,32 @@
+{
+    "tag": "google-desktop",
+    "configuration": {
+        "refresh_params": [
+            "client_id",
+            "client_secret",
+            "refresh_token",
+            ["grant_type", "refresh_token"]
+        ],
+        "revocation_params": [
+            "access_token"
+        ],
+        "id_token_verify": {
+            "algorithms": ["RS256"],
+            "issuer": ["https://accounts.google.com", "accounts.google.com"],
+            "audience": "#client_id"
+        }
+    },
+    "metadata": {
+        "issuer": "https://accounts.google.com"
+    },
+    "parameters": {
+        "client_id":
+            "115940404174-t4mk2gbdb6pgiucmk4fmen1ba48qmjhd.apps.googleusercontent.com",
+        "redirect_uri": "http://localhost:4300/login",
+        "response_type": "code",
+        "scope22": ["openid", "email", "profile"],
+        "scope": ["openid"],
+        "code_challenge_method": "S256",
+        "grant_type": "authorization_code"
+    }
+}

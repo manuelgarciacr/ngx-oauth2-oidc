@@ -1,0 +1,48 @@
+<div class="col-5 col-sm-4">
+    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">API credentials</legend>
+        <label>
+            <input type="radio" name="api" value="web" [(ngModel)]="api"> Web application
+        </label>
+        <label>
+            <input type="radio" name="api" value="desk" [(ngModel)]="api"> Desktop
+        </label>
+    </fieldset>
+    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">Grant type</legend>
+        <label>
+            <input type="radio" name="grant" value="code" [(ngModel)]="grant"> Authorization code
+        </label>
+        <label>
+            <input type="radio" name="grant" value="implicit" [(ngModel)]="api"> Implicit
+        </label>
+        <label>
+            <input type="radio" name="grant" value="password" disabled [(ngModel)]="api"> Resource Owner Password Credentials
+        </label>
+        <label>
+            <input type="radio" name="grant" value="client" disabled [(ngModel)]="api"> Client Credentials
+        </label>
+        <label>
+            <input type="radio" name="grant" value="extension" disabled [(ngModel)]="api"> Extension Grants
+        </label>
+    </fieldset>
+    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">client_id</legend>
+        <input type="text" [(ngModel)]="client_id">
+    </fieldset>
+    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">Response type</legend>
+        <label>
+            <input type="checkbox" value="code" [(ngModel)]="code"> code
+        </label>
+        <label>
+            <input type="checkbox" [(ngModel)]="token"> token
+        </label>
+        <label>
+            <input type="checkbox" [(ngModel)]="id_token"> id_token
+        </label>
+    </fieldset>
+    <button (click)="this.google()">Login with Google</button>
+</div>
+<textarea class="font-monospace col" [ngModel]="config() | json4" (ngModelChange)="setConfig($event)"></textarea>
+
