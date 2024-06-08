@@ -9,7 +9,15 @@ export enum debugEnum {
 export type debugType = keyof typeof debugEnum;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const debugFn = (type: debugType, ...values: any[]) =>
-    (debugEnum[type] & Oauth2Service.debug) === debugEnum[type] &&
-        console.log("DEBUG", ...values);
+export const debugFn = (type: debugType, ...values: any[]) => {
+    const newValues = [];
 
+    for (let v of values) {
+        if (typeof v == "object")
+            v = JSON.stringify(v, null, 4);
+        newValues.push(v)
+    }
+
+    (debugEnum[type] & Oauth2Service.debug) === debugEnum[type] &&
+        console.log("DEBUG", ...newValues);
+}

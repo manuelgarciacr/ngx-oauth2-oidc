@@ -1,5 +1,4 @@
-import { IOAuth2Config, IOAuth2Parameters } from "../index";
-import { Modify } from "../../utils";
+import { endpointNames } from "../index";
 
 // /** Oauth2 custom parameter name type */
 // export type customParameterName = string;
@@ -7,30 +6,19 @@ import { Modify } from "../../utils";
 // /** Oauth2 parameter name type */
 // export type parameterName = keyof IOAuth2Parameters;
 
+export const authorithationGrantValues = [
+    "code", "implicit" //, "password", "client", "extension",
+] as const;
+
+export type authorithationGrantType = typeof authorithationGrantValues[number];
+
 /** Oauth2 parameter type */
 export type parameterType = boolean | string | number | string[] | null;
 
 /** Oauth2 custom parameters type */
-export type customParameters = {
+export type customParametersType = {
     [key: string]: parameterType;
 };
-
-/** Internal configuration object type */
-export type oauth2Configuration = Modify<
-    IOAuth2Configuration,
-    {
-        /** Initial configuration object */
-        config?: Partial<IOAuth2Config>;
-        authorization_custom: customParameters;
-        authorization_params: (keyof IOAuth2Parameters)[];
-        token_custom: customParameters;
-        token_params: (keyof IOAuth2Parameters)[];
-        refresh_custom: customParameters;
-        refresh_params: (keyof IOAuth2Parameters)[];
-        revocation_custom: customParameters;
-        revocation_params: (keyof IOAuth2Parameters)[];
-    }
->;
 
 /** Initial external configuration object type */
 export interface IOAuth2Configuration {
@@ -46,20 +34,7 @@ export interface IOAuth2Configuration {
      *  client: client credentials grant,
      *  extension: additional grant types
      */
-    authorization_grant_type:
-        | "code"
-        | "implicit"
-        | "password"
-        | "client"
-        | "extension";
-
-    // no_discovery: If true, discovery document is not fetched
-    no_discovery?: boolean;
-
-    // forze_values: Ignored if no_discovery
-    // forze_values: If true, configuration values are not overwritted
-    //      by the fetched discovery document (if any)
-    //forze_values?: boolean;
+    authorization_grant_type: authorithationGrantType;
 
     // well_known_sufix: Default is ".well-known/openid-configuration"
     // well_known_sufix: Ignored if discovery_endpoint is defined
@@ -71,36 +46,54 @@ export interface IOAuth2Configuration {
     // discovery_endpoint: Ignored if no_discovery
     discovery_endpoint?: string;
 
+    // no_discovery: If true, discovery document is not fetched
+    no_discovery?: boolean;
+
+    // forze_values: Ignored if no_discovery
+    // forze_values: If true, configuration values are not overwritted
+    //      by the fetched discovery document (if any)
+    //forze_values?: boolean;
+
     // no_pkce: Default is false
     // no_pkce: If true, the service will not use PKCE support
     no_pkce?: boolean;
 
-    authorization?: { [key: string]: parameterType };
+    authorization?: customParametersType;
 
-    token?: { [key: string]: parameterType };
+    token?: customParametersType;
 
-    refresh?: { [key: string]: parameterType };
+    refresh?: customParametersType;
 
-    revocation?: { [key: string]: parameterType };
+    revocation?: customParametersType;
+
+    // verify_token: jose token validation claims
+    verify_token?: customParametersType;
 
     // authorization_params: Authorization request oauth parameter names.
-    authorization_params?: (
-        | keyof IOAuth2Parameters
-        | [string, parameterType]
-    )[];
+    // authorization_params?: (
+    //     | keyof IOAuth2Parameters
+    //     | [string, parameterType]
+    // )[];
 
     // token_custom: Names and values of the token request custom parameters
     // token_custom?: customParameters;
 
     // token_params: Token request oauth parameter names.
-    token_params?: (keyof IOAuth2Parameters | [string, parameterType])[];
+    // token_params?: (keyof IOAuth2Parameters | [string, parameterType])[];
 
     // refresh_params: Refresh token request oauth parameter names.
-    refresh_params?: (keyof IOAuth2Parameters | [string, parameterType])[];
+    // refresh_params?: (keyof IOAuth2Parameters | [string, parameterType])[];
 
     // revocation_params: Revocation token request oauth parameter names.
-    revocation_params?: (keyof IOAuth2Parameters | [string, parameterType])[];
-
-    // id_token_verify: token validation claims
-    id_token_verify?: customParameters;
+    // revocation_params?: (keyof IOAuth2Parameters | [string, parameterType])[];
 }
+
+export const configurationOptions = [
+    "tag",
+    "authorization_grant_type",
+    "well_known_sufix",
+    "discovery_endpoint",
+    "no_discovery",
+    "no_pkce",
+    ...endpointNames
+];

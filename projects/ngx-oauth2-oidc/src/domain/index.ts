@@ -1,18 +1,18 @@
-export { IOAuth2Config, oauth2Config } from "./model/IOAuth2Config";
+export { IOAuth2Config, configSections } from "./model/IOAuth2Config";
 export { IJwk } from "./model/IJwk";
 export { IOAuth2Metadata } from "./model/IOAuth2Metadata";
 
 export {
-    IOAuth2Parameters, parameterNames, authorization_response_parameter,
-    token_response_parameter, string_array_parameter,
-    number_parameter, url_parameter
+    IOAUth2VerifyToken as IOAUth2IdTokenVerification,
+    IOAuth2Parameters, endpointParameters, endpointNames,
+    string_array_parameter, number_parameter, url_parameter
 } from "./model/IOAuth2Parameters";
 
 export {
-    // customParameterName,
-    // parameterName,
+    authorithationGrantValues,
+    authorithationGrantType as authorithationGrandType,
     parameterType,
-    customParameters,
-    oauth2Configuration, // Internal configuration object type
+    customParametersType,
     IOAuth2Configuration, // initial external configuration object type
+    configurationOptions,
 } from "./model/IOAuth2Configuration";

@@ -1,3 +1,4 @@
+import { IOAuth2Config } from "../domain";
 import { debugFn } from "../utils";
 
 /**
@@ -6,14 +7,21 @@ import { debugFn } from "../utils";
  * @param name Name of the session storage key. Internally is prefixed by "oauth2_"
  * @param val New value. If null or empty string, the item is removed.
  */
-export const setStore = (name: string, val: unknown = null) => {
+export const setStore = (name: string, value: unknown = null) => {
     debugFn("prv", "SET_STORE", name);
 
     const sto = sessionStorage;
 
+    const val = JSON.parse(JSON.stringify(value));
+
+    if (name == "config" && !!value) {
+        delete (val as IOAuth2Config)?.parameters?.code;
+        delete (val as IOAuth2Config)?.parameters?.client_secret;
+    }
+
     name = `oauth2_${name}`;
     if (val == null || val === "") sto.removeItem(name);
-    else sto.setItem(name, JSON.stringify(val));
+    else sto.setItem(name, JSON.stringify(val))
 };
 
 /**

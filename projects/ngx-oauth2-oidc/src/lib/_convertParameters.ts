@@ -1,4 +1,4 @@
-import { IOAuth2Config, IOAuth2Parameters, number_parameter, string_array_parameter, url_parameter } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters, customParametersType, number_parameter, string_array_parameter, url_parameter } from "../domain";
 import { setStore } from "./_store";
 
 /**
@@ -10,7 +10,7 @@ import { setStore } from "./_store";
  */
 export const convertParameters = (obj: {[key: string]: string}, config: IOAuth2Config) => {
 
-    const newObj = <IOAuth2Parameters>{};
+    const newObj = <customParametersType>{};//<IOAuth2Parameters>{};
 
     // TODO: test number and boolean conversion
     for (const key in obj) {
@@ -18,14 +18,18 @@ export const convertParameters = (obj: {[key: string]: string}, config: IOAuth2C
         const isArray = string_array_parameter.find(v => v == key);
         const isNumber = number_parameter.find(v => v == key);
         const isUrl = url_parameter.find(v => v == key);
-        const newValue =
-            isArray ? value.split(' ')
-            : isNumber ? JSON.parse(value) as number
-            : isUrl ? value
+        const newValue = isArray
+            ? value.split(" ")
+            : isNumber
+            ? (JSON.parse(value) as number)
+            : isUrl
+            ? value
             : value;
 
-        const newKey =  key as keyof IOAuth2Parameters;
-        (newObj[newKey] as unknown) = newValue
+        // const newKey = key as keyof IOAuth2Parameters;
+        // The code is not saved in the sessionStorage, but in the
+        //      internal configuration of the service.
+        /*if (key != "code")*/ (newObj[key] as unknown) = newValue;
     }
 
     config.parameters = {
@@ -34,5 +38,6 @@ export const convertParameters = (obj: {[key: string]: string}, config: IOAuth2C
     };
 
     setStore("config", config);
-    return newObj
+
+    return newObj as IOAuth2Parameters
 }

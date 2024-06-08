@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, Pipe, PipeTransform, computed, effect, inject, signal, type OnInit } from "@angular/core";
-import { Oauth2Service, IOAuth2Config } from "ngx-oauth2-oidc";
+import { ChangeDetectionStrategy, Component, Pipe, PipeTransform, computed, effect, inject, signal, type OnInit } from "@angular/core";
+import { Oauth2Service, IOAuth2Config, authorithationGrandType } from "ngx-oauth2-oidc";
 import webAppConfig  from "../../../public/google-web-app.config.json";
 import desktopConfig from "../../../public/google-desktop.config.json";
 import { FormsModule } from "@angular/forms"
-import { JsonPipe } from "@angular/common";
+import { SlicePipe, NgIf } from "@angular/common";
+import { HttpErrorResponse } from "@angular/common/http";
 
 @Pipe({
     name: "json4",
@@ -11,6 +12,19 @@ import { JsonPipe } from "@angular/common";
 })
 export class Json4Pipe implements PipeTransform {
     transform(val: any) {
+        const ordered = (unordered?: object | null) => Object.keys(unordered ?? {})
+            .sort()
+            .reduce((obj, key) => {
+                const newKey = key as keyof typeof obj;
+                //if (!unordered) return obj;
+                (obj[newKey] as unknown) = unordered![newKey];
+                return obj;
+            }, {});
+        if (val) {
+            const newVal = val as IOAuth2Config;
+            const parms = ordered(newVal.parameters);
+            val.parameters = parms
+        }
         return JSON.stringify(val, null, 4);
     }
 }
@@ -18,7 +32,7 @@ export class Json4Pipe implements PipeTransform {
 @Component({
     standalone: true,
     templateUrl: "login.component.html",
-    imports: [FormsModule, Json4Pipe],
+    imports: [FormsModule, SlicePipe, Json4Pipe, NgIf],
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: { class: "container-fluid row mt-3" },
     styles: [
@@ -27,18 +41,21 @@ export class Json4Pipe implements PipeTransform {
     ],
 })
 export class LoginComponent implements OnInit {
-    private readonly oauth2Svc = inject(Oauth2Service);
+    private readonly oauth2 = inject(Oauth2Service);
     private _working = signal(false);
     private count = 0;
     protected readonly working = this._working.asReadonly();
-    protected readonly api = signal("web");
-    protected readonly grant = signal("code");
-    protected readonly code = signal("code");
-    protected readonly token = signal(false);
-    protected readonly id_token = signal(false);
+    protected readonly api = signal("google-web-app");
     protected readonly client_id = signal("");
     protected readonly client_secret = signal("");
+    protected readonly grant = signal("code");
+    protected readonly code = signal(true);
+    protected readonly token = signal(false);
+    protected readonly id_token = signal(false);
     protected readonly config = signal(<IOAuth2Config>{});
+    protected readonly textModified = signal(false);
+    protected readonly response = signal<[string, any][]>([]);
+    protected readonly idTokenVerification = signal<[string, any][]>([]);
     protected readonly response_type = computed(() => {
         const val = [];
         this.code() && val.push("code");
@@ -46,6 +63,7 @@ export class LoginComponent implements OnInit {
         this.id_token() && val.push("id_token");
         return val.length ? val.join(" ") : "none";
     });
+    protected readonly configError = signal("");
     private effect = effect(
         () => {
             this.count++;
@@ -55,31 +73,62 @@ export class LoginComponent implements OnInit {
             }
 
             const config = JSON.parse(
-                sessionStorage.getItem("sample_config") ?? "{}"
+                sessionStorage.getItem("cf") ?? "{}"
             ) as IOAuth2Config;
-            const tag = config?.configuration?.tag;
-            const client_id = config?.parameters?.client_id;
-            const client_secret = config?.parameters?.client_secret;
+            const oldApi = config?.configuration?.tag;
+            const oldGrant = config?.configuration?.authorization_grant_type;
 
-            const cfg = (this.api() == "web" ? webAppConfig : desktopConfig) as IOAuth2Config;
-            const resTyp = this.response_type();
-            const id_token = this.id_token();
+            // API CREDENTIALS
 
-            const newCfg = tag == cfg["configuration"].tag ? config! : (cfg as IOAuth2Config);
-            // if (tag != cfg.tag) {
-            //     this.client_id.set(cfg.parameters.client_id);
-            //     this.client_secret.set("")
-            // }
-            //const cte = this.client_id();
+            const api = this.api();
+            const newCfg = (
+                oldApi == api
+                    ? config
+                    : api == "google-web-app"
+                    ? webAppConfig
+                    : api == "google-desktop"
+                    ? desktopConfig
+                    : config // custom
+            ) as IOAuth2Config;
+            newCfg.configuration.tag = api;
 
-            newCfg.parameters.response_type = resTyp;
-            if (id_token) {
-                newCfg.configuration.authorization_params!.push("nonce");
+            if (oldApi != api) this.textModified.set(false);
+            // CUSTOM CREDENTIALS
+
+            const client_id = this.client_id();
+            const client_secret = this.client_secret();
+
+            if (api == "custom") {
+                newCfg.parameters.client_id = client_id;
+                newCfg.parameters.client_secret = client_secret;
             }
+
+            // AUTHORIZATION GRANT TYPE
+
+            const grant = this.grant() as authorithationGrandType;
+
+            if (oldGrant == grant) null;
+            else if (grant == "code") {
+                this.code.set(true);
+                this.token.set(false);
+                this.id_token.set(false);
+            } else if (grant == "implicit") {
+                this.code.set(false);
+                this.token.set(true);
+                this.id_token.set(false);
+            }
+            newCfg.configuration.authorization_grant_type = grant;
+
+            // RESPONSE TYPE
+
+            // if (id_token) {
+            //     newCfg.configuration.authorization_params!.push("nonce");
+            // }
+
             //if (resTyp == "none") cfg.configuration.authorization_params["include_granted_scopes"];
-            //console.log("CFG", cfg);
-            sessionStorage.setItem("sample_config", JSON.stringify(newCfg));
-            this.config.set(newCfg)
+
+            sessionStorage.setItem("cf", JSON.stringify(newCfg));
+            this.config.set(newCfg);
             //console.log("RESTYP", rt);
         },
         { allowSignalWrites: true }
@@ -88,12 +137,18 @@ export class LoginComponent implements OnInit {
     async ngOnInit(): Promise<void> {
         this.getParameters();
 
-        const params = await this.oauth2Svc.interceptor();
-        const code = params["code"];
+        const params = await this.oauth2.interceptor();
+        // The code is not saved in the sessionStorage, but in the
+        //      internal configuration of the service. If the service
+        //      is destroyed (for example, by redirecting the web page),
+        //      you should save it somewhere.
+        // const code = params["code"];
         const id_token = params["id_token"];
 
-        console.log("PARAMS", params);
-        if (code) {
+        console.log("PARAMS", params, window.location);
+        this.response.set(Object.entries(params));
+
+        /* if (code) {
             try {
                 // const tag = this.oauth2Service.config?.tag ?? "";
                 // const id = this.oauth2Service.config?.parameters.client_id
@@ -121,57 +176,79 @@ export class LoginComponent implements OnInit {
             } catch (err) {
                 console.error(err);
             }
-        }
+        } */
 
+        // Some flows respond to the redirect with an id_token
         if (id_token) {
-            const resp3 = await this.oauth2Svc.id_token_verify();
-
-            console.log("ID_TOKEN", resp3);
+            try {
+                const resp = await this.oauth2.verify_token();
+                this.idTokenVerification.set(Object.entries(resp));
+            } catch (err) {
+                console.log(
+                    "ID_TOKEN ERR",
+                    (err as Error).name,
+                    (err as Error).message
+                );
+                this.idTokenVerification.set([
+                    [(err as Error).name, (err as Error).message],
+                ]);
+            }
         }
         window.history.replaceState({}, "", window.location.pathname);
     }
 
     protected setConfig = (s: string) => {
-        const obj = JSON.parse(s);
-        sessionStorage.setItem("sample_config", JSON.stringify(obj));
-        this.config.set(obj);
+        try {
+            const obj = JSON.parse(s);
+            this.configError.set("");
+            console.log("SETCONFIG", obj);
+            sessionStorage.setItem("cf", JSON.stringify(obj));
+            this.config.set(obj);
+            this.textModified.set(true);
+        } catch (err) {
+            if (err instanceof SyntaxError) this.configError.set(err.message);
+            console.log("SETCONFIG ERR", err);
+        }
     };
 
     private saveParameters = (): void => {
         const api = this.api();
+        const client_id = this.client_id();
+        const client_secret = this.client_secret();
         const grant = this.grant();
         const code = this.code();
         const token = this.token();
         const id_token = this.id_token();
-        const client_id = this.client_id();
-        const client_secret = this.client_secret();
+        const textModified = this.textModified();
 
         sessionStorage.setItem(
-            "sample_parameters",
+            "pr",
             JSON.stringify({
                 api,
+                client_id,
+                client_secret,
                 grant,
                 code,
                 token,
                 id_token,
-                client_id,
-                client_secret,
+                textModified,
             })
         );
     };
 
     private getParameters = () => {
-        const sample = sessionStorage.getItem("sample_parameters");
+        const sample = sessionStorage.getItem("pr");
 
         if (sample) {
             const object = JSON.parse(sample);
             this.api.set(object.api);
+            this.client_id.set(object.client_id);
+            this.client_secret.set(object.client_secret);
             this.grant.set(object.grant);
             this.code.set(object.code);
             this.token.set(object.token);
             this.id_token.set(object.id_token);
-            this.client_id.set(object.client_id);
-            this.client_secret.set(object.client_secret);
+            this.textModified.set(object.textModified);
         }
     };
 
@@ -180,14 +257,57 @@ export class LoginComponent implements OnInit {
         this._working.set(true);
 
         this.saveParameters();
+        this.response.set([]);
+        this.idTokenVerification.set([]);
 
         try {
-            //this.oauth2Svc.setConfig(oauth2GoogleConfig);
-            this.oauth2Svc.setConfig(this.config());
-            await this.oauth2Svc.fetchDiscoveryDoc();
-            await this.oauth2Svc.authorization();
+            this.oauth2.setConfig(this.config());
+
+            await this.oauth2.fetchDiscoveryDoc();
+            if (this.oauth2.config?.configuration.authorization_grant_type == "implicit")
+                await this.oauth2.token();
+            else
+                await this.oauth2.authorization();
         } catch (err) {
             console.error(err);
+        } finally {
+            this._working.set(false);
+        }
+    };
+
+    protected accessToken = async () => {
+        if (this.working()) return;
+        this._working.set(true);
+
+        this.response.set([]);
+        this.idTokenVerification.set([]);
+
+        try {
+            const res = await this.oauth2.token({
+                client_secret: this.client_secret(),
+            });
+            this.response.set(Object.entries(res ?? {}));
+
+            // Some flows respond with an id_token
+
+            if (res?.id_token) {
+                const resp = await this.oauth2.verify_token();
+                this.idTokenVerification.set(Object.entries(resp));
+            }
+        } catch (err) {
+            console.error(err);
+
+            if (this.response().length) { // Token request Ok. Verification error
+                console.log(err as Error)
+                this.idTokenVerification.set([
+                    [(err as Error).name, (err as Error).message],
+                ]);
+            } else { // Token request error
+                const error = err as HttpErrorResponse;
+                this.response.set([
+                    [error.error.error, error.error.error_description],
+                ]);
+            }
         } finally {
             this._working.set(false);
         }

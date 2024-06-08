@@ -1,6 +1,22 @@
-type URL = string;
+import { urlType } from "./IOAuth2Config";
 
-export interface IOAuth2Parameters {
+// jose JWTVerifyOptions
+export interface IOAUth2VerifyToken {
+    algorithms?: string[]; // JWT Header "alg"
+    clockTolerance?: string | number;
+    crit?: { [key: string]: boolean };
+    currentDate?: Date;
+    id_token?: string; // JWT
+    id_token_verification_audience?: string | string[]; // JWT "aud" claim. Parm: "client_id"
+        client_id?: string; // Default value for "audience"
+    issuer?: string | string[]; // JWT "iss" claim. Meta: "issuer"
+    maxTokenAge?: string | number; // JWT "iat" claim tolerance
+    requiredClaims?: string[];
+    subject?: string; // JWT "sub" claim. Resource provider internal user ID.
+    typ?: string; // JWT Header "typ"
+}
+
+export interface IOAuth2Parameters extends IOAUth2VerifyToken{
     access_token?: string; // authorization response, token response	IETF	[RFC6749]
     ace_client_recipientid?: unknown; // client-rs request	IETF	[RFC9203]
     ace_profile?: unknown; // token response IETF	[RFC9200, Sections 5.8.2, 5.8.4.3]
@@ -17,7 +33,7 @@ export interface IOAuth2Parameters {
     claims_locales?: unknown; // authorization request	[OpenID_Foundation_Artifact_Binding_Working_Group]	[OpenID Connect Core 1.0 incorporating errata set 1]
     client_assertion?: unknown; // token request	IESG	[RFC7521]
     client_assertion_type?: unknown; // token request	IESG	[RFC7521]
-    client_id: string; // authorization request, token request	IETF	[RFC6749]
+    client_id?: string; // authorization request, token request	IETF	[RFC6749]
     client_secret?: string; // token request	IETF	[RFC6749]
     cnf?: unknown; // token response	IETF	[RFC9201, Section 5]
     code?: string; // authorization response, token request	IETF	[RFC6749]  The code is always empty, it should never be stored. If needed, the service gets its value as a parameter.
@@ -51,7 +67,7 @@ export interface IOAuth2Parameters {
     pct?: unknown; // client request, token endpoint	[Kantara_UMA_WG]	[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]
     // pct	authorization server response, token endpoint	[Kantara_UMA_WG]	[UMA 2.0 Grant for OAuth 2.0, Section 3.3.5]
     prompt?: string[]; // authorization request	[OpenID_Foundation_Artifact_Binding_Working_Group]	[OpenID Connect Core 1.0 incorporating errata set 1]
-    redirect_uri: URL; // authorization request, token request	IETF	[RFC6749]
+    redirect_uri?: urlType; // authorization request, token request	IETF	[RFC6749]
     refresh_token?: string; // token request, token response	IETF	[RFC6749]
     registration?: unknown; // authorization request	[OpenID_Foundation_Artifact_Binding_Working_Group]	[OpenID Connect Core 1.0 incorporating errata set 1]
     req_cnf?: unknown; // token request	IETF	[RFC9201, Section 5]
@@ -60,10 +76,10 @@ export interface IOAuth2Parameters {
     requested_token_type?: unknown; // token request	IESG	[RFC8693, Section 2.1]
     resource?: unknown; // authorization request, token request	IESG	[RFC8707]
     response_mode?: unknown; // Authorization Request	[OpenID_Foundation_Artifact_Binding_Working_Group]	[OAuth 2.0 Multiple Response Type Encoding Practices]
-    response_type?: string; // authorization request	IETF	[RFC6749]
+    response_type?: string[]; // authorization request	IETF	[RFC6749]
     rpt?: unknown; // client request, token endpoint	[Kantara_UMA_WG]	[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]
     rs_cnf?: unknown; // token response	IETF	[RFC9201, Section 5]
-    scope: string[]; // authorization request, authorization response, token request, token response	IETF	[RFC6749]
+    scope?: string[]; // authorization request, authorization response, token request, token response	IETF	[RFC6749]
     session_state?: unknown; // authorization response, access token response	[OpenID_Foundation_Artifact_Binding_Working_Group]	[OpenID Connect Session Management 1.0, Section 2]
     sign_info?: unknown; // client-rs request, rs-client response	IETF	[RFC-ietf-ace-key-groupcomm-18]
     state?: string; // authorization request, authorization response	IETF	[RFC6749]
@@ -79,30 +95,95 @@ export interface IOAuth2Parameters {
     vtr?: unknown; // authorization request, token request	IESG	[RFC8485]
 }
 
-export const parameterNames = {
-    authorization:  ["acr_values", "aud", "authorization_details"
-        , "claims", "claims_locales", "client_id", "code_challenge", "code_challenge_method"
-        , "display", "dpop_jkt", "exp", "iat", "id_token_hint", "iss", "jti", "login_hint"
-        , "max_age", "nbf", "nonce", "prompt", "redirect_uri", "registration", "request"
-        , "request_uri", "resource", "response_mode", "response_type", "scope", "state"
-        , "sub", "ui_locales", "vtr"],
-    token: ["actor_token", "actor_token_type", "assertion"
-        , "audience", "authorization_details", "client_assertion", "client_assertion_type"
-        , "client_id", "client_secret", "code", "code_verifier", "device_code", "grant_type"
-        , "password", "redirect_uri", "refresh_token", "req_cnf", "requested_token_type"
-        , "resource", "scope", "subject_token", "subject_token_type", "username", "vtr"],
-    refresh: ["grant_type", "refresh_token", "scope"],
-    revocation: ["token_type_hint", "access_token", "refresh_token"]
+export const endpointParameters = {
+    authorization: [
+        "acr_values",
+        "aud",
+        "authorization_details",
+        "claims",
+        "claims_locales",
+        "client_id",
+        "code_challenge",
+        "code_challenge_method",
+        "display",
+        "dpop_jkt",
+        "exp",
+        "iat",
+        "id_token_hint",
+        "iss",
+        "jti",
+        "login_hint",
+        "max_age",
+        "nbf",
+        "nonce",
+        "prompt",
+        "redirect_uri",
+        "registration",
+        "request",
+        "request_uri",
+        "resource",
+        "response_mode",
+        "response_type",
+        "scope",
+        "state",
+        "sub",
+        "ui_locales",
+        "vtr",
+    ],
+    token: [
+        "actor_token",
+        "actor_token_type",
+        "assertion",
+        "audience",
+        "authorization_details",
+        "client_assertion",
+        "client_assertion_type",
+        "client_id",
+        "client_secret",
+        "code",
+        "code_verifier",
+        "device_code",
+        "grant_type",
+        "password",
+        "redirect_uri",
+        "refresh_token",
+        "req_cnf",
+        "requested_token_type",
+        "resource",
+        "scope",
+        "subject_token",
+        "subject_token_type",
+        "username",
+        "vtr",
+    ],
+    //refresh: ["grant_type", "refresh_token", "scope"],
+    revocation: ["token_type_hint", "access_token", "refresh_token"],
+    verify_token: [
+        "algorithms",
+        "clockTolerance",
+        "crit",
+        "currentDate",
+        "id_token",
+        "id_token_verification_audience",
+            "client_id",
+        "issuer",
+        "maxTokenAge",
+        "requiredClaims",
+        "subject",
+        "typ"
+    ]
 };
 
-export type authorization_response_parameter = "access_token" | "code" | "error"
-    | "error_description" | "error_uri" | "expires_in" | "id_token" | "iss" | "scope"
-    | "session_state" | "state" | "token_type";
+export const endpointNames = Object.keys(endpointParameters) as (keyof typeof endpointParameters)[];
 
-export type token_response_parameter = "access_token" | "ace_profile" | "authorization_details"
-    | "cnf" | "error" | "error_description" | "error_uri" | "expires_in" | "id_token"
-    | "issued_token_type" | "nfv_token" | "refresh_token" | "rs_cnf" | "scope" | "session_state"
-    | "token_type";
+// export type authorization_response_parameter = "access_token" | "code" | "error"
+//     | "error_description" | "error_uri" | "expires_in" | "id_token" | "iss" | "scope"
+//     | "session_state" | "state" | "token_type";
+
+// export type token_response_parameter = "access_token" | "ace_profile" | "authorization_details"
+//     | "cnf" | "error" | "error_description" | "error_uri" | "expires_in" | "id_token"
+//     | "issued_token_type" | "nfv_token" | "refresh_token" | "rs_cnf" | "scope" | "session_state"
+//     | "token_type";
 
 export const string_array_parameter = ["prompt", "scope"] as const;
 export const url_parameter = ["redirect_uri"] as const;

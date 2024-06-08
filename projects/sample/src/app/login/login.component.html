@@ -1,48 +1,71 @@
-<div class="col-5 col-sm-4">
+<div class="col-12">
+    <button (click)="this.google()">Login with Google</button>
+    <button (click)="this.accessToken()">Get access token</button>
+    <div class="my-3 border border-2 border-dark">
+        <label class="fs-3 fw-bolder">RESPONSE</label>
+        @for (parm of response(); track $index; let idx = $index){
+        <div class="row"><b style="overflow-wrap: anywhere;" class="col-6 col-sm-3 text-wrap">{{parm[0]}}</b><span class="col-6 col-sm-9 text-wrap text-break" style="overflow-wrap: anywhere;">{{(parm[1]?.length > 250) ? (parm[1] | slice:0:250)+"..." : parm[1]}}</span></div>
+        }
+    </div>
+    <div *ngIf="idTokenVerification().length" class="my-3 border border-2 border-dark" >
+        <label class="fs-3 fw-bolder">ID_TOKEN VERIFICATION</label>
+        @for (parm of idTokenVerification(); track $index; let idx = $index){
+        <div class="row"><b class="col-3">{{parm[0]}}</b><span class="col-9 text-wrap text-break">{{(parm[1]?.length > 250) ? (parm[1] | slice:0:250)+"..." : parm[1]}}</span></div>
+        }
+    </div>
+</div>
+<div class="col-sm-5">
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
         <legend class="float-none text-center w-auto px-3">API credentials</legend>
-        <label>
-            <input type="radio" name="api" value="web" [(ngModel)]="api"> Web application
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="api" value="google-web-app" [(ngModel)]="api"> Google: Web application
         </label>
-        <label>
-            <input type="radio" name="api" value="desk" [(ngModel)]="api"> Desktop
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="api" value="google-desktop" [(ngModel)]="api"> Google: Desktop
         </label>
-    </fieldset>
-    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">Grant type</legend>
-        <label>
-            <input type="radio" name="grant" value="code" [(ngModel)]="grant"> Authorization code
-        </label>
-        <label>
-            <input type="radio" name="grant" value="implicit" [(ngModel)]="api"> Implicit
-        </label>
-        <label>
-            <input type="radio" name="grant" value="password" disabled [(ngModel)]="api"> Resource Owner Password Credentials
-        </label>
-        <label>
-            <input type="radio" name="grant" value="client" disabled [(ngModel)]="api"> Client Credentials
-        </label>
-        <label>
-            <input type="radio" name="grant" value="extension" disabled [(ngModel)]="api"> Extension Grants
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="api" value="custom" [(ngModel)]="api"> Custom credentials
         </label>
     </fieldset>
+    <fieldset *ngIf="api() == 'custom'" class="border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">Custom credentials</legend>
+        <input class="mb-2" type="text" placeholder="client_id" [(ngModel)]="client_id">
+        <input type="text" placeholder="client_secret" [(ngModel)]="client_secret">
+    </fieldset>
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">client_id</legend>
-        <input type="text" [(ngModel)]="client_id">
+        <legend class="float-none text-center w-auto px-3">Authorization grant type</legend>
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="grant" value="code" [(ngModel)]="grant"> Authorization code
+        </label>
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="grant" value="implicit" [(ngModel)]="grant"> Implicit
+        </label>
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="grant" value="password" disabled [(ngModel)]="grant">Resource Owner Password Credentials
+        </label>
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="grant" value="client" disabled [(ngModel)]="grant"> Client Credentials
+        </label>
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="radio" name="grant" value="extension" disabled [(ngModel)]="grant"> Extension Grants
+        </label>
     </fieldset>
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
         <legend class="float-none text-center w-auto px-3">Response type</legend>
-        <label>
-            <input type="checkbox" value="code" [(ngModel)]="code"> code
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="checkbox" value="true" [disabled]="grant() == 'code' || grant() == 'implicit'" [(ngModel)]="code"> code
         </label>
-        <label>
-            <input type="checkbox" [(ngModel)]="token"> token
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="checkbox" value="true" [(ngModel)]="token"> token
         </label>
-        <label>
-            <input type="checkbox" [(ngModel)]="id_token"> id_token
+        <label class="d-flex flex-row align-items-start mb-2">
+            <input class="me-2" type="checkbox" value="id_token" [(ngModel)]="id_token"> id_token
         </label>
     </fieldset>
-    <button (click)="this.google()">Login with Google</button>
 </div>
-<textarea class="font-monospace col" [ngModel]="config() | json4" (ngModelChange)="setConfig($event)"></textarea>
+<div class="d-flex flex-column font-monospace col-sm-7" style="min-height: 75vh">
+    <label style="z-index: 10" class="text-end me-5 mb-n3 bg-danger text-white ms-auto px-2" [style.visibility]="textModified() ? 'visible' : 'hidden'">Modified by hand</label>
+    <label class="bg-danger-subtle mt-3">{{configError()}}</label>
+    <textarea class="h-100" [ngModel]="config() | json4" (ngModelChange)="setConfig($event)" spellcheck="false"></textarea>
+</div>
 

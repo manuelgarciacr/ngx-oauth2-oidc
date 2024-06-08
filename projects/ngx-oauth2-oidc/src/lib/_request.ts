@@ -1,77 +1,68 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from "@angular/common/http";
-import { IOAuth2Config, IOAuth2Metadata, IOAuth2Parameters, customParameters, oauth2Configuration } from "../domain";
-import { debugFn, secureRandom } from "../utils";
+import { IOAUth2IdTokenVerification, IOAuth2Config, IOAuth2Configuration, IOAuth2Metadata, IOAuth2Parameters, customParametersType } from "../domain";
+import { debugFn, secureRandom, toLowerCaseProperties } from "../utils";
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
 import { setStore } from "./_store";
 import { httpRequest } from "./_httpRequest";
 
 export const request = async <T>(
-    type: string,
+    endpoint: keyof IOAuth2Configuration,
     method: string,
     request: string,
-    config: IOAuth2Config | null,
+    url: string,
     http: HttpClient,
-    customParms?: customParameters
+    config: IOAuth2Config,
+    options = <customParametersType>{} //: Partial<IOAuth2Parameters> = <IOAuth2Parameters>{}
 ) => {
-    debugFn("prv", "REQUEST", type, customParms);
-    const configuration = config?.configuration as oauth2Configuration;
-    const endpointType = type == "refresh" ? "token" : type;
-    const configParamsKey = (type + "_params") as keyof oauth2Configuration;
-    const configCustomKey = (type + "_custom") as keyof oauth2Configuration;
-    const metadataKey = (endpointType + "_endpoint") as keyof IOAuth2Metadata;
-    const request_params =
-        (configuration[configParamsKey] as (keyof IOAuth2Parameters)[]) ??
-        [];
-    const req_custom = configuration[configCustomKey] as customParameters;
-    const request_custom = {
-        ...(req_custom ?? {}),
-        ...(customParms ?? {}),
-    };
-    const endpoint = (config?.metadata[metadataKey] as string) ?? "";
+    debugFn("prv", "REQUEST", endpoint, config, options);
+    // const configuration = config?.configuration as oauth2Configuration;
+    // const endpointType = endpoint == "refresh" ? "token" : endpoint;
+    // const configParamsKey = (endpoint + "_params") as keyof oauth2Configuration;
+    // const configCustomKey = (endpoint + "_custom") as keyof oauth2Configuration;
+    // const metadataKey = (endpointType + "_endpoint") as keyof IOAuth2Metadata;
+    // const request_params =
+    //     (configuration[configParamsKey] as (keyof IOAuth2Parameters)[]) ??
+    //     [];
+    // const req_custom = configuration[configCustomKey] as customParameters;
+    // const request_custom = {
+    //     ...(req_custom ?? {}),
+    //     ...(customParms ?? {}),
+    // };
+    // const endpointUrl = (config?.metadata[metadataKey] as string) ?? "";
 
-    if (!config) throw `oauth2 ${type}: no configuration defined`;
+    //if (!config) throw `oauth2 ${endpoint}: no configuration defined`;
 
-    if (!endpoint) throw `oauth2 ${type}: missing endpoint`;
+    if (!url) throw `oauth2 ${endpoint}: missing endpoint`;
 
-    const parameters = config.parameters ?? <IOAuth2Parameters>{};
+    // const parameters = config?.parameters ?? <IOAuth2Parameters>{};
+    // const endpointConfig = config.configuration[
+    //     endpoint
+    // ] as customParametersType ?? {};
     let params = new HttpParams({ fromObject: {} });
 
-    for await (const key of request_params) {
-        if (key == "state") parameters.state = secureRandom();
+    // for (const key in endpointConfig) {
+    //     let v = endpointConfig[key]; // configuration value
+    //     Array.isArray(v) && (v = v.join(" "));
+    //     if (v) params = params.set(key, v.toString());
+    // }
 
-        if (key == "nonce") parameters.nonce = secureRandom();
-
-        const isChallenge =
-            key == "code_challenge" || key == "code_challenge_method";
-
-        if (isChallenge && !parameters.code_challenge) {
-            const method =
-                config.parameters.code_challenge_method ?? "plain";
-            const { code_verifier } = await pkceChallenge(128);
-            parameters.code_challenge =
-                method.toLowerCase() == "plain"
-                    ? code_verifier
-                    : await generateChallenge(code_verifier);
-            parameters.code_challenge_method = method;
-            parameters.code_verifier = code_verifier;
-        }
-
-        let v = parameters![key]; // configuration value
+    for (const key in options) {
+        let v = options![key as keyof typeof options]; // configuration value
         Array.isArray(v) && (v = v.join(" "));
         if (v) params = params.set(key, v.toString());
     }
 
-    if (request_params.length) {
-        config.parameters = parameters;
-        setStore("config", config);
-    }
+    // if (Object.keys(parameters).length) {
+    //     config.parameters = parameters;
+    //     setStore("config", config);
+    // }
 
-    for (const key in request_custom) {
-        let v = request_custom[key];
+    // for (const key in request_custom) {
+    //     let v = request_custom[key];
 
-        Array.isArray(v) && (v = v.join(" "));
-        if (v) params = params.set(key, v.toString());
-    }
+    //     Array.isArray(v) && (v = v.join(" "));
+    //     if (v) params = params.set(key, v.toString());
+    // }
 
     const headers = new HttpHeaders({
         Accept: "application/json",
@@ -79,7 +70,7 @@ export const request = async <T>(
     });
 
     if (request == "href") {
-        const req = new HttpRequest<T>(method, endpoint, null, {
+        const req = new HttpRequest<T>(method, url, null, {
             //headers,
             params,
         });
@@ -88,15 +79,15 @@ export const request = async <T>(
     } else {
         const req =
             method.toUpperCase() == "POST"
-                ? http.post<T>(endpoint, params, {
-                        headers,
-                        observe: "body",
-                    })
-                : http.get<T>(endpoint, {
-                        headers,
-                        params,
-                        observe: "body",
-                    });
+                ? http.post<T>(url, params, {
+                      headers,
+                      observe: "body",
+                  })
+                : http.get<T>(url, {
+                      headers,
+                      params,
+                      observe: "body",
+                  });
         return httpRequest(req, config!);
     }
 };
