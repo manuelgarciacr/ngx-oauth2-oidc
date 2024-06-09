@@ -1,27 +1,37 @@
-# Libraries
+[![License](https://img.shields.io/github/license/manuelgarciacr/ngx-oauth2-oidc)](./LICENSE)
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.0.1.
+[//]: # "
+![Release](https://img.shields.io/npm/v/jwks-rsa)
+[![Codecov](https://img.shields.io/codecov/c/github/auth0/node-jwks-rsa)](https://codecov.io/gh/auth0/node-jwks-rsa)
+![Downloads](https://img.shields.io/npm/dw/jwks-rsa)
+[![License](https://img.shields.io/:license-mit-blue.svg?style=flat)](https://opensource.org/licenses/MIT)
+![CircleCI](https://img.shields.io/circleci/build/github/auth0/node-jwks-rsa)"
 
-## Development server
+# Table of Contents
+- :eyes: [Overview](#overview)
+- :rocket: [Getting Started](./docs/getting_started.md)
+- :bookmark_tabs: [Configuration object](#configuration-object)
+    - [Configuration section](#configuration-section)
+    - [Metadata section](#metadata-section)
+    - [Parameters section](#parameters-section)
+- :rocket: [Getting Started](./docs/getting_started.md)
+- [Fourth Example](#fourth-examplehttpwwwfourthexamplecom)
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+<div id="overview"></div>
 
-## Code scaffolding
+## :eyes: Overview
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+This library provides a very easy-to-use service for authentication and authorization via the OAuth 2.0 OIDC protocol.
 
-## Build
+You can use a configuration object or call the different endpoints directly by passing an object with the necessary parameters.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+By default, the configuration object is saved within the session storage. [( :eye: no_storage)](#no_storage)
 
-## Running unit tests
+The parameters [client_secret](#client_secret) and [code](#code), although they may be included in the configuration object, will not be saved to the storage by the service.
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+<div id="configuration-object"></div>
 
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## :bookmark_tabs: Configuration object
+### Configuration section
+### Metadata section
+### Parameters section
