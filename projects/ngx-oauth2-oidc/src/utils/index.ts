@@ -5,4 +5,3 @@ export { isNull, notNull, isStrNull, notStrNull} from "./nullish";
 export { secureRandom } from "./secureRandom";
 export { toLowerCaseProperties } from "./toLowerCaseProperties";
 
-

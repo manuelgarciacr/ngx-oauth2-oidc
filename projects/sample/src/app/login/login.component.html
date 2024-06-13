@@ -1,10 +1,17 @@
 <div class="col-12">
     <button (click)="this.google()">Login with Google</button>
     <button (click)="this.accessToken()">Get access token</button>
-    <div class="my-3 border border-2 border-dark">
-        <label class="fs-3 fw-bolder">RESPONSE</label>
+    <div *ngIf="response().length" class="my-3 border border-2 border-dark">
+        <label class="fs-3 fw-bolder">AUTHORIZATION RESPONSE</label>
         @for (parm of response(); track $index; let idx = $index){
         <div class="row"><b style="overflow-wrap: anywhere;" class="col-6 col-sm-3 text-wrap">{{parm[0]}}</b><span class="col-6 col-sm-9 text-wrap text-break" style="overflow-wrap: anywhere;">{{(parm[1]?.length > 250) ? (parm[1] | slice:0:250)+"..." : parm[1]}}</span></div>
+        }
+    </div>
+    <div *ngIf="token_response().length" class="my-3 border border-2 border-dark">
+        <label class="fs-3 fw-bolder">TOKEN RESPONSE</label>
+        @for (parm of token_response(); track $index; let idx = $index){
+        <div class="row"><b class="col-3">{{parm[0]}}</b><span class="col-9 text-wrap text-break">{{(parm[1]?.length > 250)
+                ? (parm[1] | slice:0:250)+"..." : parm[1]}}</span></div>
         }
     </div>
     <div *ngIf="idTokenVerification().length" class="my-3 border border-2 border-dark" >

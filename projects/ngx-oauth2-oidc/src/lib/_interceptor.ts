@@ -23,19 +23,21 @@ export const _interceptor = (config: IOAuth2Config | null) => {
 
     if (!config) throw "oauth2 interceptor: no configuration defined";
 
-    const state = config.parameters.state;
+    const state = config.parameters?.state;
 
     if (state && state != params["state"])
         return Promise.reject("oauth2 interceptor: Ilegal state received");
 
     const newParams = convertParameters(params, config);
 
-    if (newParams["error"])
-        return Promise.reject(
-            `oauth2 interceptor: ${newParams["error"]} ${
-                newParams["error_description"] ?? ""
-            }`
-        );
+    // TODO: uncomment
+
+    // if (newParams["error"])
+    //     return Promise.reject(
+    //         `oauth2 interceptor: ${newParams["error"]} ${
+    //             newParams["error_description"] ?? ""
+    //         }`
+    //     );
 
     return Promise.resolve(newParams);
 };

@@ -5,8 +5,8 @@ import {
 } from "../domain";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
-import { getEndpointParameters } from "./_oauth2ConfigFactory";
 import { initConfig } from "./_initConfig";
+import { getParameters } from "./_getParameters";
 
 export const _token = async (
     http: HttpClient,
@@ -14,12 +14,12 @@ export const _token = async (
     options = <customParametersType>{}
 ) => {
     const config = initConfig(ioauth2Config);
-    const cfg = config.configuration;
-    const parms = getEndpointParameters("token", config);
-    const meta = config.metadata;
-    const grant = cfg.authorization_grant_type;
+    const cfg = config.configuration!;
+    const parms = getParameters("token", config);
+    const meta = config.metadata!;
+    const grant = cfg.authorization_grant;
 
-    const url = (options["url"] as string) ?? meta?.token_endpoint ?? "";
+    const url = (options["url"] as string) ?? meta.token_endpoint ?? "";
 
     if (!url)
         throw new Error(
@@ -28,7 +28,7 @@ export const _token = async (
         );
 
     const grant_type = (
-        options["grant_type"] ?? parms?.["grant_type"] ?? grant == "code"
+        options["grant_type"] ?? parms["grant_type"] ?? grant == "code"
             ? "authorization_code"
             : undefined
     ) as string | undefined;

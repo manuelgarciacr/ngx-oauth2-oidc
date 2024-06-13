@@ -1,8 +1,6 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from "@angular/common/http";
-import { IOAUth2IdTokenVerification, IOAuth2Config, IOAuth2Configuration, IOAuth2Metadata, IOAuth2Parameters, customParametersType } from "../domain";
-import { debugFn, secureRandom, toLowerCaseProperties } from "../utils";
-import pkceChallenge, { generateChallenge } from "pkce-challenge";
-import { setStore } from "./_store";
+import { IOAuth2Config, IOAuth2Configuration, customParametersType } from "../domain";
+import { debugFn } from "../utils";
 import { httpRequest } from "./_httpRequest";
 
 export const request = async <T>(

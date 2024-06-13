@@ -1,24 +1,19 @@
 import { IOAuth2Configuration, IOAuth2Metadata, IOAuth2Parameters } from "../index";
 
-/** URL type */
-export type urlType = string;
+/** Configuration object */
+const config = {
+    /** Configuration section. Configuration options and method parameters */
+    configuration: {} as IOAuth2Configuration,
 
-/** Internal configuration object type */
-// export type oauth2ConfigType = Modify<IOAuth2Config, {
-//     configuration: oauth2ConfigurationType,
-// }>;
+    /** Metadata section. Fields loaded from discovery document override configured values */
+    metadata: {} as IOAuth2Metadata,
 
-/** External configuration object type */
-export interface IOAuth2Config {
-    /** Configuration section. Configuration values */
-    configuration: IOAuth2Configuration;
+    /** Parameters section. OAuth parameters. Values ​​returned by endpoints override configured values */
+    parameters: {} as IOAuth2Parameters,
+};
 
-    /** Metadata section. Fields loaded from the discovery document */
-    metadata: IOAuth2Metadata;
+/** Configuration object type */
+export interface IOAuth2Config extends Partial<typeof config> {}
 
-    /** Parameters section. Oauth parameters */
-    parameters: IOAuth2Parameters;
-}
-
-export const configSections = ["configuration", "metadata", "parameters"];
-
+/** Configuration object sections */
+export const configSections = Object.keys(config) as (keyof typeof config)[];

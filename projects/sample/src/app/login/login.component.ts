@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, Pipe, PipeTransform, computed, effect, inject, signal, type OnInit } from "@angular/core";
-import { Oauth2Service, IOAuth2Config, authorithationGrandType } from "ngx-oauth2-oidc";
+import { Oauth2Service, IOAuth2Config, authorizationGrantType, IOAuth2Parameters } from "ngx-oauth2-oidc";
 import webAppConfig  from "../../../public/google-web-app.config.json";
 import desktopConfig from "../../../public/google-desktop.config.json";
 import { FormsModule } from "@angular/forms"
 import { SlicePipe, NgIf } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
+import { JOSEError } from "jose/errors";
 
 @Pipe({
     name: "json4",
@@ -55,6 +56,7 @@ export class LoginComponent implements OnInit {
     protected readonly config = signal(<IOAuth2Config>{});
     protected readonly textModified = signal(false);
     protected readonly response = signal<[string, any][]>([]);
+    protected readonly token_response = signal<[string, any][]>([]);
     protected readonly idTokenVerification = signal<[string, any][]>([]);
     protected readonly response_type = computed(() => {
         const val = [];
@@ -76,7 +78,7 @@ export class LoginComponent implements OnInit {
                 sessionStorage.getItem("cf") ?? "{}"
             ) as IOAuth2Config;
             const oldApi = config?.configuration?.tag;
-            const oldGrant = config?.configuration?.authorization_grant_type;
+            const oldGrant = config?.configuration?.authorization_grant;
 
             // API CREDENTIALS
 
@@ -88,9 +90,9 @@ export class LoginComponent implements OnInit {
                     ? webAppConfig
                     : api == "google-desktop"
                     ? desktopConfig
-                    : config // custom
-            ) as IOAuth2Config;
-            newCfg.configuration.tag = api;
+                    : config
+            ) as IOAuth2Config; // custom
+            newCfg.configuration!.tag = api;
 
             if (oldApi != api) this.textModified.set(false);
             // CUSTOM CREDENTIALS
@@ -99,13 +101,13 @@ export class LoginComponent implements OnInit {
             const client_secret = this.client_secret();
 
             if (api == "custom") {
-                newCfg.parameters.client_id = client_id;
-                newCfg.parameters.client_secret = client_secret;
+                newCfg.parameters!.client_id = client_id;
+                newCfg.parameters!.client_secret = client_secret;
             }
 
             // AUTHORIZATION GRANT TYPE
 
-            const grant = this.grant() as authorithationGrandType;
+            const grant = this.grant() as authorizationGrantType;
 
             if (oldGrant == grant) null;
             else if (grant == "code") {
@@ -117,7 +119,7 @@ export class LoginComponent implements OnInit {
                 this.token.set(true);
                 this.id_token.set(false);
             }
-            newCfg.configuration.authorization_grant_type = grant;
+            newCfg.configuration!.authorization_grant = grant;
 
             // RESPONSE TYPE
 
@@ -134,7 +136,7 @@ export class LoginComponent implements OnInit {
         { allowSignalWrites: true }
     );
 
-    async ngOnInit(): Promise<void> {
+    async ngOnInit() {
         this.getParameters();
 
         const params = await this.oauth2.interceptor();
@@ -142,8 +144,8 @@ export class LoginComponent implements OnInit {
         //      internal configuration of the service. If the service
         //      is destroyed (for example, by redirecting the web page),
         //      you should save it somewhere.
-        // const code = params["code"];
-        const id_token = params["id_token"];
+        const code = params.code;
+        const id_token = (params as IOAuth2Parameters & {id_token: string}).id_token;
 
         console.log("PARAMS", params, window.location);
         this.response.set(Object.entries(params));
@@ -178,6 +180,9 @@ export class LoginComponent implements OnInit {
             }
         } */
 
+        if (code) {
+            this.accessToken().catch()
+        }
         // Some flows respond to the redirect with an id_token
         if (id_token) {
             try {
@@ -258,16 +263,14 @@ export class LoginComponent implements OnInit {
 
         this.saveParameters();
         this.response.set([]);
+        this.token_response.set([]);
         this.idTokenVerification.set([]);
 
         try {
             this.oauth2.setConfig(this.config());
 
             await this.oauth2.fetchDiscoveryDoc();
-            if (this.oauth2.config?.configuration.authorization_grant_type == "implicit")
-                await this.oauth2.token();
-            else
-                await this.oauth2.authorization();
+            await this.oauth2.authorization();
         } catch (err) {
             console.error(err);
         } finally {
@@ -279,34 +282,35 @@ export class LoginComponent implements OnInit {
         if (this.working()) return;
         this._working.set(true);
 
-        this.response.set([]);
-        this.idTokenVerification.set([]);
-
         try {
             const res = await this.oauth2.token({
-                client_secret: this.client_secret(),
+                //client_secret: this.client_secret(),
             });
-            this.response.set(Object.entries(res ?? {}));
+            this.token_response.set(Object.entries(res ?? {}));
 
             // Some flows respond with an id_token
 
-            if (res?.id_token) {
+            if ((res as IOAuth2Parameters & {id_token: string})?.id_token) {
                 const resp = await this.oauth2.verify_token();
                 this.idTokenVerification.set(Object.entries(resp));
             }
         } catch (err) {
             console.error(err);
 
-            if (this.response().length) { // Token request Ok. Verification error
-                console.log(err as Error)
-                this.idTokenVerification.set([
-                    [(err as Error).name, (err as Error).message],
-                ]);
-            } else { // Token request error
-                const error = err as HttpErrorResponse;
-                this.response.set([
-                    [error.error.error, error.error.error_description],
-                ]);
+            const isJOSEError = err instanceof JOSEError;
+            const isHttpError = err instanceof HttpErrorResponse;
+            const error: [string, any][] = isHttpError
+                ? [[err.error.error, err.error.error_description]]
+                : isJOSEError
+                ? [[(err as Error).name, (err as Error).message]]
+                : [[(err as Error).cause, (err as Error).message]];
+
+            if (this.response().length) {
+                // Token request Ok. Verification error
+                this.idTokenVerification.set(error);
+            } else {
+                // Token request error
+                this.token_response.set(error);
             }
         } finally {
             this._working.set(false);

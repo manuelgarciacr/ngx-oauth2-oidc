@@ -3,7 +3,7 @@ import { IOAuth2Config, IOAuth2Configuration, IOAuth2Parameters, customParameter
 import { notStrNull, secureRandom } from "../utils";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
-import { getEndpointParameters } from "./_oauth2ConfigFactory";
+import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
 import { initConfig } from "./_initConfig";
 
@@ -13,15 +13,13 @@ export const _authorization = async (
     options = <customParametersType>{},
 ) => {
     const config = initConfig(ioauth2Config);
-    const cfg = config.configuration;
-    const parms = getEndpointParameters("authorization", config);
-    const meta = config.metadata;
-    const grant = cfg.authorization_grant_type;
+    const cfg = config.configuration!;
+    const parms = getParameters("authorization", config);
+    const meta = config.metadata!;
+    const grant = cfg.authorization_grant!;
 
     const url =
-        (options["url"] as string) ??
-        meta?.authorization_endpoint ??
-        "";
+        (options["url"] as string) ?? meta.authorization_endpoint ?? "";
 
     if (!url)
         throw new Error(
@@ -29,36 +27,56 @@ export const _authorization = async (
             { cause: "oauth2 authorization" }
         );
 
-    const response_type = (
-        options["response_type"] ??
-        parms?.["response_type"] ??
-        []
-    ) as string[];
+    let response_type = (options["response_type"] ?? parms["response_type"] ?? []) as string[];
+    let scope = (options["scope"] ?? parms["scope"] ?? []) as string[];
+
+    for (const idx in response_type)
+        response_type[idx] = response_type[idx].toLowerCase();
+    for (const idx in scope)
+        scope[idx] = scope[idx].toLowerCase();
+
+    const codeIdx = response_type.indexOf("code");
+    const openidScope = scope.filter(item =>
+        ["openid", "email", "profile"].includes(item)
+    );
+    const isOpenidScope = !!openidScope.length;
+    let hasIdToken = false;
+    let pkce;
 
     if (grant == "code") {
-        for (const idx in response_type)
-            response_type[idx] = response_type[idx].toLowerCase();
-        const idx = response_type.indexOf("code");
-        idx < 0 && response_type.push("code");
+        codeIdx < 0 && response_type.push("code");
+
+        pkce = await getPkce(options, parms, cfg);
+        hasIdToken = isOpenidScope
     }
 
     if (grant == "implicit") {
-        for (const idx in response_type)
-            response_type[idx] = response_type[idx].toLowerCase();
-        const idx = response_type.indexOf("code");
-        idx >= 0 && response_type.splice(idx, 1);
+        codeIdx >= 0 && response_type.splice(codeIdx, 1);
+
+        if (!response_type.length){
+            response_type = ["token", "id_token"]
+        }
     }
 
-    if (!response_type.length)
-        throw new Error(
-            `Values ​​for parameter 'response_type' and configuration option 'authorization_grant_type' are missing.`,
-            { cause: "oauth2 authorization" }
-        );
+    let nonce;
+    hasIdToken = hasIdToken || response_type.includes("id_token");
+    let onlyIdToken = false;
 
-    let state = (
-        options["state"] ??
-        parms?.["state"]
-    ) as string | undefined;
+    if (hasIdToken) {
+        const read_nonce = options["nonce"] ?? parms["nonce"]; //as string | undefined;
+        const str_nonce = notStrNull(read_nonce, secureRandom());
+        nonce = {nonce: str_nonce};
+
+        if (response_type.length == 1) {
+            onlyIdToken = true
+        }
+    }
+
+    if (onlyIdToken && !isOpenidScope) {
+        scope = ["openid", "email", "profile"]
+    }
+
+    let state = (options["state"] ?? parms["state"]) as string | undefined;
 
     state = notStrNull(state, secureRandom());
 
@@ -66,49 +84,19 @@ export const _authorization = async (
         state += options["statePayload"] as string;
     }
 
-    let method = (
-        options["code_challenge_method"] ??
-        parms?.["code_challenge_method"]
-    ) as "S256" | "plain" | undefined;
-
-    method = notStrNull(method, "S256") as "S256" | "plain";
-    method = method.toLowerCase() == "plain" ? "plain" : "S256";
-
-    let verifier = (options["code_verifier"] ??
-        config.configuration.token?.["code_verifier"] ??
-        config.parameters.code_verifier
-    ) as string | undefined;
-
-    verifier = notStrNull(verifier, (await pkceChallenge(128)).code_verifier);
-
-    let challenge = (
-        options["code_challenge"] ??
-        parms?.["code_challenge"]
-    ) as string | undefined;
-
-    challenge = notStrNull(challenge, await generateChallenge(verifier));
-
-    let nonce = (
-        options["nonce"] ??
-        parms?.["nonce"]
-    ) as string | undefined;
-
-    nonce = notStrNull(nonce, secureRandom());
-
-    // const hasIdToken = response_type.includes("id_token");
-
-    // if (hasIdToken) {
-    //     options["nonce"] = secureRandom();
-    // }
+    const {code_verifier, ...pkceOptions} = pkce ?? {};
 
     const newOptions = {
         state,
-        code_challenge_method: method,
-        code_challenge: challenge,
-        nonce
+        ...nonce,
+        ...pkceOptions
     };
 
-    config.parameters = { ...config.parameters, ...newOptions, code_verifier: verifier };
+    config.parameters = {
+        ...config.parameters,
+        ...newOptions,
+        code_verifier
+    };
 
     setStore("config", config);
 
@@ -119,6 +107,35 @@ export const _authorization = async (
         url,
         http,
         config,
-        { ...parms, ...options, ...newOptions }
-    )
+        { ...parms, ...options, ...newOptions, scope, response_type }
+    );
 };
+
+const getPkce = async (
+    options: customParametersType,
+    parms: customParametersType,
+    configuration: IOAuth2Configuration
+) => {
+    let method = (options["code_challenge_method"] ??
+        parms["code_challenge_method"]);
+
+    method = notStrNull(method, "S256");
+    method = method.toLowerCase() == "plain" ? "plain" : "S256";
+
+    let verifier = options["code_verifier"] ??
+        configuration.token?.["code_verifier"];
+
+    verifier = notStrNull(verifier, (await pkceChallenge(128)).code_verifier);
+
+    let challenge = (options["code_challenge"] ?? parms?.["code_challenge"]) as
+        | string
+        | undefined;
+
+    challenge = notStrNull(challenge, await generateChallenge(verifier));
+
+    return {
+        code_challenge_method: method as "S256" | "plain",
+        code_verifier: verifier,
+        code_challenge: challenge,
+    };
+}
