@@ -19,6 +19,11 @@ const tokenParameters = [
     'subject_token', 'subject_token_type', 'username', 'vtr'
 ];
 
+/** Verify token method parameter names */
+const verifyTokenParameters = [
+    'id_token', 'client_id', 'nonce'
+];
+
 /** Revocation endpoint parameter names */
 const revocationParameters = [
     'token_type_hint', 'access_token','refresh_token'
@@ -105,21 +110,17 @@ const parameters = {
 }
 
 /** Verify token method parameters object */
-const verifyTokenParameters = {
+const verifyTokenJoseOptions = {
     algorithms: [] as string[],
-    // audience -> id_token_verification_audience. Names collission
+    audience: "" as string | string[],
     clockTolerance: "" as string | number,
     crit: {} as { [key: string]: boolean },
     currentDate: new Date(),
-    id_token: "",
-    id_token_verification_audience: "" as string | string[],
-    client_id: "",
     issuer: "" as string | string[],
     maxTokenAge: "" as string | number,
     requiredClaims: [] as string[],
     subject: "",
     typ: "",
-    nonce: "",
 };
 
 /** Parameters section type */
@@ -137,6 +138,10 @@ export interface IOAuth2TokenParameters
 /** Verify token method parameters object type */
 export interface IOAuth2VerifyTokenParameters
     extends Partial<typeof verifyTokenParameters> {};
+
+/** Verify token method jose options object type */
+export interface IOAuth2VerifyTokenJoseOptions
+    extends Partial<typeof verifyTokenJoseOptions> {};
 
 /** Revocation endpoint parameters object type */
 export interface IOAuth2RevocationParameters
@@ -160,5 +165,6 @@ export const parameterNames = {
     token: tokenParameters,
     refresh: tokenParameters,
     revocation: revocationParameters,
-    verify_token: Object.keys(verifyTokenParameters),
+    verify_token: verifyTokenParameters,
+    all: Object.keys(parameters)
 };

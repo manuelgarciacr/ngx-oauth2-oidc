@@ -17,7 +17,8 @@ export const _authorization = async (
     const parms = getParameters("authorization", config);
     const meta = config.metadata!;
     const grant = cfg.authorization_grant!;
-
+    const arr = (name: string) => (options[name] as string[]) ?? parms[name] ?? [];
+    const str = (name: string) => (options[name] as string) ?? parms[name] ?? "";
     const url =
         (options["url"] as string) ?? meta.authorization_endpoint ?? "";
 
@@ -27,8 +28,8 @@ export const _authorization = async (
             { cause: "oauth2 authorization" }
         );
 
-    let response_type = (options["response_type"] ?? parms["response_type"] ?? []) as string[];
-    let scope = (options["scope"] ?? parms["scope"] ?? []) as string[];
+    let response_type = arr("response_type");
+    let scope = arr("scope");
 
     for (const idx in response_type)
         response_type[idx] = response_type[idx].toLowerCase();
@@ -63,8 +64,9 @@ export const _authorization = async (
     let onlyIdToken = false;
 
     if (hasIdToken) {
-        const read_nonce = options["nonce"] ?? parms["nonce"]; //as string | undefined;
+        const read_nonce = str("nonce");
         const str_nonce = notStrNull(read_nonce, secureRandom());
+
         nonce = {nonce: str_nonce};
 
         if (response_type.length == 1) {
@@ -76,7 +78,7 @@ export const _authorization = async (
         scope = ["openid", "email", "profile"]
     }
 
-    let state = (options["state"] ?? parms["state"]) as string | undefined;
+    let state = str("state");
 
     state = notStrNull(state, secureRandom());
 

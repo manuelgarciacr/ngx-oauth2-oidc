@@ -6,6 +6,7 @@ export {
     IOAuth2AuthorizationParameters,
     IOAuth2TokenParameters,
     IOAuth2VerifyTokenParameters,
+    IOAuth2VerifyTokenJoseOptions,
     IOAuth2RevocationParameters,
     getType,
     parameterNames,

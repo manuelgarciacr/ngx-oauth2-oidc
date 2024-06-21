@@ -77,4 +77,4 @@ export interface IOAuth2Metadata extends Partial<typeof metadata> {};
 /** Metadata names */
 export const metadataNames = Object.keys(
     metadata
-) as (keyof typeof metadata)[];
+);

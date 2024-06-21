@@ -2,6 +2,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { IOAuth2Config, customParametersType } from "../domain";
 import { setStore } from "./_store";
 import { initConfig } from "./_initConfig";
+import { getParameters } from "./_getParameters";
 
 export const _verify_token = async (
     ioauth2Config: IOAuth2Config | null,
@@ -9,18 +10,11 @@ export const _verify_token = async (
     options = <customParametersType>{},
 ) => {
     const config = initConfig(ioauth2Config);
-    const cfg = config.configuration!;
-    const parms = cfg.verify_token ?? {};
-    // TODO: eliminate string[] and type verify
-    const parameters = config.parameters!;
+    const parms = getParameters("verify_token", config);
     const meta = config.metadata!;
-
-    const id_token = (
-        options["id_token"] ??
-        parms["id_token"] ??
-        parameters["id_token"] ??
-        ""
-    ) as string;
+    const str = (name: string) =>
+        (options[name] as string) ?? parms[name] ?? "";
+    const id_token = str("id_token");
 
     if (!id_token) throw new Error(
         "Values ​​for parameter 'id_token' and option 'id_token' are missing.",
@@ -52,21 +46,18 @@ export const _verify_token = async (
         );
 
     const audience =
-        (options["id_token_verification_audience"] as string | string[]) ??
+        (options["audience"] as string | string[]) ??
         (options["client_id"] as string) ??
         parms?.["client_id"] ??
         "";
 
     if (!audience)
         throw new Error(
-            `The values ​​for the 'client_id' parameter, 'client_id' option, and 'id_token_verification_audience' option are missing.`,
+            `The values ​​for the 'client_id' parameter, 'client_id' option, and 'audience' option are missing.`,
             { cause: "oauth2 verify_token" }
         );
 
-    const nonce =
-        options["nonce"] ??
-        parms?.["nonce"] ??
-        "";
+    const nonce = str("nonce");
 
     if (!nonce)
         throw new Error(

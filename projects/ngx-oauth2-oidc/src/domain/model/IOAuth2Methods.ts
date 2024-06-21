@@ -1,4 +1,4 @@
-import { IOAuth2VerifyTokenParameters } from "./IOAuth2Parameters";
+import { IOAuth2VerifyTokenJoseOptions, IOAuth2VerifyTokenParameters } from "./IOAuth2Parameters";
 
 /** Methods object */
 const methods = {
@@ -20,7 +20,7 @@ const methods = {
     /**
      * JOSE token verification options
      */
-    verify_token: {} as IOAuth2VerifyTokenParameters,
+    verify_token: {} as IOAuth2VerifyTokenParameters & IOAuth2VerifyTokenJoseOptions,
 
     /**
      * Custom parameters for the revocation endpoint

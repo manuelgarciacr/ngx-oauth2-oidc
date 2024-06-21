@@ -18,7 +18,8 @@ export const _token = async (
     const parms = getParameters("token", config);
     const meta = config.metadata!;
     const grant = cfg.authorization_grant;
-
+    const str = (name: string) =>
+        (options[name] as string) ?? parms[name] ?? "";
     const url = (options["url"] as string) ?? meta.token_endpoint ?? "";
 
     if (!url)
@@ -27,17 +28,11 @@ export const _token = async (
             { cause: "oauth2 token" }
         );
 
-    const grant_type = (
-        options["grant_type"] ?? parms["grant_type"] ?? grant == "code"
-            ? "authorization_code"
-            : undefined
-    ) as string | undefined;
+    let grant_type = str("grant_type");
 
-    if (!grant_type)
-        throw new Error(
-            `Values ​​for parameter 'grant_type' and configuration option 'authorization_grant_type' are missing.`,
-            { cause: "oauth2 authorization" }
-        );
+    if (grant == "code") {
+        grant_type = "authorization_code"
+    }
 
     return request<IOAuth2Parameters>(
         "token",

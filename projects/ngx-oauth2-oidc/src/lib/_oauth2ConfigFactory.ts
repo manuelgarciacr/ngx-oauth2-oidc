@@ -1,7 +1,9 @@
 import {
     IOAuth2Config,
-    IOAuth2Configuration,
+    IOAuth2Parameters,
     configSections,
+    configurationNames,
+    getType,
     metadataNames,
     parameterNames,
 } from "../domain";
@@ -25,10 +27,12 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
 
     ioauth2Config = toLowerCaseProperties(ioauth2Config)!;
 
+    // Configuration sections are objects and not unexpected
+
     for (const section in ioauth2Config) {
         const key = section as keyof IOAuth2Config;
         const value = ioauth2Config[key];
-debugger
+
         if (!isObject(value))
             throw `Oauth2 oauth2ConfigFactory: initial configuration section "${section}" is not an object.`;
 
@@ -37,78 +41,74 @@ debugger
 
         cfg[key] = toLowerCaseProperties<any>(value)!;
     }
+    cfg.configuration ??= {};
 
-    // TODO: UNCOMMENT
+    // Configuration options and methods are not unexpected
 
-    // const endpoints = Object.keys(endpointParameters);
-    // let names = <string[]>[];
-    // for (const endpoint of endpoints) {
-    //     const key = endpoint as keyof typeof endpointParameters;
-    //     names = [...names, ...endpointParameters[key]];
-    // }
-    // parameterNames
-    // const parmsKeys = Object.keys(ioauth2Config?.parameters ?? {});
-    // const parmsErrors = parmsKeys.filter(name => !names.includes(name));
+    const confKeys = Object.keys(cfg.configuration);
+    const confErrors = confKeys.filter(
+        key => !configurationNames.includes(key)
+    );
 
-    // if (parmsErrors.length)
-    //     console.error(
-    //         `WARNING oauth2ConfigFactory: the parameters ${parmsErrors.join(
-    //             ", "
-    //         )} are not standard. Custom parameters must be included inside the enpoint configuration options`
-    //     );
+    if (confErrors.length)
+        throw new Error(
+            `Unexpected configuration options and methods: ${confErrors.join(
+                ", "
+            )}`,
+            { cause: "oauth2 oauth2ConfigFactory" }
+        );
 
-    // const metaKeys = Object.keys(ioauth2Config.metadata);
-    // const metaErrors = metaKeys.filter(
-    //     name => !metadataNames.includes(name as keyof IOAuth2Metadata)
-    // );
+    // Parameter names are not unexpected
 
-    // if (metaErrors.length)
-    //     console.error(
-    //         `WARNING oauth2ConfigFactory: the metadata ${metaErrors.join(
-    //             ", "
-    //         )} are not standard. Will be ignored.`
-    //     );
+    const parmKeys = Object.keys(cfg.parameters ?? {});
+    const parmErrors = parmKeys.filter(
+        key => !parameterNames.all.includes(key)
+    );
 
-    let newConfig = cfg.configuration ?? <IOAuth2Configuration>{};
-    const parms = cfg.parameters;
+    if (parmErrors.length)
+        throw new Error(
+            `Unexpected parameters ${parmErrors.join(
+                ", "
+            )}. Custom parameters must be included inside the enpoint configuration options`,
+            { cause: "oauth2 oauth2ConfigFactory" }
+        );
 
-    // Required configuration values
+    // Metadate names are not unexpected
 
-    // if (!authorithationGrantValues.includes(newConfig.authorization_grant_type))
-    //     throw `Oauth2 oauth2ConfigFactory: missing initial configuration option authorization_grant_type.`;
+    const metaKeys = Object.keys(cfg.metadata ?? {});
+    const metaErrors = metaKeys.filter(name => !metadataNames.includes(name));
+
+    if (metaErrors.length)
+        throw new Error(
+            `Unexpected metadata ${metaErrors.join(", ")}.`,
+            { cause: "oauth2 oauth2ConfigFactory" }
+        );
 
     // Default configuration values
 
-    if (!newConfig.well_known_sufix) {
-        newConfig.well_known_sufix = ".well-known/openid-configuration";
+    if (!cfg.configuration.well_known_sufix) {
+        cfg.configuration.well_known_sufix = ".well-known/openid-configuration";
     }
 
-    // for (const option in newConfig) {
-    //     const key = option as keyof IOAuth2Configuration;
-    //     const value = newConfig[key];
+    // Parameters types
 
-    //     if (!configurationOptions.includes(key))
-    //         throw `Oauth2 oauth2ConfigFactory: unexpected initial configuration option "${key}".`;
+    for (const parm in cfg.parameters) {
+        const key = parm as keyof IOAuth2Parameters;
+        const value = cfg.parameters[key];
+        const type = getType(key);
 
-    //     if (key == "authorization_grant_type") {
-    //         if (value == "code") {
-    //             parms.grant_type = "authorization_code";
-    //             parms.response_type ??= [];
-    //             const idx = parms.response_type.indexOf("code");
-    //             idx < 0 && parms.response_type.push("code");
-    //         }
-    //         if (value == "implicit") {
-    //             parms.grant_type = "authorization_code";
-    //             parms.response_type ??= [];
-    //             const idx = parms.response_type.indexOf("code");
-    //             idx >= 0 && parms.response_type.splice(idx, 1);
-    //         }
-    //     }
+        if (type == "array" && !Array.isArray(value)) {
+            throw new Error(`The parameter "${key}" must be an array`, {
+                cause: "oauth2 oauth2ConfigFactory",
+            });
+        }
 
-    //     (newConfig[key] as unknown) = value;
-    // }
-
-    cfg.configuration = newConfig;
+        if (type != "array" && type != typeof value) {
+            throw new Error(`The parameter "${key}" must be of type ${type}`, {
+                cause: "oauth2 oauth2ConfigFactory",
+            });
+        }
+    }
 
     return cfg;
 };
