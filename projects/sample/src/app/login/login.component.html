@@ -1,78 +1,238 @@
-<div class="col-12">
-    <button (click)="this.google()">Login with Google</button>
-    <button (click)="this.accessToken()">Get access token</button>
+<div class="col-12 mb-2">
+    <button (click)="this.google()">Login</button>
+    <button (click)="this.refreshToken()">Refresh token</button>
+    <button (click)="this.revokeToken()">Revoke token</button>
+    <button *ngIf="hasResponses()" (click)="this.resetResponses()" class="bg-danger-subtle">Remove responses</button>
     <div *ngIf="response().length" class="my-3 border border-2 border-dark">
         <label class="fs-3 fw-bolder">AUTHORIZATION RESPONSE</label>
         @for (parm of response(); track $index; let idx = $index){
-        <div class="row"><b style="overflow-wrap: anywhere;" class="col-6 col-sm-3 text-wrap">{{parm[0]}}</b><span class="col-6 col-sm-9 text-wrap text-break" style="overflow-wrap: anywhere;">{{(parm[1]?.length > 250) ? (parm[1] | slice:0:250)+"..." : parm[1]}}</span></div>
+            <div class="row">
+                <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
+                <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
+                    (parm[1] | slice:0:250)+"..." : parm[1]}}
+                </span>
+            </div>
+        }
+    </div>
+    <div *ngIf="discovery_response().length" class="my-3 border border-2 border-dark">
+        <label class="fs-3 fw-bolder">DISCOVERY RESPONSE</label>
+        @for (parm of discovery_response(); track $index; let idx = $index){
+            <div class="row">
+                <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
+                <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
+                    (parm[1] | slice:0:250)+"..." : parm[1]}}
+                </span>
+            </div>
         }
     </div>
     <div *ngIf="token_response().length" class="my-3 border border-2 border-dark">
         <label class="fs-3 fw-bolder">TOKEN RESPONSE</label>
         @for (parm of token_response(); track $index; let idx = $index){
-        <div class="row"><b class="col-3">{{parm[0]}}</b><span class="col-9 text-wrap text-break">{{(parm[1]?.length > 250)
-                ? (parm[1] | slice:0:250)+"..." : parm[1]}}</span></div>
+            <div class="row">
+                <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
+                <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
+                    (parm[1] | slice:0:250)+"..." : parm[1]}}
+                </span>
+            </div>
         }
     </div>
     <div *ngIf="idTokenVerification().length" class="my-3 border border-2 border-dark" >
         <label class="fs-3 fw-bolder">ID_TOKEN VERIFICATION</label>
         @for (parm of idTokenVerification(); track $index; let idx = $index){
-        <div class="row"><b class="col-3">{{parm[0]}}</b><span class="col-9 text-wrap text-break">{{(parm[1]?.length > 250) ? (parm[1] | slice:0:250)+"..." : parm[1]}}</span></div>
+            <div class="row">
+                <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
+                <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
+                    (parm[1] | slice:0:250)+"..." : parm[1]}}
+                </span>
+            </div>
         }
     </div>
 </div>
 <div class="col-sm-5">
-    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">API credentials</legend>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="api" value="google-web-app" [(ngModel)]="api"> Google: Web application
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="api" value="google-desktop" [(ngModel)]="api"> Google: Desktop
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="api" value="custom" [(ngModel)]="api"> Custom credentials
-        </label>
+    <fieldset class="d-flex border rounded-3 p-3 mb-3">
+        <legend class="float-none text-center w-auto px-3">Configuration object example</legend>
+        <div class="d-flex flex-column m-auto">
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="api" value="google-web-app" [(ngModel)]="api"> Google: Web application
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="api" value="google-desktop" [(ngModel)]="api"> Google: Desktop
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="api" value="custom" [(ngModel)]="api"> Custom credentials
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="api" value="custom" [(ngModel)]="api"> Custom configuration object
+            </label>
+        </div>
+        <div *ngIf="api() == 'google-web-app'" class="bg-body-secondary ms-2 p-2">
+            * Google credentials must be of type 'Web application'<br>
+            * Redirection URI must be set to this URL
+        </div>
     </fieldset>
-    <fieldset *ngIf="api() == 'custom'" class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">Custom credentials</legend>
+    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">Credentials</legend>
         <input class="mb-2" type="text" placeholder="client_id" [(ngModel)]="client_id">
-        <input type="text" placeholder="client_secret" [(ngModel)]="client_secret">
+        <input class="mb-2" type="text" placeholder="client_secret" [(ngModel)]="client_secret">
+        <input type="text" placeholder="redirect_uri" [(ngModel)]="redirect_uri">
+    </fieldset>
+    <fieldset class="d-flex border rounded-3 p-3 mb-3">
+        <legend class="float-none text-center w-auto px-3">configuration -> authorization_grant</legend>
+        <div class="m-auto">
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="grant" value="code" [(ngModel)]="authorization_grant"> Code. (Authorization
+                code)
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="grant" value="implicit" [(ngModel)]="authorization_grant"> Implicit
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="grant" value="password" disabled [(ngModel)]="authorization_grant">Password.
+                (Resource Owner Password Credentials)
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="grant" value="client" disabled [(ngModel)]="authorization_grant"> Client.
+                (Client Credentials)
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="grant" value="extension" disabled [(ngModel)]="authorization_grant">
+                Extension. (Extension Grants)
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="grant" value="" disabled [(ngModel)]="authorization_grant"> Unseted.
+            </label>
+        </div>
+    </fieldset>
+    <fieldset *ngIf="true || api() == 'google-web-app' && authorization_grant() == 'code'" class=" d-flex border rounded-3 p-3 mb-3">
+        <legend class="float-none text-center w-auto px-3">configuration -> authorization (google specific)</legend>
+        <div class="m-auto">
+            <label class="d-flex flex-wrap mb-2">
+                <span class="text-break col-6">
+                    access_type
+                </span>
+                <select class="col-6" name="access_type" [(ngModel)]="access_type">
+                    <option value="" selected>unseted (defaults to online)</option>
+                    <option value="online">online</option>
+                    <option value="offline">offline</option>
+                </select>
+            </label>
+            <label class="d-flex flex-wrap mb-2">
+                <span class="text-break col-6">
+                    include_granted_scopes
+                </span>
+                <select class="col-6" [(ngModel)]="include_granted_scopes">
+                    <option value="" selected>unseted (defaults to false)</option>
+                    <option [ngValue]=true>true</option>
+                    <option [ngValue]=false>false</option>
+                </select>
+            </label>
+            <label class="d-flex flex-wrap mb-2">
+                <span class="text-break col-6">
+                    enable_granular_consent
+                </span>
+                <select class="col-6" [(ngModel)]="enable_granular_consent">
+                    <option value="" selected>unseted (defaults to true)</option>
+                    <option [ngValue]=true>true</option>
+                    <option [ngValue]=false>false</option>
+                </select>
+            </label>
+        </div>
+        <!-- <div *ngIf="include_granted_scopes()" class="bg-body-secondary ms-2 p-2">
+            * If 'include_granted_scopes' and granted scopes includes openid, email or profile
+        </div> -->
+    </fieldset>
+    <fieldset class="d-flex justify-content-center rounded-3 p-3 mb-3">
+        <legend class="float-none text-center w-auto px-3">parameters -> response_type</legend>
+        <div class="d-flex flex-column col m-auto">
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="code"> code
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="token"> token
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="id_token"> id_token
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="none"> none
+            </label>
+        </div>
+        <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated values</label>
+        <div class="d-flex flex-column bg-body-secondary col m-auto pt-2 px-2">
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_code()"> code
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_token()"> token
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_id_token()"> id_token
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_none()"> none
+            </label>
+        </div>
+    </fieldset>
+    <fieldset class="d-flex border rounded-3 p-3 mb-3">
+        <legend class="float-none text-center w-auto px-3">parameters -> scope</legend>
+        <div class="d-flex flex-column col m-auto">
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="openid">
+                    openid
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="email">
+                    email
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="profile">
+                    profile
+            </label>
+            <label class="d-flex flex-row text-break align-items-start mb-2">
+                <input class="me-2" type="checkbox" [(ngModel)]="api_scope">
+                    {{ api_scope_string() }}
+            </label>
+        </div>
+        <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated values</label>
+        <div class="d-flex flex-column bg-body-secondary col m-auto pt-2 px-2">
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_openid()">
+                    openid
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_email()">
+                    email
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_profile()">
+                    profile
+            </label>
+            <label class="d-flex flex-row text-break align-items-start mb-2">
+                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_api_scope()">
+                    {{ api_scope_string() }}
+            </label>
+        </div>
+        <!-- <div *ngIf="openid() || email() || profile()" class="bg-body-secondary ms-2 p-2">
+            * If 'open_id', 'email' or 'profile' is checked, the 'nonce' parameter is generated automatically
+        </div> -->
     </fieldset>
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">Authorization grant type</legend>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="grant" value="code" [(ngModel)]="grant"> Authorization code
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="grant" value="implicit" [(ngModel)]="grant"> Implicit
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="grant" value="password" disabled [(ngModel)]="grant">Resource Owner Password Credentials
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="grant" value="client" disabled [(ngModel)]="grant"> Client Credentials
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="radio" name="grant" value="extension" disabled [(ngModel)]="grant"> Extension Grants
-        </label>
-    </fieldset>
-    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">Response type</legend>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="checkbox" value="true" [disabled]="grant() == 'code' || grant() == 'implicit'" [(ngModel)]="code"> code
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="checkbox" value="true" [(ngModel)]="token"> token
-        </label>
-        <label class="d-flex flex-row align-items-start mb-2">
-            <input class="me-2" type="checkbox" value="id_token" [(ngModel)]="id_token"> id_token
-        </label>
+        <legend class="float-none text-center w-auto px-3">configuration -> options</legend>
+        <div class="m-auto">
+            <label class="d-flex flex-row justify-between mb-2">
+                <div class="d-flex flex-wrap col-4">
+                    <input class="me-2" type="checkbox" value=true [disabled]="false || authorization_grant() != 'code'"
+                        [(ngModel)]="no_pkce">
+                    no_pkce
+                </div>
+                <span class="col bg-body-secondary">Ignored if authorization_grant is not "code"</span>
+            </label>
+        </div>
     </fieldset>
 </div>
 <div class="d-flex flex-column font-monospace col-sm-7" style="min-height: 75vh">
     <label style="z-index: 10" class="text-end me-5 mb-n3 bg-danger text-white ms-auto px-2" [style.visibility]="textModified() ? 'visible' : 'hidden'">Modified by hand</label>
     <label class="bg-danger-subtle mt-3">{{configError()}}</label>
-    <textarea class="h-100" [ngModel]="config() | json4" (ngModelChange)="setConfig($event)" spellcheck="false"></textarea>
+    <textarea style="field-sizing: content; min-height: 30rem;" [ngModel]="config() | json4" (ngModelChange)="setConfig($event)" spellcheck="false"></textarea>
 </div>
 

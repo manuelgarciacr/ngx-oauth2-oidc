@@ -59,11 +59,11 @@ export const _verify_token = async (
 
     const nonce = str("nonce");
 
-    if (!nonce)
-        throw new Error(
-            `The values ​​for the 'nonce' parameter and 'nonce' option are missing.`,
-            { cause: "oauth2 verify_token" }
-        );
+    // if (!nonce)
+    //     throw new Error(
+    //         `The values ​​for the 'nonce' parameter and 'nonce' option are missing.`,
+    //         { cause: "oauth2 verify_token" }
+    //     );
 
     options = {...options, issuer, audience, nonce}
     delete options["id_token"];

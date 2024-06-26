@@ -22,16 +22,35 @@ export const _token = async (
         (options[name] as string) ?? parms[name] ?? "";
     const url = (options["url"] as string) ?? meta.token_endpoint ?? "";
 
+    let grant_type = str("grant_type");
+
+    if (
+        grant == "code" &&
+        grant_type != "authorization_code" &&
+        grant_type != "refresh_token"
+    ) {
+        grant_type = "authorization_code";
+    }
+
     if (!url)
         throw new Error(
             `Values ​​for metadata 'token_endpoint' and option 'url' are missing.`,
-            { cause: "oauth2 token" }
+            { cause: `oauth2 token ${grant_type}` }
         );
 
-    let grant_type = str("grant_type");
+    if (grant_type == "authorization_code") {
+        delete parms["assertion"];
+        //delete parms["client_assertion"];
+        delete parms["device_code"];
+        delete parms["refresh_token"];
+    }
 
-    if (grant == "code") {
-        grant_type = "authorization_code"
+    if (grant_type == "refresh_token") {
+        delete parms["assertion"];
+        //delete parms["client_assertion"];
+        delete parms["code"];
+        delete parms["code_verifier"];
+        delete parms["device_code"];
     }
 
     return request<IOAuth2Parameters>(
@@ -41,6 +60,6 @@ export const _token = async (
         url,
         http,
         config!,
-        { ...parms, ...options, grant_type }
+        { ...parms, grant_type, ...options }
     );
 };

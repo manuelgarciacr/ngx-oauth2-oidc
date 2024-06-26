@@ -8,8 +8,9 @@ Object.defineProperty(Object.prototype, "filter", {
     value: function (
         predicate: (key: string, value: any, object: object) => any
     ) {
+        const entries = Object.entries(this);
         return Object.fromEntries(
-            Object.entries(this).filter(value =>
+            entries.filter(value =>
                 predicate(value[0], value[1], this)
             )
         );

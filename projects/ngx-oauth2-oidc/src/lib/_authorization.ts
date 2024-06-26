@@ -37,45 +37,53 @@ export const _authorization = async (
         scope[idx] = scope[idx].toLowerCase();
 
     const codeIdx = response_type.indexOf("code");
+    const noneIdx = response_type.indexOf("none");
     const openidScope = scope.filter(item =>
         ["openid", "email", "profile"].includes(item)
     );
     const isOpenidScope = !!openidScope.length;
-    let hasIdToken = false;
+    //let hasIdToken = false;
+    const hasIdToken = isOpenidScope;
+
     let pkce;
 
     if (grant == "code") {
         codeIdx < 0 && response_type.push("code");
+        noneIdx >= 0 && response_type.splice(noneIdx, 1);
 
         pkce = await getPkce(options, parms, cfg);
-        hasIdToken = isOpenidScope
+        //hasIdToken = isOpenidScope
     }
 
     if (grant == "implicit") {
         codeIdx >= 0 && response_type.splice(codeIdx, 1);
 
-        if (!response_type.length){
-            response_type = ["token", "id_token"]
-        }
+        // if (!response_type.length){
+        //     response_type = ["token", "id_token"]
+        // }
     }
 
-    let nonce;
-    hasIdToken = hasIdToken || response_type.includes("id_token");
+    let nonce = {};
+    //hasIdToken = hasIdToken || response_type.includes("id_token");
     let onlyIdToken = false;
+    const read_nonce = str("nonce");
+    const str_nonce = notStrNull(read_nonce, secureRandom());
+
+    nonce = { nonce: str_nonce };
 
     if (hasIdToken) {
-        const read_nonce = str("nonce");
-        const str_nonce = notStrNull(read_nonce, secureRandom());
+        // const read_nonce = str("nonce");
+        // const str_nonce = notStrNull(read_nonce, secureRandom());
 
-        nonce = {nonce: str_nonce};
+        // nonce = {nonce: str_nonce};
 
         if (response_type.length == 1) {
             onlyIdToken = true
         }
     }
 
-    if (onlyIdToken && !isOpenidScope) {
-        scope = ["openid", "email", "profile"]
+    if (grant == "code" && !scope.length) {
+        scope = ["openid"]
     }
 
     let state = str("state");
@@ -109,7 +117,7 @@ export const _authorization = async (
         url,
         http,
         config,
-        { ...parms, ...options, ...newOptions, scope, response_type }
+        { ...parms, ...newOptions, scope, response_type, ...options }
     );
 };
 

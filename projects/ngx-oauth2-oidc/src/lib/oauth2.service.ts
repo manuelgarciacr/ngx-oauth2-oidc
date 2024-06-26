@@ -1,5 +1,5 @@
 import { getStoreObject, setStore } from "./_store";
-import { debugEnum, debugFn, toLowerCaseProperties } from "../utils";
+import { debugFn, toLowerCaseProperties } from "../utils";
 import {
     HttpClient,
 } from "@angular/common/http";
@@ -14,17 +14,16 @@ import { Router } from "@angular/router";
 import {
     IOAuth2Config,
     IOAuth2Metadata,
-    IOAuth2Parameters,
     customParametersType,
     IJwk,
 } from "../domain";
 import { oauth2ConfigFactory } from "./_oauth2ConfigFactory";
-import { request } from "./_request";
 import { _interceptor } from "./_interceptor";
 import { _verify_token } from "./_verify_token";
 import { _fetchDiscoveryDoc } from "./_fetchDiscoveryDoc";
 import { _authorization } from "./_authorization";
 import { _token } from "./_token";
+import { _revocation } from "./_revocation";
 
 export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     "OAuth2 Config"
@@ -34,7 +33,7 @@ export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     providedIn: "root",
 })
 export class Oauth2Service {
-    static debug = debugEnum.mth | debugEnum.prv;
+    static debug = 0; // debugEnum.mth | debugEnum.prv;
     private readonly http = inject(HttpClient);
 
     private _config: IOAuth2Config | null = null;
@@ -118,86 +117,25 @@ export class Oauth2Service {
     token = async (options = <customParametersType>{}) => {
         debugFn("mth", "TOKEN");
 
-        return _token(
-            this.http,
-            this.config,
-            toLowerCaseProperties(options)
-        );
+        return _token(this.http, this.config, {
+            grant_type: "authorization_code",
+            ...toLowerCaseProperties(options),
+        })
     };
 
-    // token = async (options = <customParametersType>{}) => {
-    //     debugFn("mth", "ACCESS_TOKEN", options);
-
-    //     if (!this.config) this._config = <IOAuth2Config>{};
-    //     if (!this.config!.configuration)
-    //         this._config!.configuration = <IOAuth2Configuration>{};
-
-    //     const cfg = this.config!.configuration;
-    //     const parms = getEndpointParameters("token", this.config!);
-    //     const meta = this.config!.metadata;
-    //     const grant = cfg.authorization_grant_type;
-
-    //     const url =
-    //         (options["url"] as string) ??
-    //         meta?.token_endpoint ??
-    //         "";
-
-    //     if (!url)
-    //         throw "oauth2 token: missing metadata value token_endpoint nor token endpoint url parameter.";
-
-    //     const grant_type = (
-    //         options["grant_type"] ??
-    //         parms?.["grant_type"] ??
-    //         grant == "code" ? "authorization_code" : undefined
-    //     ) as string | undefined;
-
-    //     if (!grant_type)
-    //         throw "oauth2 token: missing configuration option authorization_grant_type nor token endpoint grant_type parameter."
-
-    //     return request<IOAuth2Parameters>(
-    //         "token",
-    //         "POST",
-    //         "http",
-    //         url,
-    //         this.http,
-    //         this.config!,
-    //         { ...parms, ...options, grant_type }
-    //     );
-    // };
-
-    refresh = async (client_secret = "") => {
+    refresh = async (options = <customParametersType>{}) => {
         debugFn("mth", "REFRESH");
 
-        if (!this.config) this._config = <IOAuth2Config>{};
-
-        const url = this.config!.metadata?.token_endpoint ?? "";
-
-        return request<IOAuth2Parameters>(
-            "refresh",
-            "POST",
-            "http",
-            url,
-            this.http,
-            this.config!,
-            { client_secret }
-        );
+        return _token(this.http, this.config, {
+            grant_type: "refresh_token",
+            ...toLowerCaseProperties(options),
+        })
     };
 
-    revocation = async () => {
+    revocation = async (options = <customParametersType>{}) => {
         debugFn("mth", "REVOCATION");
 
-        if (!this.config) this._config = <IOAuth2Config>{};
-
-        const url = this.config!.metadata?.revocation_endpoint ?? "";
-
-        return request<IOAuth2Parameters>(
-            "revocation",
-            "POST",
-            "http",
-            url,
-            this.http,
-            this.config!
-        );
+        return _revocation(this.http, this.config, toLowerCaseProperties(options));
     };
 
     verify_token = async (options = <customParametersType>{}) => {

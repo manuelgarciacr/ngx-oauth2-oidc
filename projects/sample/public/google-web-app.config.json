@@ -1,15 +1,12 @@
 {
     "configuration": {
         "tag": "google-web-app",
-        "authorization_grant_type": "code"
+        "authorization_grant": "code"
     },
     "metadata": {
         "issuer": "https://accounts.google.com"
     },
     "parameters": {
-        "client_id": "115940404174-2re8nu673gkn13jclq25spmgo9sdh1t2.apps.googleusercontent.com",
-        "redirect_uri": "http://localhost:4300/login",
-        "scope": ["openid", "email", "profile", "https://www.googleapis.com/auth/drive"],
-        "algorithms": ["RS256"]
+        "client_id": "115940404174-2re8nu673gkn13jclq25spmgo9sdh1t2.apps.googleusercontent.com"
     }
 }

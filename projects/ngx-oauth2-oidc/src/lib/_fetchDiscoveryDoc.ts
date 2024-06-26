@@ -12,7 +12,9 @@ export const _fetchDiscoveryDoc = async (config: IOAuth2Config | null, http: Htt
     const no_discovery = config?.configuration?.no_discovery;
 
     if (!config)
-        throw "oauth2 fetchDiscoveryDoc: no configuration defined";
+        throw new Error(`No configuration defined.`, {
+            cause: "oauth2 fetchDiscoveryDoc",
+        });
 
     if (no_discovery) {
         console.error(
@@ -22,7 +24,9 @@ export const _fetchDiscoveryDoc = async (config: IOAuth2Config | null, http: Htt
     }
 
     if (!discoveryIsFeasible)
-        throw `oauth2 fetchDiscoveryDoc: discovery_endpoint or issuer is missing`;
+        throw new Error(`discovery_endpoint or issuer is missing.`, {
+            cause: "oauth2 fetchDiscoveryDoc",
+        });
 
     const url = discovery_endpoint ?? mountUrl(issuer!, "https", sufix);
 
