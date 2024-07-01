@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, Pipe, PipeTransform, computed, effect, inject, signal, type OnInit } from "@angular/core";
-import { Oauth2Service, IOAuth2Config, authorizationGrantType, IOAuth2Parameters } from "ngx-oauth2-oidc";
+import { ChangeDetectionStrategy, Component, Pipe, PipeTransform, WritableSignal, computed, effect, inject, signal, type OnInit } from "@angular/core";
+import { Oauth2Service, IOAuth2Config, IOAuth2Parameters } from "ngx-oauth2-oidc";
 import webAppConfig  from "../../../public/google-web-app.config.json";
 import desktopConfig from "../../../public/google-desktop.config.json";
 import webAppConfigSecret from "../../../public/google-web-app.secret.json";
@@ -9,6 +9,13 @@ import { SlicePipe, NgIf } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
 import { JOSEError } from "jose/errors";
 import { customParametersType } from "../../../../ngx-oauth2-oidc/src/domain";
+import { cfgScope } from "./_cfgScope";
+import { cfgResponse } from "./_cfgResponseType";
+import { cfgAuthGoogle } from "./_cfgAuthGoogle";
+import { cfgGrant } from "./_cfgGrant";
+import { cfgOptions } from "./_cfgOptions";
+import { saveParameters } from "./_saveParameters";
+import { getParameters } from "./_getParameters";
 
 @Pipe({
     name: "json4",
@@ -64,7 +71,10 @@ export class LoginComponent implements OnInit {
     protected readonly include_granted_scopes = signal("");
     protected readonly enable_granular_consent = signal("");
     // Configuration options
+    protected readonly no_discovery = signal(false);
     protected readonly no_pkce = signal(false);
+    protected readonly no_state = signal(false);
+    protected readonly no_nonce = signal(false);
     // parameters.response_type
     protected readonly code = signal(false);
     protected readonly token = signal(false);
@@ -109,15 +119,6 @@ export class LoginComponent implements OnInit {
     protected readonly calculated_profile = computed(() => this.profile());
     protected readonly calculated_api_scope = computed(() => this.api_scope());
     //
-    // protected readonly minimumScope = computed(() => {
-    //     let cnt = 0;
-    //     cnt += this.openid() ? 1 : 0;
-    //     cnt += this.email() ? 1 : 0;
-    //     cnt += this.profile() ? 1 : 0;
-    //     cnt += this.api_scope() ? 1 : 0;
-    //     return cnt <= 1;
-    // });
-    //
     protected readonly config = signal(<IOAuth2Config>{});
     protected readonly textModified = signal(false);
     protected readonly response = signal<[string, any][]>([]);
@@ -131,13 +132,10 @@ export class LoginComponent implements OnInit {
             !!this.token_response().length ||
             !!this.idTokenVerification().length
     );
-    // protected readonly response_type = computed(() => {
-    //     const val = [];
-    //     this.code() && val.push("code");
-    //     this.token() && val.push("token");
-    //     this.id_token() && val.push("id_token");
-    //     return val.length ? val.join(" ") : "none";
-    // });
+    protected readonly hasRefreshToken = () =>
+        !!this.oauth2.config?.parameters?.refresh_token;
+    protected readonly hasAccessToken = () =>
+        !!this.oauth2.config?.parameters?.access_token;
     protected readonly configError = signal("");
     private effect = effect(
         () => {
@@ -162,7 +160,10 @@ export class LoginComponent implements OnInit {
                     : JSON.parse(JSON.stringify(desktopConfigSecret))
             ) as customParametersType; // custom
             const tokenConfig = exampleConfig.configuration?.token ?? {};
-            exampleConfig.configuration!["token"] = {...tokenConfig, ...secret};
+            exampleConfig.configuration!["token"] = {
+                ...tokenConfig,
+                ...secret,
+            };
             const oldApi = config?.configuration?.tag;
             let reset = false;
 
@@ -178,258 +179,36 @@ export class LoginComponent implements OnInit {
                 reset = true;
             }
 
+            let newCfg: IOAuth2Config = {
+                configuration: {
+                    tag: api,
+                },
+            };
+
             // CONFIGURATION -> AUTHORIZATION_GRANT
+            reset = cfgGrant.bind(this)(reset, config, newCfg, exampleConfig);
 
-            let authorization_grant;
-
-            if (reset) {
-                authorization_grant = "code";
-                this.authorization_grant.set(authorization_grant);
-            } else {
-                const old = config?.configuration?.authorization_grant;
-                authorization_grant = this.authorization_grant();
-                reset = reset || old != authorization_grant;
-            }
-
-            // BASIC CONFIGURATION OBJECT
-
-            let newCfg;
-
-            if (true) {
-                const client_id = this.client_id();
-                const authorization =
-                    exampleConfig.configuration?.authorization ?? {};
-                const token = exampleConfig.configuration?.token ?? {};
-                delete token["client_secret"];
-                const metadata = exampleConfig.metadata ?? {};
-                const parameters = exampleConfig.parameters ?? {};
-                delete parameters["client_id"];
-                delete parameters["redirect_uri"];
-                delete parameters["scope"];
-                delete parameters["response_type"];
-                newCfg = {
-                    configuration: {
-                        tag: api,
-                        authorization_grant,
-                        ...(Object.keys(authorization).length && {
-                            authorization,
-                        }),
-                        ...(Object.keys(token).length && {
-                            token,
-                        }),
-                    },
-                    ...(Object.keys(metadata).length && {
-                        metadata,
-                    }),
-                    parameters: {
-                        ...parameters,
-                        client_id,
-                        redirect_uri: this.redirect_uri(),
-                    },
-                } as IOAuth2Config;
-            }
+            // CONFIGURATION -> OPTIONS
+            reset = cfgOptions.bind(this)(reset, config, newCfg);
 
             // CONFIGURATION -> AUTHORIZATION (GOOGLE SPECIFIC)
-
-            let access_type, include_granted_scopes, enable_granular_consent;
-
-            if (reset) {
-                access_type =
-                    include_granted_scopes =
-                    enable_granular_consent =
-                        "";
-                this.access_type.set(access_type);
-                this.include_granted_scopes.set(include_granted_scopes);
-                this.enable_granular_consent.set(enable_granular_consent);
-            } else {
-                const oldAccess =
-                    config?.configuration?.authorization?.["access_type"] ?? "";
-                const oldInclude =
-                    config?.configuration?.authorization?.[
-                        "include_granted_scopes"
-                    ] ?? "";
-                const oldEnable =
-                    config?.configuration?.authorization?.[
-                        "enable_granular_consent"
-                    ] ?? "";
-
-                access_type = this.access_type();
-                include_granted_scopes = this.include_granted_scopes();
-                enable_granular_consent = this.enable_granular_consent();
-
-                reset =
-                    reset ||
-                    oldAccess != access_type ||
-                    oldInclude != include_granted_scopes ||
-                    oldEnable != enable_granular_consent;
-            }
-
-            if (true) {
-                const authorization = newCfg.configuration?.authorization ?? {};
-
-                delete authorization["access_type"];
-                delete authorization["include_granted_scopes"];
-                delete authorization["enable_granular_consent"];
-
-                newCfg.configuration!.authorization = {
-                    ...authorization,
-                    ...(access_type && { access_type }),
-                    ...(include_granted_scopes !== "" && {
-                        include_granted_scopes,
-                    }),
-                    ...(enable_granular_consent !== "" && {
-                        enable_granular_consent,
-                    }),
-                };
-
-                if (!Object.keys(newCfg.configuration!.authorization).length)
-                    delete newCfg.configuration!.authorization;
-            }
+            reset = cfgAuthGoogle.bind(this)(reset, config, newCfg);
 
             // PARAMETERS -> RESPONSE_TYPE
-
-            let code, token, id_token, none;
-
-            if (reset) {
-                code = token = id_token = none = false;
-                this.code.set(code);
-                this.token.set(token);
-                this.id_token.set(id_token);
-                this.none.set(none);
-            } else {
-                const response_type = config?.parameters?.response_type ?? [];
-
-                const oldCode = response_type.includes("code");
-                const oldToken = response_type.includes("token");
-                const oldIdToken = response_type.includes("id_token");
-                const oldNone = response_type.includes("none");
-
-                code = this.code();
-                token = this.token();
-                id_token = this.id_token();
-                none = this.none();
-
-                reset =
-                    reset ||
-                    oldCode != code ||
-                    oldToken != token ||
-                    oldIdToken != id_token ||
-                    oldNone != none;
-            }
-
-            if (true) {
-                newCfg.parameters!.response_type = this.response_type();
-
-                if (!newCfg.parameters!.response_type.length)
-                    delete newCfg.parameters!.response_type;
-            }
+            reset = cfgResponse.bind(this)(reset, config, newCfg);
 
             // PARAMETERS -> SCOPE
-
-            let openid, email, profile, api_scope;
-
-            if (reset) {
-                openid = email = profile = api_scope = false;
-                this.openid.set(openid);
-                this.email.set(email);
-                this.profile.set(profile);
-                this.api_scope.set(api_scope);
-            } else {
-                const scope = config?.parameters?.scope ?? [];
-
-                const oldOpenid = scope.includes("openid");
-                const oldEmail = scope.includes("email");
-                const oldProfile = scope.includes("profile");
-                const oldApiScope = scope.includes("none");
-
-                openid = this.openid();
-                email = this.email();
-                profile = this.profile();
-                api_scope = this.api_scope();
-
-                reset =
-                    reset ||
-                    oldOpenid != openid ||
-                    oldEmail != email ||
-                    oldProfile != profile ||
-                    oldApiScope != api_scope;
-            }
-
-            if (true) {
-                newCfg.parameters!.scope = this.scope();
-
-                if (!newCfg.parameters!.scope.length)
-                    delete newCfg.parameters!.scope;
-            }
-
-            // newCfg.parameters!.client_id =
-            //     client_id == "" ? newCfg.parameters!.client_id : client_id;
-            sessionStorage.setItem("cf", JSON.stringify(newCfg));
-            this.config.set(newCfg);
-            this.saveParameters();
-            console.log("EFFECTTTTTTTTTTT", this.code(), this.none());
-            /* const oldApi = config?.configuration?.tag;
-            const oldGrant = config?.configuration?.authorization_grant;
-
-            // API CREDENTIALS
-
-            const api = this.api();
-            const newCfg = (
-                oldApi == api
-                    ? config
-                    : api == "google-web-app"
-                    ? webAppConfig
-                    : api == "google-desktop"
-                    ? desktopConfig
-                    : config
-            ) as IOAuth2Config; // custom
-            newCfg.configuration!.tag = api;
-
-            if (oldApi != api) this.textModified.set(false);
-            // CUSTOM CREDENTIALS
-
-            const client_id = this.client_id();
-            const client_secret = this.client_secret();
-
-            if (api == "custom") {
-                newCfg.parameters!.client_id = client_id;
-                newCfg.parameters!.client_secret = client_secret;
-            }
-
-            // AUTHORIZATION GRANT TYPE
-
-            const grant = this.grant() as authorizationGrantType;
-
-            if (oldGrant == grant) null;
-            else if (grant == "code") {
-                this.code.set(true);
-                this.token.set(false);
-                this.id_token.set(false);
-            } else if (grant == "implicit") {
-                this.code.set(false);
-                this.token.set(true);
-                this.id_token.set(false);
-            }
-            newCfg.configuration!.authorization_grant = grant;
-
-            // RESPONSE TYPE
-
-            // if (id_token) {
-            //     newCfg.configuration.authorization_params!.push("nonce");
-            // }
-
-            //if (resTyp == "none") cfg.configuration.authorization_params["include_granted_scopes"];
+            cfgScope.bind(this)(reset, config, newCfg);
 
             sessionStorage.setItem("cf", JSON.stringify(newCfg));
             this.config.set(newCfg);
-            //console.log("RESTYP", rt); */
+            saveParameters.bind(this)();
         },
         { allowSignalWrites: true }
     );
 
     async ngOnInit() {
-        this.getParameters();
-        console.log("RRDD", this.redirect_uri);
+        getParameters.bind(this)();
 
         const params = await this.oauth2.interceptor();
         // The code is not saved in the sessionStorage, but in the
@@ -440,38 +219,7 @@ export class LoginComponent implements OnInit {
         const id_token = (params as IOAuth2Parameters & { id_token: string })
             .id_token;
 
-        console.log("PARAMS", params, window.location);
         this.response.set(Object.entries(params));
-
-        /* if (code) {
-            try {
-                // const tag = this.oauth2Service.config?.tag ?? "";
-                // const id = this.oauth2Service.config?.parameters.client_id
-                // const reqId = id?.substring(13, 17);
-                // const res = await lastValueFrom(
-                //     this.repo.clientSecret(tag, reqId ?? "xxxx")
-                // );
-                // const b64 = res.data ? res.data[0] : "";
-                // const client_secret = Buffer.from(b64, "base64").toString(
-                //     "utf-8"
-                // );
-                const client_secret = undefined;
-                const resp1 = await this.oauth2Svc.token(code, client_secret);
-
-                //const refresh_token = this.oauth2Service.config?.parameters.refresh_token
-                const resp2 = resp1?.refresh_token
-                    ? await this.oauth2Svc.refresh(client_secret)
-                    : undefined;
-
-                const resp3 = resp1?.id_token
-                    ? await this.oauth2Svc.id_token_verify()
-                    : undefined;
-
-                console.log("TOKEN", client_secret, resp1, resp2, resp3);
-            } catch (err) {
-                console.error(err);
-            }
-        } */
 
         if (code) {
             this.accessToken().catch();
@@ -509,79 +257,12 @@ export class LoginComponent implements OnInit {
         }
     };
 
-    private saveParameters = (): void => {
-        const api = this.api();
-        const client_id = this.client_id();
-        const client_secret = this.client_secret();
-        const authorization_grant = this.authorization_grant();
-        const access_type = this.access_type();
-        const include_granted_scopes = this.include_granted_scopes();
-        const enable_granular_consent = this.enable_granular_consent();
-        const code = this.code();
-        const token = this.token();
-        const id_token = this.id_token();
-        const none = this.none();
-        const openid = this.openid();
-        const email = this.email();
-        const profile = this.profile();
-        const api_scope = this.api_scope();
-        const no_pkce = this.no_pkce();
-        const textModified = this.textModified();
-
-        sessionStorage.setItem(
-            "pr",
-            JSON.stringify({
-                api,
-                client_id,
-                client_secret,
-                authorization_grant,
-                access_type,
-                include_granted_scopes,
-                enable_granular_consent,
-                code,
-                token,
-                id_token,
-                none,
-                openid,
-                email,
-                profile,
-                api_scope,
-                no_pkce,
-                textModified,
-            })
-        );
-    };
-
-    private getParameters = () => {
-        const strObject = sessionStorage.getItem("pr");
-        if (strObject) {
-            const object = JSON.parse(strObject);
-            this.api.set(object.api);
-            this.client_id.set(object.client_id);
-            this.client_secret.set(object.client_secret);
-            this.authorization_grant.set(object.authorization_grant);
-            this.access_type.set(object.access_type);
-            this.include_granted_scopes.set(object.include_granted_scopes);
-            this.enable_granular_consent.set(object.enable_granular_consent);
-            this.code.set(object.code);
-            this.token.set(object.token);
-            this.id_token.set(object.id_token);
-            this.none.set(object.none);
-            this.openid.set(object.openid);
-            this.email.set(object.email);
-            this.profile.set(object.profile);
-            this.api_scope.set(object.api_scope);
-            this.no_pkce.set(object.no_pkce);
-            this.textModified.set(object.textModified);
-        }
-    };
-
     protected google = async () => {
         if (this.working()) return;
         this._working.set(true);
 
         this.resetResponses();
-        this.saveParameters();
+        saveParameters.bind(this)();
 
         try {
             this.oauth2.setConfig(this.config());
@@ -673,6 +354,8 @@ export class LoginComponent implements OnInit {
     };
 
     protected revokeToken = async () => {
+        //this, this.endPoint(this.oauth2.revocation, this.token_response);
+
         if (this.working()) return;
         this._working.set(true);
 
@@ -695,6 +378,33 @@ export class LoginComponent implements OnInit {
             this._working.set(false);
         }
     };
+
+    // protected endPoint = async (
+    //     endPoint: Function,
+    //     response: WritableSignal<[string, any][]>
+    // ) => {
+    //     if (this.working()) return;
+    //     this._working.set(true);
+
+    //     this.resetResponses();
+
+    //     try {
+    //         const res = await endPoint();
+    //         response.set(Object.entries(res ?? {}));
+    //     } catch (err) {
+    //         console.error(err);
+
+    //         const isHttpError = err instanceof HttpErrorResponse;
+    //         const error: [string, any][] = isHttpError
+    //             ? [[err.error.error, err.error.error_description]]
+    //             : [[(err as Error).cause, (err as Error).message]];
+
+    //         // Token request error
+    //         response.set(error);
+    //     } finally {
+    //         this._working.set(false);
+    //     }
+    // };
 
     protected resetResponses = () => {
         this.response.set([]);

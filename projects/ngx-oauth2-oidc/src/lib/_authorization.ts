@@ -14,11 +14,15 @@ export const _authorization = async (
 ) => {
     const config = initConfig(ioauth2Config);
     const cfg = config.configuration!;
-    const parms = getParameters("authorization", config);
-    const meta = config.metadata!;
     const grant = cfg.authorization_grant!;
-    const arr = (name: string) => (options[name] as string[]) ?? parms[name] ?? [];
-    const str = (name: string) => (options[name] as string) ?? parms[name] ?? "";
+    const no_pkce = !!cfg.no_pkce;
+    const parms = {
+        ...getParameters("authorization", config),
+        ...options,
+    } as customParametersType;
+    const meta = config.metadata!;
+    const arr = (name: string) => parms[name] as string[] ?? [];
+    const str = (name: string) => parms[name] as string ?? "";
     const url =
         (options["url"] as string) ?? meta.authorization_endpoint ?? "";
 
@@ -45,14 +49,28 @@ export const _authorization = async (
     //let hasIdToken = false;
     const hasIdToken = isOpenidScope;
 
-    let pkce;
-
     if (grant == "code") {
         codeIdx < 0 && response_type.push("code");
         noneIdx >= 0 && response_type.splice(noneIdx, 1);
 
-        pkce = await getPkce(options, parms, cfg);
         //hasIdToken = isOpenidScope
+    }
+
+    let pkce;
+
+    if (grant == "code" && !no_pkce) {
+        const code_verifier =
+            parms["code_verifier"] ??
+            cfg.token?.["code_verifier"] ??
+            config.parameters?.code_verifier ??
+            "";
+
+        pkce = await getPkce(parms, code_verifier as string);
+    }
+
+    if (no_pkce) {
+        delete parms["code_challenge"];
+        delete parms["code_challenge_method"]
     }
 
     if (grant == "implicit") {
@@ -117,30 +135,23 @@ export const _authorization = async (
         url,
         http,
         config,
-        { ...parms, ...newOptions, scope, response_type, ...options }
+        { ...parms, ...newOptions, scope, response_type }
     );
 };
 
 const getPkce = async (
-    options: customParametersType,
     parms: customParametersType,
-    configuration: IOAuth2Configuration
+    verifier: string
 ) => {
-    let method = (options["code_challenge_method"] ??
-        parms["code_challenge_method"]);
+    let method = parms["code_challenge_method"];
 
     method = notStrNull(method, "S256");
     method = method.toLowerCase() == "plain" ? "plain" : "S256";
-
-    let verifier = options["code_verifier"] ??
-        configuration.token?.["code_verifier"];
-
     verifier = notStrNull(verifier, (await pkceChallenge(128)).code_verifier);
 
-    let challenge = (options["code_challenge"] ?? parms?.["code_challenge"]) as
+    let challenge = (parms["code_challenge"]) as
         | string
         | undefined;
-
     challenge = notStrNull(challenge, await generateChallenge(verifier));
 
     return {

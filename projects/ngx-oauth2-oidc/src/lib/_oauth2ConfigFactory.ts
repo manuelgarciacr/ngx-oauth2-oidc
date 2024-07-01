@@ -103,12 +103,37 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
             });
         }
 
-        if (type != "array" && type != typeof value) {
-            throw new Error(`The parameter "${key}" must be of type ${type}`, {
+        if (
+            type == "json" &&
+            !isJSON(value)
+        ) {
+            throw new Error(`The parameter "${key}" must be of type JSON`, {
                 cause: "oauth2 oauth2ConfigFactory",
             });
+        }
+
+        if (
+            type != "array" &&
+            type != "json" &&
+            type != "undefined" &&
+            type != typeof value
+        ) {
+            throw new Error(
+                `The parameter "${key}" must be of type ${type}`,
+                {
+                    cause: "oauth2 oauth2ConfigFactory",
+                }
+            );
         }
     }
 
     return cfg;
 };
+
+const isJSON = (v: unknown) => {
+    try {
+        return !!v && typeof v == "string" && !!JSON.parse(v)
+    } catch {
+        return false
+    }
+}

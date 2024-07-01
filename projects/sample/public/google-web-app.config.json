@@ -1,7 +1,14 @@
 {
     "configuration": {
         "tag": "google-web-app",
-        "authorization_grant": "code"
+        "authorization_grant": "code",
+        "authorization": {
+            "code_challenge": "000",
+            "code_challenge_method": "plain"
+        },
+        "token": {
+            "code_verifier": "000"
+        }
     },
     "metadata": {
         "issuer": "https://accounts.google.com"

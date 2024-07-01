@@ -16,14 +16,24 @@ const options = {
     authorization_grant: "" as authorizationGrantType,
 
     /**
+     * If true, discovery document is not fetched. Default is false.
+     */
+    no_discovery: false,
+
+    /**
      * If true, the service will not use PKCE support. Default is false.
      */
     no_pkce: false,
 
     /**
-     * If true, discovery document is not fetched. Default is false.
+     * If true, the service will not use the oauth2 parameter "state". Default is false.
      */
-    no_discovery: false,
+    no_state: false,
+
+    /**
+     * If true, the service will not use the oauth2 parameter "nonce". Default is false.
+     */
+    no_nonce: false,
 
     /**
      * Predefined discovery document URI. Ignored if "no_discovery"

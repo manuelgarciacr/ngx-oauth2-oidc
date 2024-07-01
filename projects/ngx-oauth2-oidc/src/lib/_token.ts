@@ -15,22 +15,20 @@ export const _token = async (
 ) => {
     const config = initConfig(ioauth2Config);
     const cfg = config.configuration!;
-    const parms = getParameters("token", config);
+    const no_pkce = !!cfg.no_pkce;
+    const parms = {
+        ...getParameters("token", config),
+        ...options
+    } as customParametersType;
     const meta = config.metadata!;
-    const grant = cfg.authorization_grant;
-    const str = (name: string) =>
-        (options[name] as string) ?? parms[name] ?? "";
     const url = (options["url"] as string) ?? meta.token_endpoint ?? "";
+    const grant_type = parms["grant_type"];
 
-    let grant_type = str("grant_type");
-
-    if (
-        grant == "code" &&
-        grant_type != "authorization_code" &&
-        grant_type != "refresh_token"
-    ) {
-        grant_type = "authorization_code";
-    }
+    if (!grant_type)
+        throw new Error(
+            `Value ​​for option 'grant_type' is missing.`,
+            { cause: `oauth2 token` }
+        );
 
     if (!url)
         throw new Error(
@@ -53,6 +51,10 @@ export const _token = async (
         delete parms["device_code"];
     }
 
+    if (no_pkce) {
+        delete parms["code_verifier"];
+    }
+
     return request<IOAuth2Parameters>(
         "token",
         "POST",
@@ -60,6 +62,6 @@ export const _token = async (
         url,
         http,
         config!,
-        { ...parms, grant_type, ...options }
+        parms
     );
 };

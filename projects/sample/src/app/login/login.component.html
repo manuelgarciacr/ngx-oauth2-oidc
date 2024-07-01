@@ -1,7 +1,7 @@
 <div class="col-12 mb-2">
     <button (click)="this.google()">Login</button>
-    <button (click)="this.refreshToken()">Refresh token</button>
-    <button (click)="this.revokeToken()">Revoke token</button>
+    <button *ngIf="hasRefreshToken()" (click)="this.refreshToken()">Refresh token</button>
+    <button *ngIf="hasRefreshToken() || hasAccessToken()" (click)="this.revokeToken()">Revoke token</button>
     <button *ngIf="hasResponses()" (click)="this.resetResponses()" class="bg-danger-subtle">Remove responses</button>
     <div *ngIf="response().length" class="my-3 border border-2 border-dark">
         <label class="fs-3 fw-bolder">AUTHORIZATION RESPONSE</label>
@@ -100,6 +100,39 @@
             </label>
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="radio" name="grant" value="" disabled [(ngModel)]="authorization_grant"> Unseted.
+            </label>
+        </div>
+    </fieldset>
+    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">configuration -> options</legend>
+        <div class="m-auto">
+            <label class="d-flex flex-row justify-between mb-2">
+                <div class="d-flex flex-wrap col-4">
+                    <input class="me-2" type="checkbox" value=true [(ngModel)]="no_discovery">
+                    no_discovery
+                </div>
+                <span class="col bg-body-secondary">Ignored if authorization_grant is not "code"</span>
+            </label>
+            <label class="d-flex flex-row justify-between mb-2">
+                <div class="d-flex flex-wrap col-4">
+                    <input class="me-2" type="checkbox" value=true [(ngModel)]="no_pkce">
+                    no_pkce
+                </div>
+                <span class="col bg-body-secondary">Ignored if authorization_grant is not "code"</span>
+            </label>
+            <label class="d-flex flex-row justify-between mb-2">
+                <div class="d-flex flex-wrap col-4">
+                    <input class="me-2" type="checkbox" value=true [(ngModel)]="no_state">
+                    no_state
+                </div>
+                <span class="col bg-body-secondary">Ignored if authorization_grant is not "code"</span>
+            </label>
+            <label class="d-flex flex-row justify-between mb-2">
+                <div class="d-flex flex-wrap col-4">
+                    <input class="me-2" type="checkbox" value=true [(ngModel)]="no_nonce">
+                    no_nonce
+                </div>
+                <span class="col bg-body-secondary">Ignored if authorization_grant is not "code"</span>
             </label>
         </div>
     </fieldset>
@@ -215,19 +248,6 @@
         <!-- <div *ngIf="openid() || email() || profile()" class="bg-body-secondary ms-2 p-2">
             * If 'open_id', 'email' or 'profile' is checked, the 'nonce' parameter is generated automatically
         </div> -->
-    </fieldset>
-    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">configuration -> options</legend>
-        <div class="m-auto">
-            <label class="d-flex flex-row justify-between mb-2">
-                <div class="d-flex flex-wrap col-4">
-                    <input class="me-2" type="checkbox" value=true [disabled]="false || authorization_grant() != 'code'"
-                        [(ngModel)]="no_pkce">
-                    no_pkce
-                </div>
-                <span class="col bg-body-secondary">Ignored if authorization_grant is not "code"</span>
-            </label>
-        </div>
     </fieldset>
 </div>
 <div class="d-flex flex-column font-monospace col-sm-7" style="min-height: 75vh">
