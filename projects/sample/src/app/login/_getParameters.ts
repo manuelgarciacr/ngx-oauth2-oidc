@@ -29,7 +29,13 @@ export function getParameters(this: LoginComponent ) {
         this.email.set(object.email);
         this.profile.set(object.profile);
         this.api_scope.set(object.api_scope);
+        // RESPONSES
+        this.configuration_response.set(object.configuration_response);
+        this.authorization_response.set(object.authorization_response);
+        this.discovery_response.set(object.discovery_response);
+        this.token_response.set(object.token_response);
+        this.verification_response.set(object.verification_response);
         // TEXT MODIFIED
-        this.textModified.set(object.textModified);
+        this.textModified.set(object.textModified)
     }
 }

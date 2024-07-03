@@ -25,6 +25,12 @@ export function saveParameters(this: LoginComponent ) {
     const email = this.email();
     const profile = this.profile();
     const api_scope = this.api_scope();
+    // RESPONSES
+    const configuration_response = this.configuration_response();
+    const authorization_response = this.authorization_response();
+    const discovery_response = this.discovery_response();
+    const token_response = this.token_response();
+    const verification_response = this.verification_response();
     // TEXT MODIFIED
     const textModified = this.textModified();
 console.log("save")
@@ -55,6 +61,12 @@ console.log("save")
             email,
             profile,
             api_scope,
+            // RESPONSES
+            configuration_response,
+            authorization_response,
+            discovery_response,
+            token_response,
+            verification_response,
             // TEXT MODIFIED
             textModified,
         })

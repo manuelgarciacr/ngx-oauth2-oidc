@@ -121,16 +121,18 @@ export class LoginComponent implements OnInit {
     //
     protected readonly config = signal(<IOAuth2Config>{});
     protected readonly textModified = signal(false);
-    protected readonly response = signal<[string, any][]>([]);
+    protected readonly configuration_response = signal<[string, any][]>([]);
+    protected readonly authorization_response = signal<[string, any][]>([]);
     protected readonly discovery_response = signal<[string, any][]>([]);
     protected readonly token_response = signal<[string, any][]>([]);
-    protected readonly idTokenVerification = signal<[string, any][]>([]);
+    protected readonly verification_response = signal<[string, any][]>([]);
     protected readonly hasResponses = computed(
         () =>
-            !!this.response().length ||
+            !!this.configuration_response().length ||
+            !!this.authorization_response().length ||
             !!this.discovery_response().length ||
             !!this.token_response().length ||
-            !!this.idTokenVerification().length
+            !!this.verification_response().length
     );
     protected readonly hasRefreshToken = () =>
         !!this.oauth2.config?.parameters?.refresh_token;
@@ -219,7 +221,7 @@ export class LoginComponent implements OnInit {
         const id_token = (params as IOAuth2Parameters & { id_token: string })
             .id_token;
 
-        this.response.set(Object.entries(params));
+        this.authorization_response.set(Object.entries(params));
 
         if (code) {
             this.accessToken().catch();
@@ -228,14 +230,14 @@ export class LoginComponent implements OnInit {
         if (id_token) {
             try {
                 const resp = await this.oauth2.verify_token();
-                this.idTokenVerification.set(Object.entries(resp));
+                this.verification_response.set(Object.entries(resp));
             } catch (err) {
                 console.log(
                     "ID_TOKEN ERR",
                     (err as Error).name,
                     (err as Error).message
                 );
-                this.idTokenVerification.set([
+                this.verification_response.set([
                     [(err as Error).name, (err as Error).message],
                 ]);
             }
@@ -257,160 +259,104 @@ export class LoginComponent implements OnInit {
         }
     };
 
-    protected google = async () => {
-        if (this.working()) return;
-        this._working.set(true);
+    protected login = async () => {
 
-        this.resetResponses();
+        const resCfg = await this.endPoint(
+            this.oauth2.setConfig,
+            this.configuration_response,
+            true,
+            this.config() as customParametersType
+        );
+
+        if (!resCfg) return;
+
+        const resDisc = await this.endPoint(
+            this.oauth2.fetchDiscoveryDoc,
+            this.discovery_response,
+            false
+        );
+
+        if (!resDisc) return;
+
         saveParameters.bind(this)();
 
-        try {
-            this.oauth2.setConfig(this.config());
-
-            await this.oauth2.fetchDiscoveryDoc();
-            await this.oauth2.authorization();
-        } catch (err) {
-            console.error(err);
-
-            const isHttpError = err instanceof HttpErrorResponse;
-            const error: [string, any][] = isHttpError
-                ? [[err.error.error, err.error.error_description]]
-                : [[(err as Error).cause, (err as Error).message]];
-            if (error[0][0].includes("fetchDiscoveryDoc")) {
-                // Discovery request error
-                this.discovery_response.set(error);
-            } else {
-                // Authorization request error
-                this.response.set(error);
-            }
-        } finally {
-            this._working.set(false);
-        }
+        await this.endPoint(
+            this.oauth2.authorization,
+            this.authorization_response,
+            false
+        );
     };
 
     protected accessToken = async () => {
-        if (this.working()) return;
-        this._working.set(true);
-
-        try {
-            const res = await this.oauth2.token({
+        const res = await this.endPoint(
+            this.oauth2.token,
+            this.token_response,
+            false,
+            {
                 client_secret: this.client_secret(),
-            });
-            this.token_response.set(Object.entries(res ?? {}));
-
-            // Some flows respond with an id_token
-
-            if ((res as IOAuth2Parameters & { id_token: string })?.id_token) {
-                const resp = await this.oauth2.verify_token();
-                this.idTokenVerification.set(Object.entries(resp));
             }
-        } catch (err) {
-            console.error(err);
-
-            const isJOSEError = err instanceof JOSEError;
-            const isHttpError = err instanceof HttpErrorResponse;
-            const error: [string, any][] = isHttpError
-                ? [[err.error.error, err.error.error_description]]
-                : isJOSEError
-                ? [[(err as Error).name, (err as Error).message]]
-                : [[(err as Error).cause, (err as Error).message]];
-
-            if (this.token_response().length) {
-                // Token request Ok. Verification error
-                this.idTokenVerification.set(error);
-            } else {
-                // Token request error
-                this.token_response.set(error);
-            }
-        } finally {
-            this._working.set(false);
+        );
+        if ((res as IOAuth2Parameters & { id_token: string })?.id_token) {
+            await this.endPoint(
+                this.oauth2.verify_token,
+                this.verification_response,
+                false
+            );
         }
     };
 
     protected refreshToken = async () => {
-        if (this.working()) return;
-        this._working.set(true);
-
-        this.resetResponses();
-
-        try {
-            const res = await this.oauth2.refresh({
-                client_secret: this.client_secret(),
-            });
-            this.token_response.set(Object.entries(res ?? {}));
-        } catch (err) {
-            console.error(err);
-
-            const isHttpError = err instanceof HttpErrorResponse;
-            const error: [string, any][] = isHttpError
-                ? [[err.error.error, err.error.error_description]]
-                : [[(err as Error).cause, (err as Error).message]];
-
-            // Token request error
-            this.token_response.set(error);
-        } finally {
-            this._working.set(false);
-        }
+        this.endPoint(this.oauth2.refresh, this.token_response, true, {
+            client_secret: this.client_secret(),
+        });
     };
 
     protected revokeToken = async () => {
-        //this, this.endPoint(this.oauth2.revocation, this.token_response);
+        this.endPoint(this.oauth2.revocation, this.token_response);
+    };
 
+    private endPoint = async (
+        endPoint: Function,
+        response: WritableSignal<[string, any][]>,
+        reset = true,
+        options?: customParametersType
+    ): Promise<IOAuth2Parameters | undefined> => {
         if (this.working()) return;
         this._working.set(true);
 
-        this.resetResponses();
+        if (reset) this.resetResponses();
 
         try {
-            const res = await this.oauth2.revocation();
-            this.token_response.set(Object.entries(res ?? {}));
+            const res = await endPoint(options);
+            response.set(Object.entries(res ?? {}));
+            return res;
         } catch (err) {
-            console.error(err);
-
+            const isJOSEError = err instanceof JOSEError;
             const isHttpError = err instanceof HttpErrorResponse;
-            const error: [string, any][] = isHttpError
+            const isOAuth2Error = isHttpError && !!err.error.error
+
+            const error: [string, any][] = isOAuth2Error
                 ? [[err.error.error, err.error.error_description]]
+                : isHttpError
+                ? [[(err as HttpErrorResponse).statusText, (err as HttpErrorResponse).message]]
+                : isJOSEError
+                ? [[(err as JOSEError).name, (err as JOSEError).message]]
                 : [[(err as Error).cause, (err as Error).message]];
 
-            // Token request error
-            this.token_response.set(error);
+            // Endpoint request error
+            response.set(error);
+            return Promise.resolve(undefined);
         } finally {
             this._working.set(false);
         }
     };
 
-    // protected endPoint = async (
-    //     endPoint: Function,
-    //     response: WritableSignal<[string, any][]>
-    // ) => {
-    //     if (this.working()) return;
-    //     this._working.set(true);
-
-    //     this.resetResponses();
-
-    //     try {
-    //         const res = await endPoint();
-    //         response.set(Object.entries(res ?? {}));
-    //     } catch (err) {
-    //         console.error(err);
-
-    //         const isHttpError = err instanceof HttpErrorResponse;
-    //         const error: [string, any][] = isHttpError
-    //             ? [[err.error.error, err.error.error_description]]
-    //             : [[(err as Error).cause, (err as Error).message]];
-
-    //         // Token request error
-    //         response.set(error);
-    //     } finally {
-    //         this._working.set(false);
-    //     }
-    // };
-
     protected resetResponses = () => {
-        this.response.set([]);
+        this.configuration_response.set([]);
+        this.authorization_response.set([]);
         this.discovery_response.set([]);
         this.token_response.set([]);
-        this.idTokenVerification.set([]);
+        this.verification_response.set([]);
     };
 }
 

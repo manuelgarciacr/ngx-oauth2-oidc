@@ -17,7 +17,7 @@ export const httpRequest = <T>(req: Observable<T>, config: IOAuth2Config) => {
         req.pipe(
             map(res => convertParameters(res as {[key: string]: string}, config)),
             catchError(err => {
-                throw err;
+                throw err
             })
         )
     );

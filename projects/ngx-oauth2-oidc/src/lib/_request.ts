@@ -18,7 +18,7 @@ export const request = async <T>(
 
     let params = new HttpParams({ fromObject: {} });
 
-     for (const key in options) {
+    for (const key in options) {
         let v = options![key as keyof typeof options];
         Array.isArray(v) && (v = v.join(" "));
         if (v) params = params.set(key, v.toString());

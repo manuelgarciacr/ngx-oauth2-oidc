@@ -1,11 +1,22 @@
 <div class="col-12 mb-2">
-    <button (click)="this.google()">Login</button>
+    <button (click)="this.login()">Login</button>
     <button *ngIf="hasRefreshToken()" (click)="this.refreshToken()">Refresh token</button>
     <button *ngIf="hasRefreshToken() || hasAccessToken()" (click)="this.revokeToken()">Revoke token</button>
     <button *ngIf="hasResponses()" (click)="this.resetResponses()" class="bg-danger-subtle">Remove responses</button>
-    <div *ngIf="response().length" class="my-3 border border-2 border-dark">
+    <div *ngIf="configuration_response().length" class="border border-2 border-dark my-3 p-3">
+        <label class="fs-3 fw-bolder">CONFIGURATION RESPONSE</label>
+        @for (parm of configuration_response(); track $index; let idx = $index){
+        <div class="row">
+            <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
+            <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
+                (parm[1] | slice:0:250)+"..." : parm[1]}}
+            </span>
+        </div>
+        }
+    </div>
+    <div *ngIf="authorization_response().length" class="border border-2 border-dark my-3 p-3">
         <label class="fs-3 fw-bolder">AUTHORIZATION RESPONSE</label>
-        @for (parm of response(); track $index; let idx = $index){
+        @for (parm of authorization_response(); track $index; let idx = $index){
             <div class="row">
                 <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
                 <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
@@ -14,7 +25,7 @@
             </div>
         }
     </div>
-    <div *ngIf="discovery_response().length" class="my-3 border border-2 border-dark">
+    <div *ngIf="discovery_response().length" class="border border-2 border-dark my-3 p-3">
         <label class="fs-3 fw-bolder">DISCOVERY RESPONSE</label>
         @for (parm of discovery_response(); track $index; let idx = $index){
             <div class="row">
@@ -25,7 +36,7 @@
             </div>
         }
     </div>
-    <div *ngIf="token_response().length" class="my-3 border border-2 border-dark">
+    <div *ngIf="token_response().length" class="border border-2 border-dark my-3 p-3">
         <label class="fs-3 fw-bolder">TOKEN RESPONSE</label>
         @for (parm of token_response(); track $index; let idx = $index){
             <div class="row">
@@ -36,9 +47,9 @@
             </div>
         }
     </div>
-    <div *ngIf="idTokenVerification().length" class="my-3 border border-2 border-dark" >
-        <label class="fs-3 fw-bolder">ID_TOKEN VERIFICATION</label>
-        @for (parm of idTokenVerification(); track $index; let idx = $index){
+    <div *ngIf="verification_response().length" class="border border-2 border-dark my-3 p-3" >
+        <label class="fs-3 fw-bolder">VERIFICATION RESPONSE</label>
+        @for (parm of verification_response(); track $index; let idx = $index){
             <div class="row">
                 <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
                 <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
