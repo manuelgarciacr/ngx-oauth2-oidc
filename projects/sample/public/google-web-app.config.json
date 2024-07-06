@@ -4,7 +4,8 @@
         "authorization_grant": "code",
         "authorization": {
             "code_challenge": "000",
-            "code_challenge_method": "plain"
+            "code_challenge_method": "plain",
+            "include_granted_scopes": "true"
         },
         "token": {
             "code_verifier": "000"
@@ -12,8 +13,5 @@
     },
     "metadata": {
         "issuer": "https://accounts.google.com"
-    },
-    "parameters": {
-        "client_id": "115940404174-2re8nu673gkn13jclq25spmgo9sdh1t2.apps.googleusercontent.com"
     }
 }

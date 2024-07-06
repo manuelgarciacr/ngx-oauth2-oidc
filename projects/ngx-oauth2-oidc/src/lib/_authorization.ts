@@ -1,6 +1,6 @@
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
 import { IOAuth2Config, IOAuth2Configuration, IOAuth2Parameters, customParametersType } from "../domain";
-import { notStrNull, secureRandom } from "../utils";
+import { isStrNull, notStrNull, secureRandom } from "../utils";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
@@ -54,6 +54,10 @@ export const _authorization = async (
         noneIdx >= 0 && response_type.splice(noneIdx, 1);
 
         //hasIdToken = isOpenidScope
+    } else {
+        const multipleTypes = response_type.length > 1
+
+        noneIdx >= 0 && multipleTypes && response_type.splice(noneIdx, 1);
     }
 
     let pkce;
@@ -145,8 +149,30 @@ const getPkce = async (
 ) => {
     let method = parms["code_challenge_method"];
 
+    if (!isStrNull(method))
+        throw new Error(
+            `the code challenge method "${method}",
+            must be a string or nullish.`,
+            { cause: "oauth2 authorization" },
+        );
+
+    if (!isStrNull(verifier))
+        throw new Error(
+            `the code verifier "${verifier}",
+                must be a string or nullish.`,
+            { cause: "oauth2 authorization" }
+        );
+
     method = notStrNull(method, "S256");
-    method = method.toLowerCase() == "plain" ? "plain" : "S256";
+    method = method.toLowerCase() == "plain" ? "plain" : method;
+    method = method.toLowerCase() == "s256" ? "S256" : method;
+
+    if (method != "plain" && method != "S256")
+        throw new Error(
+            `unexpected code challenge method "${method}".`,
+            { cause: "oauth2 authorization" }
+        );
+
     verifier = notStrNull(verifier, (await pkceChallenge(128)).code_verifier);
 
     let challenge = (parms["code_challenge"]) as

@@ -11,7 +11,7 @@ export function cfgScope(this: LoginComponent, reset: boolean, config: IOAuth2Co
         this.profile.set(profile);
         this.api_scope.set(api_scope);
     } else {
-        const scope = config?.parameters?.scope ?? [];
+        const scope = config.parameters?.scope ?? [];
 
         const oldOpenid = scope.includes("openid");
         const oldEmail = scope.includes("email");

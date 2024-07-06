@@ -34,10 +34,16 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
         const value = ioauth2Config[key];
 
         if (!isObject(value))
-            throw `Oauth2 oauth2ConfigFactory: initial configuration section "${section}" is not an object.`;
+            throw new Error(
+                `initial configuration section "${section}" is not an object.`,
+                { cause: "oauth2 oauth2ConfigFactory" }
+            );
 
         if (!(configSections as string[]).includes(section))
-            throw `Oauth2 oauth2ConfigFactory: unexpected initial configuration section "${section}".`;
+            throw new Error(
+                `unexpected initial configuration section "${section}".`,
+                { cause: "oauth2 oauth2ConfigFactory" }
+            );
 
         cfg[key] = toLowerCaseProperties<any>(value)!;
     }

@@ -12,7 +12,7 @@ export function cfgResponse(this: LoginComponent, reset: boolean, config: IOAuth
         this.id_token.set(id_token);
         this.none.set(none);
     } else {
-        const response_type = config?.parameters?.response_type ?? [];
+        const response_type = config.parameters?.response_type ?? [];
 
         const oldCode = response_type.includes("code");
         const oldToken = response_type.includes("token");

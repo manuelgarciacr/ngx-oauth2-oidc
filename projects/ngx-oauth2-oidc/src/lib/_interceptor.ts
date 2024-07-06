@@ -1,4 +1,4 @@
-import { IOAuth2Config } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters } from "../domain";
 import { convertParameters } from "./_convertParameters";
 
 export const _interceptor = (config: IOAuth2Config | null) => {
@@ -8,35 +8,43 @@ export const _interceptor = (config: IOAuth2Config | null) => {
     const substr = str.substring(1);
     const array = substr.length ? substr.split("&") : [];
     const entries = array.map(v => v.split("="));
-    // const searchParams = searchArr2.reduce((obj, v) => {
-    //     const idx = v[0];
-    //     obj[idx] = v[1];
-    //     return obj;
-    // }, {} as { [key: string]: string });
     const params = Object.fromEntries(entries);
-    // const hashStr = hash.substring(1);
-    // const hashArr = hashStr.length ? hashStr.split("&") : [];
-    // const hashArr2 = hashArr.map(v => v.split("="));
-    // const params = hashArr2.reduce((obj, v) => {
-    //     const idx = v[0];
-    //     obj[idx] = v[1];
-    //     return obj;
-    // }, searchParams);
 
-    if (!config) throw "oauth2 interceptor: no configuration defined";
+    if (!entries.length)
+        return Promise.resolve({} as IOAuth2Parameters);
+
+    if (!config)
+        return Promise.reject(
+            new Error(
+                `no configuration defined.`,
+                {
+                    cause: "oauth2 interceptor",
+                }
+            )
+        );
 
     const state = config.parameters?.state;
 
     if (state && state != params["state"])
-        return Promise.reject("oauth2 interceptor: Ilegal state received");
+        return Promise.reject(
+            new Error(
+                `ilegal state received.`,
+                {
+                    cause: "oauth2 interceptor",
+                }
+            )
+        );
 
     const newParams = convertParameters(params, config);
 
     if (newParams["error"])
         return Promise.reject(
-            `oauth2 interceptor: ${newParams["error"]} ${
-                newParams["error_description"] ?? ""
-            }`
+            new Error(
+                `${newParams["error"]} ${newParams["error_description"] ?? ""}`,
+                {
+                    cause: "oauth2 interceptor",
+                }
+            )
         );
 
     return Promise.resolve(newParams);
