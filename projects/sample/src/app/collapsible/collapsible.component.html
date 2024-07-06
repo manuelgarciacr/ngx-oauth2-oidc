@@ -1,0 +1,15 @@
+<div *ngIf="response().length" class="border border-2 border-dark my-3 p-3">
+    <label class="fs-3 fw-bolder" [class.bg-danger-subtle]="error()">
+        {{ name }} {{ error() ? "ERROR" : "RESPONSE" }}
+        <button class="ms-4 mb-2" [class.open]="open()"
+            (click)="toggleOpen()">></button>
+    </label>
+    @for (parm of response(); track $index; let idx = $index){
+        <div class="row" [class.d-none]="!open()">
+            <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
+            <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
+                (parm[1] | slice:0:250)+"..." : parm[1]}}
+            </span>
+        </div>
+    }
+</div>

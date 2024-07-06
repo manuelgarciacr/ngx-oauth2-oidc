@@ -1,102 +1,28 @@
 <div class="mb-2">
     <button (click)="this.login()">Login</button>
-    <button *ngIf="hasCode()" (click)="this.accessToken()">Access token</button><button *ngIf="hasRefreshToken()" (click)="this.refreshToken()">Refresh token</button>
+    <button *ngIf="hasCode()" (click)="this.accessToken()">Access token</button><button *ngIf="hasRefreshToken()"
+        (click)="this.refreshToken()">Refresh token</button>
     <button *ngIf="hasRefreshToken() || hasAccessToken()" (click)="this.revokeToken()">Revoke token</button>
     <button *ngIf="hasResponses()" (click)="this.resetResponses()" class="bg-danger-subtle">Remove responses</button>
-    <div *ngIf="configuration_response().length" class="border border-2 border-dark my-3 p-3">
-        <label class="fs-3 fw-bolder" [class.bg-danger-subtle]="configuration_error()">
-            setConfig() {{ configuration_error() ? "ERROR" : "RESPONSE" }}
-            <button class="ms-4 mb-2"
-                [class.open]="configuration_open()"
-                (click)="configuration_open.set(!configuration_open())">></button>
-        </label>
-        @for (parm of configuration_response(); track $index; let idx = $index){
-        <div class="row" [class.d-none]="!configuration_open()">
-            <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
-            <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
-                (parm[1] | slice:0:250)+"..." : parm[1]}}
-            </span>
-        </div>
-        }
-    </div>
-    <div *ngIf="discovery_response().length" class="border border-2 border-dark my-3 p-3">
-        <label class="fs-3 fw-bolder" [class.bg-danger-subtle]="discovery_error()">
-            DISCOVERY {{ discovery_error() ? "ERROR" : "RESPONSE" }}
-            <button class="ms-4 mb-2" [class.open]="discovery_open()"
-                (click)="discovery_open.set(!discovery_open())">></button>
-        </label>
-        @for (parm of discovery_response(); track $index; let idx = $index){
-        <div class="row" [class.d-none]="!discovery_open()">
-            <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
-            <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
-                (parm[1] | slice:0:250)+"..." : parm[1]}}
-            </span>
-        </div>
-        }
-    </div>
-    <div *ngIf="authorization_response().length" class="border border-2 border-dark my-3 p-3">
-        <label class="fs-3 fw-bolder" [class.bg-danger-subtle]="authorization_error()">
-            AUTHORIZATION {{ authorization_error() ? "ERROR" : "RESPONSE" }}
-            <button class="ms-4 mb-2"
-                [class.open]="authorization_open()"
-                (click)="authorization_open.set(!authorization_open())">></button>
-        </label>
-        @for (parm of authorization_response(); track $index; let idx = $index){
-            <div class="row" [class.d-none]="!authorization_open()">
-                <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
-                <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
-                    (parm[1] | slice:0:250)+"..." : parm[1]}}
-                </span>
-            </div>
-        }
-    </div>
-    <div *ngIf="token_response().length" class="border border-2 border-dark my-3 p-3">
-        <label class="fs-3 fw-bolder" [class.bg-danger-subtle]="token_error()">
-            TOKEN {{ token_error() ? "ERROR" : "RESPONSE" }}
-            <button class="ms-4 mb-2"
-                [class.open]="token_open()"
-                (click)="token_open.set(!token_open())">></button>
-        </label>
-        @for (parm of token_response(); track $index; let idx = $index){
-            <div class="row" [class.d-none]="!token_open()">
-                <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
-                <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
-                    (parm[1] | slice:0:250)+"..." : parm[1]}}
-                </span>
-            </div>
-        }
-    </div>
-    <div *ngIf="verification_response().length" class="border border-2 border-dark my-3 p-3" >
-        <label class="fs-3 fw-bolder" [class.bg-danger-subtle]="verification_error()">
-            VERIFICATION {{ verification_error() ? "ERROR" : "RESPONSE" }}
-            <button class="ms-4 mb-2"
-                [class.open]="verification_open()"
-                (click)="verification_open.set(!verification_open())">></button>
-        </label>
-        @for (parm of verification_response(); track $index; let idx = $index){
-            <div class="row" [class.d-none]="!verification_open()">
-                <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
-                <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
-                    (parm[1] | slice:0:250)+"..." : parm[1]}}
-                </span>
-            </div>
-        }
-    </div>
-    <div *ngIf="revocation_response().length" class="border border-2 border-dark my-3 p-3">
-        <label class="fs-3 fw-bolder" [class.bg-danger-subtle]="revocation_error()">
-            REVOCATION {{ revocation_error() ? "ERROR" : "RESPONSE" }}
-            <button class="ms-4 mb-2" [class.open]="revocation_open()"
-                (click)="revocation_open.set(!revocation_open())">></button>
-        </label>
-        @for (parm of revocation_response(); track $index; let idx = $index){
-        <div class="row" [class.d-none]="!revocation_open()">
-            <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
-            <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
-                (parm[1] | slice:0:250)+"..." : parm[1]}}
-            </span>
-        </div>
-        }
-    </div>
+
+    <app-collapsible [name]="'setConfig()'" [request]="configuration_response()" [response]="configuration_response()"
+        [error]="configuration_error()" [open]="configuration_open()"
+        (toggle_open)="configuration_open.set($event)"></app-collapsible>
+    <app-collapsible [name]="'DISCOVERY'" [request]="discovery_response()" [response]="discovery_response()"
+        [error]="discovery_error()" [open]="discovery_open()"
+        (toggle_open)="discovery_open.set($event)"></app-collapsible>
+    <app-collapsible [name]="'AUTHORIZATION'" [request]="authorization_response()" [response]="authorization_response()"
+        [error]="authorization_error()" [open]="authorization_open()"
+        (toggle_open)="authorization_open.set($event)"></app-collapsible>
+    <app-collapsible [name]="'TOKEN'" [request]="token_response()" [response]="token_response()"
+        [error]="token_error()" [open]="token_open()"
+        (toggle_open)="token_open.set($event)"></app-collapsible>
+    <app-collapsible [name]="'VERIFICATION'" [request]="verification_response()" [response]="verification_response()"
+        [error]="verification_error()" [open]="verification_open()"
+        (toggle_open)="verification_open.set($event)"></app-collapsible>
+    <app-collapsible [name]="'REVOCATION'" [request]="revocation_response()" [response]="revocation_response()"
+        [error]="revocation_error()" [open]="revocation_open()"
+        (toggle_open)="revocation_open.set($event)"></app-collapsible>
 </div>
 <div class="col-sm-5">
     <fieldset class="credentials d-flex border rounded-3 p-3 mb-3">
@@ -114,7 +40,8 @@
                 <input class="me-2" type="radio" name="api" value="custom" [(ngModel)]="api"> Custom credentials
             </label>
             <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="radio" name="api" value="custom" [(ngModel)]="api"> Custom configuration object
+                <input class="me-2" type="radio" name="api" value="custom" [(ngModel)]="api"> Custom configuration
+                object
             </label>
         </div>
         <div *ngIf="api() == 'google-web-app'" class="text-break text-wrap bg-body-secondary ms-2 pe-2 py-2">
@@ -132,12 +59,14 @@
                 <span class="">authorization_grant</span>
                 <div class="col ms-5 ms-sm-2">
                     <label class="d-flex flex-row align-items-start mb-2">
-                        <input class="me-2" type="radio" name="grant" value="code" [(ngModel)]="authorization_grant"> Code.
+                        <input class="me-2" type="radio" name="grant" value="code" [(ngModel)]="authorization_grant">
+                        Code.
                         (Authorization
                         code)
                     </label>
                     <label class="d-flex flex-row align-items-start mb-2">
-                        <input class="me-2" type="radio" name="grant" value="implicit" [(ngModel)]="authorization_grant"> Implicit
+                        <input class="me-2" type="radio" name="grant" value="implicit"
+                            [(ngModel)]="authorization_grant"> Implicit
                     </label>
                     <label class="d-flex flex-row align-items-start mb-2">
                         <input class="me-2" type="radio" name="grant" value="password" disabled
@@ -145,15 +74,18 @@
                         (Resource Owner Password Credentials)
                     </label>
                     <label class="d-flex flex-row align-items-start mb-2">
-                        <input class="me-2" type="radio" name="grant" value="client" disabled [(ngModel)]="authorization_grant"> Client.
+                        <input class="me-2" type="radio" name="grant" value="client" disabled
+                            [(ngModel)]="authorization_grant"> Client.
                         (Client Credentials)
                     </label>
                     <label class="d-flex flex-row align-items-start mb-2">
-                        <input class="me-2" type="radio" name="grant" value="extension" disabled [(ngModel)]="authorization_grant">
+                        <input class="me-2" type="radio" name="grant" value="extension" disabled
+                            [(ngModel)]="authorization_grant">
                         Extension. (Extension Grants)
                     </label>
                     <label class="d-flex flex-row align-items-start mb-2">
-                        <input class="me-2" type="radio" name="grant" value="" disabled [(ngModel)]="authorization_grant"> Unseted.
+                        <input class="me-2" type="radio" name="grant" value="" disabled
+                            [(ngModel)]="authorization_grant"> Unseted.
                     </label>
                 </div>
             </div>
@@ -187,8 +119,10 @@
             </div>
         </div>
     </fieldset>
-    <fieldset *ngIf="true || api() == 'google-web-app' && authorization_grant() == 'code'" class="authorization d-flex border rounded-3 p-3 mb-3">
-        <legend class="authorization float-none text-center w-auto px-3">authorization -> <span class="credentials">credentials-dependent</span></legend>
+    <fieldset *ngIf="true || api() == 'google-web-app' && authorization_grant() == 'code'"
+        class="authorization d-flex border rounded-3 p-3 mb-3">
+        <legend class="authorization float-none text-center w-auto px-3">authorization -> <span
+                class="credentials">credentials-dependent</span></legend>
         <div class="mx-auto">
             <label class="d-flex flex-wrap mb-2">
                 <span class="text-break col">
@@ -226,7 +160,8 @@
         </div> -->
     </fieldset>
     <fieldset class="metadata border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="metadata float-none text-center w-auto px-3">metadata -> <span class="credentials">credentials-dependent</span></legend>
+        <legend class="metadata float-none text-center w-auto px-3">metadata -> <span
+                class="credentials">credentials-dependent</span></legend>
         <div class="d-flex mb-2 gap-3">
             <div class="d-flex flex-column flex-grow-0">
                 <p>issuer</p>
@@ -237,7 +172,8 @@
         </div>
     </fieldset>
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">parameters -> <span class="credentials">credentials-dependent</span></legend>
+        <legend class="float-none text-center w-auto px-3">parameters -> <span
+                class="credentials">credentials-dependent</span></legend>
         <div class="d-flex mb-2 gap-3">
             <div class="d-flex flex-column flex-grow-0">
                 <p>client_id</p>
@@ -297,38 +233,38 @@
         <div class="d-flex flex-column col m-auto">
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="checkbox" [(ngModel)]="openid">
-                    openid
+                openid
             </label>
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="checkbox" [(ngModel)]="email">
-                    email
+                email
             </label>
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="checkbox" [(ngModel)]="profile">
-                    profile
+                profile
             </label>
             <label class="d-flex flex-row text-break align-items-start mb-2">
                 <input class="me-2" type="checkbox" [(ngModel)]="api_scope">
-                    {{ api_scope_string() }}
+                {{ api_scope_string() }}
             </label>
         </div>
         <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated values</label>
         <div class="d-flex flex-column bg-body-secondary col m-auto pt-2 px-2">
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="checkbox" disabled [ngModel]="calculated_openid()">
-                    openid
+                openid
             </label>
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="checkbox" disabled [ngModel]="calculated_email()">
-                    email
+                email
             </label>
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="checkbox" disabled [ngModel]="calculated_profile()">
-                    profile
+                profile
             </label>
             <label class="d-flex flex-row text-break align-items-start mb-2">
                 <input class="me-2" type="checkbox" disabled [ngModel]="calculated_api_scope()">
-                    {{ api_scope_string() }}
+                {{ api_scope_string() }}
             </label>
         </div>
         <!-- <div *ngIf="openid() || email() || profile()" class="bg-body-secondary ms-2 p-2">
@@ -337,8 +273,9 @@
     </fieldset>
 </div>
 <div class="d-flex flex-column font-monospace col-sm-7" style="min-height: 75vh">
-    <label style="z-index: 10" class="text-end me-5 mb-n3 bg-danger text-white ms-auto px-2" [style.visibility]="textModified() ? 'visible' : 'hidden'">Modified by hand</label>
+    <label style="z-index: 10" class="text-end me-5 mb-n3 bg-danger text-white ms-auto px-2"
+        [style.visibility]="textModified() ? 'visible' : 'hidden'">Modified by hand</label>
     <label class="bg-danger-subtle mt-3">{{configError()}}</label>
-    <textarea style="field-sizing: content; min-height: 30rem;" [ngModel]="config() | json4" (ngModelChange)="'setConfig($event)'" spellcheck="false"></textarea>
+    <textarea style="field-sizing: content; min-height: 30rem;" [ngModel]="config() | json4"
+        (ngModelChange)="'setConfig($event)'" spellcheck="false"></textarea>
 </div>
-

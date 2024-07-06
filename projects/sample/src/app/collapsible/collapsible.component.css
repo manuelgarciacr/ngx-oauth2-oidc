@@ -1,0 +1,15 @@
+:host {
+  display: block;
+}
+
+.text-break {
+    line-break: anywhere
+}
+
+label>button {
+    transform: rotate(90deg)
+}
+
+label>button.open {
+    transform: rotate(270deg)
+}

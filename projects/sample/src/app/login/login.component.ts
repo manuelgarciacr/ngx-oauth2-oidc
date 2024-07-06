@@ -19,6 +19,7 @@ import { cfgRedirectUri } from "./_cfgRedirectUri";
 import { cfgClient } from "./_cfgClient";
 import { cfgMetadata } from "./_cfgMetadata";
 import { cfgExample } from "./_cfgExample";
+import { CollapsibleComponent } from "../collapsible/collapsible.component";
 
 @Pipe({
     name: "json4",
@@ -46,7 +47,7 @@ export class Json4Pipe implements PipeTransform {
 @Component({
     standalone: true,
     templateUrl: "login.component.html",
-    imports: [FormsModule, SlicePipe, Json4Pipe, NgIf],
+    imports: [FormsModule, SlicePipe, Json4Pipe, NgIf, CollapsibleComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: { class: "container-fluid row mt-3" },
     styles: [
@@ -60,8 +61,6 @@ export class Json4Pipe implements PipeTransform {
         "legend.metadata {background-color: peru; color: white}", // PARAMETERS
         "legend .credentials {background-color: green; color: white}",
         ".text-break {line-break: anywhere}",
-        "label>button {transform: rotate(90deg)}",
-        "label>button.open {transform: rotate(270deg)}",
     ],
 })
 export class LoginComponent implements OnInit {
@@ -519,5 +518,6 @@ export class LoginComponent implements OnInit {
         this.verification_error.set(false);
         this.revocation_error.set(false);
     };
+    pepe = (v: any)=> console.log("WW",v)
 }
 
