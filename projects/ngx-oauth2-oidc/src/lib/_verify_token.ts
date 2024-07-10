@@ -72,7 +72,7 @@ export const _verify_token = async (
 
     const { payload } = await jwtVerify(id_token, JWKS, options);
 
-    if (payload["nonce"] != nonce)
+    if (payload["nonce"] && payload["nonce"] != nonce)
         throw new Error('unexpected "nonce" claim value', { cause: "JWTClaimValidationFailed" });
 
     userProfile = payload;

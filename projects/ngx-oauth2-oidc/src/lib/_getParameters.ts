@@ -16,14 +16,9 @@ export const getParameters = (
     config: IOAuth2Config
 ): customParametersType => {
     const parameters = config.parameters!;
-    const configuration = config.configuration!;
-    const customParams = configuration[method] ?? {};
+    const customParams = config[method] ?? {};
     const standardParms = getStandardParameters(method, parameters);
     const _parms = { ...standardParms, ...customParams } as {[key: string]: unknown};
-    // TODO: Object.filter
-    // const parms = Object.fromEntries(
-    //     Object.entries(_parms).filter(([_, value]) => value != null)
-    // );
     const parms = _parms.filter((_: string, value: unknown) => value != null)
 
     return parms as customParametersType;

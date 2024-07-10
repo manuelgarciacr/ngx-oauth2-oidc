@@ -1,5 +1,5 @@
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
-import { IOAuth2Config, IOAuth2Configuration, IOAuth2Parameters, customParametersType } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters, customParametersType } from "../domain";
 import { isStrNull, notStrNull, secureRandom } from "../utils";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
@@ -65,7 +65,7 @@ export const _authorization = async (
     if (grant == "code" && !no_pkce) {
         const code_verifier =
             parms["code_verifier"] ??
-            cfg.token?.["code_verifier"] ??
+            config.token?.["code_verifier"] ??
             config.parameters?.code_verifier ??
             "";
 
@@ -89,7 +89,7 @@ export const _authorization = async (
     //hasIdToken = hasIdToken || response_type.includes("id_token");
     let onlyIdToken = false;
     const read_nonce = str("nonce");
-    const str_nonce = notStrNull(read_nonce, secureRandom());
+    const str_nonce = notStrNull(read_nonce, secureRandom(2));
 
     nonce = { nonce: str_nonce };
 
@@ -110,7 +110,7 @@ export const _authorization = async (
 
     let state = str("state");
 
-    state = notStrNull(state, secureRandom());
+    state = notStrNull(state, secureRandom(2));
 
     if (options["statePayload"]) {
         state += options["statePayload"] as string;

@@ -219,9 +219,8 @@ export class LoginComponent implements OnInit {
             reset = cfgAuthorization.bind(this)(
                 reset,
                 config,
-                newCfg,
-                exampleConfig
-            );
+                newCfg
+             );
 
             // METADATA -> CREDENTIALS-DEPENDENT
             reset = cfgMetadata.bind(this)(
@@ -390,6 +389,7 @@ export class LoginComponent implements OnInit {
     // };
 
     protected accessToken = async () => {
+const id_token = this.oauth2.config?.parameters?.id_token
         const res = await this.endPoint(
             this.oauth2.token,
             this.token_response,
@@ -399,7 +399,11 @@ export class LoginComponent implements OnInit {
                 client_secret: this.client_secret(),
             }
         );
-
+console.log(
+    "ACCESSTOKENEQ",
+    res?.id_token,
+    id_token == res?.id_token
+);
         if (res?.id_token) {
             await this.endPoint(
                 this.oauth2.verify_token,
@@ -415,7 +419,8 @@ export class LoginComponent implements OnInit {
     };
 
     protected refreshToken = async () => {
-        this.endPoint(
+const id_token = this.oauth2.config?.parameters?.id_token;
+        const res = await this.endPoint(
             this.oauth2.refresh,
             this.token_response,
             this.token_error,
@@ -424,6 +429,19 @@ export class LoginComponent implements OnInit {
                 client_secret: this.client_secret(),
             }
         );
+console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
+        if (res?.id_token) {
+            await this.endPoint(
+                this.oauth2.verify_token,
+                this.verification_response,
+                this.verification_error,
+                this.verification_open,
+                {
+                    id_token: res.id_token,
+                },
+                false
+            );
+        }
     };
 
     protected revokeToken = async () => {

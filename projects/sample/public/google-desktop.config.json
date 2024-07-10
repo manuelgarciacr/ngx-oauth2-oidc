@@ -1,11 +1,11 @@
 {
     "configuration": {
-        "tag": "google-desktop",
-        "id_token_verify": {
-            "algorithms": ["RS256"],
-            "issuer": ["https://accounts.google.com", "accounts.google.com"],
-            "audience": "#client_id"
-        }
+        "tag": "google-desktop"
+    },
+    "id_token_verify": {
+        "algorithms": ["RS256"],
+        "issuer": ["https://accounts.google.com", "accounts.google.com"],
+        "audience": "#client_id"
     },
     "metadata": {
         "issuer": "https://accounts.google.com"

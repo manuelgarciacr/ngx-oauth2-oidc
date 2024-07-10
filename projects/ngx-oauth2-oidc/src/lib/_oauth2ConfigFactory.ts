@@ -2,7 +2,7 @@ import {
     IOAuth2Config,
     IOAuth2Parameters,
     configSections,
-    configurationNames,
+    configurationOptions,
     getType,
     metadataNames,
     parameterNames,
@@ -49,11 +49,11 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
     }
     cfg.configuration ??= {};
 
-    // Configuration options and methods are not unexpected
+    // Configuration options are not unexpected
 
     const confKeys = Object.keys(cfg.configuration);
     const confErrors = confKeys.filter(
-        key => !configurationNames.includes(key)
+        key => !configurationOptions.includes(key)
     );
 
     if (confErrors.length)

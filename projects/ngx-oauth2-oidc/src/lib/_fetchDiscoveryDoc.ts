@@ -9,19 +9,19 @@ export const _fetchDiscoveryDoc = async (config: IOAuth2Config | null, http: Htt
     const issuer = config?.metadata?.issuer;
     const sufix = config?.configuration?.well_known_sufix;
     const discoveryIsFeasible = discovery_endpoint ?? issuer;
-    const no_discovery = config?.configuration?.no_discovery;
+    //const no_discovery = config?.configuration?.no_discovery;
 
     if (!config)
         throw new Error(`No configuration defined.`, {
             cause: "oauth2 fetchDiscoveryDoc",
         });
 
-    if (no_discovery) {
-        console.error(
-            `WARNING oauth2 fetchDiscoveryDoc: no_discovery is set to true`
-        );
-        return;
-    }
+    // if (no_discovery) {
+    //     console.error(
+    //         `WARNING oauth2 fetchDiscoveryDoc: no_discovery is set to true`
+    //     );
+    //     return;
+    // }
 
     if (!discoveryIsFeasible)
         throw new Error(`discovery_endpoint or issuer is missing.`, {

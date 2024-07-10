@@ -6,7 +6,6 @@ export function cfgAuthorization(
     reset: boolean,
     config: IOAuth2Config,
     newCfg: IOAuth2Config,
-    exampleConfig: IOAuth2Config
 ) {
     let access_type, include_granted_scopes, enable_granular_consent;
 
@@ -18,12 +17,12 @@ export function cfgAuthorization(
         this.enable_granular_consent.set(enable_granular_consent);
     } else {
         const oldAccess =
-            config.configuration?.authorization?.["access_type"] ?? "";
+            config.authorization?.["access_type"] ?? "";
         const oldInclude =
-            config.configuration?.authorization?.["include_granted_scopes"] ??
+            config.authorization?.["include_granted_scopes"] ??
             "";
         const oldEnable =
-            config.configuration?.authorization?.["enable_granular_consent"] ??
+            config.authorization?.["enable_granular_consent"] ??
             "";
 
         access_type = this.access_type();
@@ -37,20 +36,19 @@ export function cfgAuthorization(
             oldEnable != enable_granular_consent;
     }
 
-    newCfg.configuration ??= {};
-    newCfg.configuration.authorization ??= {};
-    newCfg.configuration.authorization["access_type"] = this.access_type();
-    newCfg.configuration.authorization["include_granted_scopes"] =
+    newCfg.authorization ??= {};
+    newCfg.authorization["access_type"] = this.access_type();
+    newCfg.authorization["include_granted_scopes"] =
         this.include_granted_scopes();
-    newCfg.configuration.authorization["enable_granular_consent"] =
+    newCfg.authorization["enable_granular_consent"] =
         this.enable_granular_consent();
 
-    if (!newCfg.configuration.authorization["access_type"])
-        delete newCfg.configuration.authorization["access_type"];
-    if (!newCfg.configuration.authorization["include_granted_scopes"])
-        delete newCfg.configuration.authorization["include_granted_scopes"];
-    if (!newCfg.configuration.authorization["enable_granular_consent"])
-        delete newCfg.configuration.authorization["enable_granular_consent"];
+    if (!newCfg.authorization["access_type"])
+        delete newCfg.authorization["access_type"];
+    if (!newCfg.authorization["include_granted_scopes"])
+        delete newCfg.authorization["include_granted_scopes"];
+    if (!newCfg.authorization["enable_granular_consent"])
+        delete newCfg.authorization["enable_granular_consent"];
 
     // const authorization = newCfg.configuration?.authorization ?? {};
 
@@ -70,10 +68,8 @@ export function cfgAuthorization(
     //     }),
     // };
 
-    if (!Object.keys(newCfg.configuration.authorization).length)
-        delete newCfg.configuration.authorization;
-
-    if (!Object.keys(newCfg.configuration).length) delete newCfg.configuration;
+    if (!Object.keys(newCfg.authorization).length)
+        delete newCfg.authorization;
 
     return reset;
 }

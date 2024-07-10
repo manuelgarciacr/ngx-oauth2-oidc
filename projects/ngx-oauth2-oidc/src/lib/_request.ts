@@ -1,10 +1,10 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from "@angular/common/http";
-import { IOAuth2Config, IOAuth2Configuration, customParametersType } from "../domain";
+import { IOAuth2Config, IOAuth2Methods, customParametersType } from "../domain";
 import { debugFn } from "../utils";
 import { httpRequest } from "./_httpRequest";
 
 export const request = async <T>(
-    endpoint: keyof IOAuth2Configuration,
+    endpoint: keyof IOAuth2Methods,
     method: string,
     request: string,
     url: string,

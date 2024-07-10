@@ -13,11 +13,11 @@ export {
 } from "./model/IOAuth2Parameters";
 
 export {
-    IOAuth2Options,
-    optionNames,
+    IOAuth2Configuration,
+    configurationOptions,
     authorizationGrantType,
     authorizationGrantValues
-} from "./model/IOAuth2Options";
+} from "./model/IOAuth2Configuration";
 
 export {
     IOAuth2Methods,
@@ -26,10 +26,10 @@ export {
     methodNames
 } from "./model/IOAuth2Methods";
 
-export {
-    IOAuth2Configuration,
-    configurationNames
-} from "./model/IOAuth2Configuration";
+// export {
+//     IOAuth2Configuration,
+//     configurationNames
+// } from "./model/IOAuth2Configuration";
 
 export {
     IOAuth2Metadata,
