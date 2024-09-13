@@ -47,9 +47,10 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
 
         cfg[key] = toLowerCaseProperties<any>(value)!;
     }
-    cfg.configuration ??= {};
 
     // Configuration options are not unexpected
+
+    cfg.configuration ??= {};
 
     const confKeys = Object.keys(cfg.configuration);
     const confErrors = confKeys.filter(
@@ -66,7 +67,9 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
 
     // Parameter names are not unexpected
 
-    const parmKeys = Object.keys(cfg.parameters ?? {});
+    cfg.parameters ??= {};
+
+    const parmKeys = Object.keys(cfg.parameters);
     const parmErrors = parmKeys.filter(
         key => !parameterNames.all.includes(key)
     );
@@ -81,7 +84,9 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
 
     // Metadate names are not unexpected
 
-    const metaKeys = Object.keys(cfg.metadata ?? {});
+    cfg.metadata ??= {};
+
+    const metaKeys = Object.keys(cfg.metadata);
     const metaErrors = metaKeys.filter(name => !metadataNames.includes(name));
 
     if (metaErrors.length)

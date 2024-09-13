@@ -1,7 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { IOAuth2Config, customParametersType } from "../domain";
 import { setStore } from "./_store";
-import { initConfig } from "./_initConfig";
 import { getParameters } from "./_getParameters";
 
 export const _verify_token = async (
@@ -9,7 +8,8 @@ export const _verify_token = async (
     userProfile: object | null,
     options = <customParametersType>{},
 ) => {
-    const config = initConfig(ioauth2Config);
+    //const config = initConfig(ioauth2Config);
+    const config = ioauth2Config ?? {};
     const parms = getParameters("verify_token", config);
     const meta = config.metadata!;
     const str = (name: string) =>
@@ -78,5 +78,15 @@ export const _verify_token = async (
     userProfile = payload;
     setStore("userProfile", payload);
 
-    return Promise.resolve(payload);
+    const test = config.configuration?.test;
+
+    const paramsObj = test
+        ? { id_token, jwks_uri, issuer, audience, nonce, ...options } as { [key: string]: any }
+        : {};
+
+    if (test) {
+        setStore("test", paramsObj);
+    }
+
+    return Promise.resolve([paramsObj, payload]);
 };

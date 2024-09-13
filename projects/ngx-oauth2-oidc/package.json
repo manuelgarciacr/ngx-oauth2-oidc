@@ -1,12 +1,15 @@
 {
-  "name": "ngx-oauth2-oidc",
-  "version": "0.0.1",
-  "peerDependencies": {
-    "@angular/common": ">=17.0.0",
-    "@angular/core": ">=17.0.0"
-  },
-  "dependencies": {
-    "tslib": ">=2.3.0"
-  },
-  "sideEffects": false
+    "name": "ngx-oauth2-oidc",
+    "version": "0.0.1",
+    "scripts": {
+        "test": "CHROME_BIN=/usr/bin/google-chrome-stable ng test"
+    },
+    "peerDependencies": {
+        "@angular/common": ">=17.0.0",
+        "@angular/core": ">=17.0.0"
+    },
+    "dependencies": {
+        "tslib": ">=2.3.0"
+    },
+    "sideEffects": false
 }

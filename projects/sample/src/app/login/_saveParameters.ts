@@ -5,10 +5,11 @@ export function saveParameters(this: LoginComponent ) {
     const api = this.api();
     // CONFIGURATION
     const authorization_grant = this.authorization_grant();
-    const no_discovery = this.no_discovery();
+    //const no_discovery = this.no_discovery();
     const no_pkce = this.no_pkce();
     const no_state = this.no_state();
     const no_nonce = this.no_nonce();
+    const test = this.test();
     // AUTHORIZATION -> CREDENTIALS-DEPENDENT
     const access_type = this.access_type();
     const include_granted_scopes = this.include_granted_scopes();
@@ -30,6 +31,12 @@ export function saveParameters(this: LoginComponent ) {
     const email = this.email();
     const profile = this.profile();
     const api_scope = this.api_scope();
+    // REQUESTS
+    const discovery_request = this.discovery_request();
+    const authorization_request = this.authorization_request();
+    const token_request = this.token_request();
+    const verification_request = this.verification_request();
+    const revocation_request = this.revocation_request();
     // RESPONSES
     const configuration_response = this.configuration_response();
     const discovery_response = this.discovery_response();
@@ -61,10 +68,11 @@ export function saveParameters(this: LoginComponent ) {
             api,
             // CONFIGURATION
             authorization_grant,
-            no_discovery,
+            //no_discovery,
             no_pkce,
             no_state,
             no_nonce,
+            test,
             // AUTHORIZATION -> CREDENTIALS-DEPENDENT
             access_type,
             include_granted_scopes,
@@ -86,6 +94,12 @@ export function saveParameters(this: LoginComponent ) {
             email,
             profile,
             api_scope,
+            // REQUESTS
+            discovery_request,
+            authorization_request,
+            token_request,
+            verification_request,
+            revocation_request,
             // RESPONSES
             configuration_response,
             discovery_response,

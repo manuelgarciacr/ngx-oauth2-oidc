@@ -1,4 +1,5 @@
 export { urlType } from "./model/urlType";
+export { payloadType } from "./model/payloadType";
 export { IJwk } from "./model/IJwk";
 
 export {

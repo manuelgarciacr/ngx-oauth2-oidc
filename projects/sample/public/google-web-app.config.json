@@ -4,12 +4,7 @@
         "authorization_grant": "code"
     },
     "authorization": {
-        "code_challenge": "000",
-        "code_challenge_method": "plain",
         "include_granted_scopes": "true"
-    },
-    "token": {
-        "code_verifier": "000"
     },
     "metadata": {
         "issuer": "https://accounts.google.com"

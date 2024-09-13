@@ -5,7 +5,6 @@ import {
 } from "../domain";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
-import { initConfig } from "./_initConfig";
 import { getParameters } from "./_getParameters";
 
 export const _revocation = async (
@@ -13,7 +12,7 @@ export const _revocation = async (
     ioauth2Config: IOAuth2Config | null,
     options = <customParametersType>{}
 ) => {
-    const config = initConfig(ioauth2Config);
+    const config = ioauth2Config ?? {};
     const parms = {
         ...getParameters("revocation", config),
         ...options,
@@ -49,12 +48,11 @@ export const _revocation = async (
     delete parms["refresh_token"];
 
     return request<IOAuth2Parameters>(
-        "revocation",
         "POST",
-        "http",
         url,
         http,
         config!,
-        { ...parms, token }
+        { ...parms, token },
+        "revocation"
     );
 };

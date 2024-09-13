@@ -5,22 +5,22 @@
     <button *ngIf="hasRefreshToken() || hasAccessToken()" (click)="this.revokeToken()">Revoke token</button>
     <button *ngIf="hasResponses()" (click)="this.resetResponses()" class="bg-danger-subtle">Remove responses</button>
 
-    <app-collapsible [name]="'setConfig()'" [request]="configuration_response()" [response]="configuration_response()"
+    <app-collapsible [name]="'setConfig()'" [request]="[]" [response]="configuration_response()"
         [error]="configuration_error()" [open]="configuration_open()"
         (toggle_open)="configuration_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'DISCOVERY'" [request]="discovery_response()" [response]="discovery_response()"
+    <app-collapsible [name]="'DISCOVERY'" [request]="discovery_request()" [response]="discovery_response()"
         [error]="discovery_error()" [open]="discovery_open()"
         (toggle_open)="discovery_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'AUTHORIZATION'" [request]="authorization_response()" [response]="authorization_response()"
+    <app-collapsible [name]="'AUTHORIZATION'" [request]="authorization_request()" [response]="authorization_response()"
         [error]="authorization_error()" [open]="authorization_open()"
         (toggle_open)="authorization_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'TOKEN'" [request]="token_response()" [response]="token_response()"
+    <app-collapsible [name]="'TOKEN'" [request]="token_request()" [response]="token_response()"
         [error]="token_error()" [open]="token_open()"
         (toggle_open)="token_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'VERIFICATION'" [request]="verification_response()" [response]="verification_response()"
+    <app-collapsible [name]="'VERIFICATION'" [request]="verification_request()" [response]="verification_response()"
         [error]="verification_error()" [open]="verification_open()"
         (toggle_open)="verification_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'REVOCATION'" [request]="revocation_response()" [response]="revocation_response()"
+    <app-collapsible [name]="'REVOCATION'" [request]="revocation_request()" [response]="revocation_response()"
         [error]="revocation_error()" [open]="revocation_open()"
         (toggle_open)="revocation_open.set($event)"></app-collapsible>
 </div>
@@ -89,13 +89,13 @@
                     </label>
                 </div>
             </div>
-            <div class="d-flex flex-wrap mb-2">
+            <!-- <div class="d-flex flex-wrap mb-2">
                 <div class="d-flex flex-row align-items-start mb-2 me-2">
                     <input class="me-2" type="checkbox" value=true [(ngModel)]="no_discovery">
                     no_discovery
                 </div>
                 <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
-            </div>
+            </div> -->
             <div class="d-flex flex-wrap mb-2">
                 <div class="d-flex flex-row align-items-start mb-2 me-2">
                     <input class="me-2" type="checkbox" value=true [(ngModel)]="no_pkce">
@@ -114,6 +114,13 @@
                 <div class="d-flex flex-row align-items-start mb-2 me-2">
                     <input class="me-2" type="checkbox" value=true [(ngModel)]="no_nonce">
                     no_nonce
+                </div>
+                <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
+            </div>
+            <div class="d-flex flex-wrap mb-2">
+                <div class="d-flex flex-row align-items-start mb-2 me-2">
+                    <input class="me-2" type="checkbox" value=true [(ngModel)]="test">
+                    test
                 </div>
                 <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
             </div>
@@ -173,7 +180,7 @@
     </fieldset>
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
         <legend class="float-none text-center w-auto px-3">parameters -> <span
-                class="credentials">credentials-dependent</span></legend>
+                class="credentials">Google dependent</span></legend>
         <div class="d-flex mb-2 gap-3">
             <div class="d-flex flex-column flex-grow-0">
                 <p>client_id</p>

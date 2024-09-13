@@ -1,5 +1,24 @@
 import { IOAuth2Config, IOAuth2Methods, IOAuth2Parameters, customParametersType, parameterNames } from "../domain";
-import "../utils/objectFilter";
+//import "../utils/objectFilter";
+
+interface IFilter {
+    filter(predicate: (key: string, value: any, object: object) => any): {
+        [key: string]: unknown;
+    };
+}
+
+const attributes = {
+    // @ts-expect-error
+    value: function (
+        predicate: (key: string, value: any, object: object) => any
+    ) {
+        const entries = Object.entries(this);
+        return Object.fromEntries(
+            entries.filter(value => predicate(value[0], value[1], this))
+        );
+    },
+    enumerable: false, // this is actually the default
+};
 
 /**
  * Returns the parameters defined within the configuration object
@@ -18,8 +37,14 @@ export const getParameters = (
     const parameters = config.parameters!;
     const customParams = config[method] ?? {};
     const standardParms = getStandardParameters(method, parameters);
-    const _parms = { ...standardParms, ...customParams } as {[key: string]: unknown};
-    const parms = _parms.filter((_: string, value: unknown) => value != null)
+    // const _parms = { ...standardParms, ...customParams } as {
+    //     [key: string]: unknown;
+    // };
+    const _parms = { ...standardParms, ...customParams };
+    Object.defineProperty(_parms, "filter", attributes);
+
+    const parms = (_parms as IFilter).filter((_: string, value: unknown) => value != null);
+
 
     return parms as customParametersType;
 };
@@ -38,10 +63,9 @@ const getStandardParameters = (
     parameters: IOAuth2Parameters
 ) => {
     const names = parameterNames[method];
-    // TODO: Object.filter
-    // const parms = Object.fromEntries(
-    //     Object.entries(parameters).filter(([key]) => names.includes(key))
-    // );
+
+    Object.defineProperty(parameters, "filter", attributes);
+    // @ts-ignore
     const parms = parameters.filter(key => names.includes(key));
 
     return parms as IOAuth2Parameters;

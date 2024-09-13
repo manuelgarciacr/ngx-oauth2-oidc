@@ -1,6 +1,7 @@
 import { Oauth2Service } from "../lib/oauth2.service";
 
 export enum debugEnum {
+    none = 0,
     mth = 1, // Method name
     prv = 2, // Private method name
     int = 4, // Internal debug data

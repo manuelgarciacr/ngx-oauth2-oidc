@@ -40,14 +40,19 @@ const configuration = {
     no_nonce: false,
 
     /**
-     * Predefined discovery document URI. Ignored if "no_discovery"
+     * If true, the methods return the request parameters along with the response.
+     */
+    test: false,
+
+    /**
+     * Predefined discovery document URI.
      */
     discovery_endpoint: "",
 
     /**
      * Default is ".well-known/openid-configuration". Ignored if
-     *      "discovery_endpoint" is defined. Ignored if "no_discovery".
-     *      Sufix for the default discovery document URI.
+     *      "discovery_endpoint" is defined. Sufix for the default
+     *      discovery document URI.
      */
     well_known_sufix: "",
 };

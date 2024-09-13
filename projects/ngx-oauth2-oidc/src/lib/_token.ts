@@ -5,15 +5,14 @@ import {
 } from "../domain";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
-import { initConfig } from "./_initConfig";
 import { getParameters } from "./_getParameters";
 
 export const _token = async (
     http: HttpClient,
-    ioauth2Config: IOAuth2Config | null,
+    ioauth2Config: IOAuth2Config,
     options = <customParametersType>{}
 ) => {
-    const config = initConfig(ioauth2Config);
+    const config = ioauth2Config ?? {};
     const cfg = config.configuration!;
     const no_pkce = !!cfg.no_pkce;
     const parms = {
@@ -56,12 +55,11 @@ export const _token = async (
     }
 
     return request<IOAuth2Parameters>(
-        "token",
         "POST",
-        "http",
         url,
         http,
         config!,
-        parms
+        parms,
+        "token"
     );
 };

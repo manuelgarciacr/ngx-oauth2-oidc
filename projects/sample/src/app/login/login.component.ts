@@ -74,10 +74,11 @@ export class LoginComponent implements OnInit {
     protected readonly authorization_grant = signal<"code" | "implicit">(
         "code"
     );
-    protected readonly no_discovery = signal(false);
+    //protected readonly no_discovery = signal(false);
     protected readonly no_pkce = signal(false);
     protected readonly no_state = signal(false);
     protected readonly no_nonce = signal(false);
+    protected readonly test = signal(true);
     // authorization -> credentials-dependent
     protected readonly access_type = signal("");
     protected readonly include_granted_scopes = signal("");
@@ -142,6 +143,12 @@ export class LoginComponent implements OnInit {
     //
     protected readonly config = signal(<IOAuth2Config>{});
     protected readonly textModified = signal(false);
+    // REQUESTS
+    protected readonly discovery_request = signal<[string, any][]>([]);
+    protected readonly authorization_request = signal<[string, any][]>([]);
+    protected readonly token_request = signal<[string, any][]>([]);
+    protected readonly verification_request = signal<[string, any][]>([]);
+    protected readonly revocation_request = signal<[string, any][]>([]);
     // RESPONSES
     protected readonly configuration_response = signal<[string, any][]>([]);
     protected readonly discovery_response = signal<[string, any][]>([]);
@@ -171,7 +178,12 @@ export class LoginComponent implements OnInit {
             !!this.authorization_response().length ||
             !!this.token_response().length ||
             !!this.verification_response().length ||
-            !!this.revocation_response().length
+            !!this.revocation_response().length ||
+            !!this.discovery_request().length ||
+            !!this.authorization_request().length ||
+            !!this.token_request().length ||
+            !!this.verification_request().length ||
+            !!this.revocation_request().length
     );
     protected readonly hasRefreshToken = () =>
         !!this.oauth2.config?.parameters?.refresh_token;
@@ -216,11 +228,7 @@ export class LoginComponent implements OnInit {
             reset = cfgConfiguration.bind(this)(reset, config, newCfg);
 
             // CONFIGURATION -> AUTHORIZATION (GOOGLE SPECIFIC)
-            reset = cfgAuthorization.bind(this)(
-                reset,
-                config,
-                newCfg
-             );
+            reset = cfgAuthorization.bind(this)(reset, config, newCfg);
 
             // METADATA -> CREDENTIALS-DEPENDENT
             reset = cfgMetadata.bind(this)(
@@ -264,7 +272,7 @@ export class LoginComponent implements OnInit {
         //     .id_token;
 
         const entries = Object.entries(params);
-
+        console.log("PARAMS", params);
         if (entries.length) {
             this.authorization_response.set(entries);
         }
@@ -286,18 +294,20 @@ export class LoginComponent implements OnInit {
         //             `WARNING: Two "id_token" parameters received: ${id_token} & ${res?.id_token}`
         //         );
         //     }
-        //     id_token ??= res?.id_token;
-        // }
+        //     id_token ??= res?.id_token;ng testbed privider
 
         // Some flows respond to the redirect with an id_token
         if (id_token) {
-            this.endPoint(
+            const res = await this.endPoint(
                 this.oauth2.verify_token,
+                this.verification_request,
                 this.verification_response,
                 this.verification_error,
                 this.verification_open,
                 false
             );
+            console.log("VERIRES", res);
+
             // try {
             //     const resp = await this.oauth2.verify_token();
             //     this.verification_response.set(Object.entries(resp));
@@ -349,21 +359,26 @@ export class LoginComponent implements OnInit {
 
         const resDisc = await this.endPoint(
             this.oauth2.fetchDiscoveryDoc,
+            this.discovery_request,
             this.discovery_response,
             this.discovery_error,
             this.discovery_open,
             false
         );
-
+        console.log("RD", resDisc);
         if (!resDisc) return;
 
-        await this.endPoint(
+        const resAuth = await this.endPoint(
             this.oauth2.authorization,
+            this.authorization_request,
             this.authorization_response,
             this.authorization_error,
             this.authorization_open,
             false
         );
+        console.log("RA", resAuth);
+        debugger;
+        if (resAuth) this.authorization_request.set(Object.entries(resAuth));
     };
 
     // protected accessToken = async () => {
@@ -389,9 +404,10 @@ export class LoginComponent implements OnInit {
     // };
 
     protected accessToken = async () => {
-const id_token = this.oauth2.config?.parameters?.id_token
+        const id_token = this.oauth2.config?.parameters?.id_token;
         const res = await this.endPoint(
             this.oauth2.token,
+            this.token_request,
             this.token_response,
             this.token_error,
             this.token_open,
@@ -399,14 +415,11 @@ const id_token = this.oauth2.config?.parameters?.id_token
                 client_secret: this.client_secret(),
             }
         );
-console.log(
-    "ACCESSTOKENEQ",
-    res?.id_token,
-    id_token == res?.id_token
-);
+        console.log("ACCESSTOKENEQ", res, id_token == res?.id_token);
         if (res?.id_token) {
             await this.endPoint(
                 this.oauth2.verify_token,
+                this.verification_request,
                 this.verification_response,
                 this.verification_error,
                 this.verification_open,
@@ -419,9 +432,10 @@ console.log(
     };
 
     protected refreshToken = async () => {
-const id_token = this.oauth2.config?.parameters?.id_token;
+        const id_token = this.oauth2.config?.parameters?.id_token;
         const res = await this.endPoint(
             this.oauth2.refresh,
+            this.token_request,
             this.token_response,
             this.token_error,
             this.token_open,
@@ -429,10 +443,11 @@ const id_token = this.oauth2.config?.parameters?.id_token;
                 client_secret: this.client_secret(),
             }
         );
-console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
+        console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
         if (res?.id_token) {
             await this.endPoint(
                 this.oauth2.verify_token,
+                this.verification_request,
                 this.verification_response,
                 this.verification_error,
                 this.verification_open,
@@ -447,6 +462,7 @@ console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
     protected revokeToken = async () => {
         this.endPoint(
             this.oauth2.revocation,
+            this.revocation_request,
             this.revocation_response,
             this.revocation_error,
             this.revocation_open
@@ -455,6 +471,7 @@ console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
 
     private endPoint = async (
         endPoint: Function,
+        request: WritableSignal<[string, any][]>,
         response: WritableSignal<[string, any][]>,
         error: WritableSignal<boolean>,
         open: WritableSignal<boolean>,
@@ -476,16 +493,21 @@ console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
         if (reset) this.resetResponses();
 
         try {
-            const res = await endPoint(options);
-            response.set(Object.entries(res ?? {}));
+            const httpRes = await endPoint(options);
+            const req = Object.entries(httpRes?.[0] ?? {});
+            const res = Object.entries(httpRes?.[1] ?? {});
+            request.set(req);
+            response.set(res);
             error.set(false);
-            return res;
+            console.log("RES", req, res, httpRes);
+            return httpRes;
         } catch (err) {
             // Endpoint request error
             console.log(err);
             response.set(this.endPointError(err));
             error.set(true);
             open.set(true);
+            console.log("RES CATCH", err);
             return Promise.resolve(undefined);
         } finally {
             saveParameters.bind(this)();
@@ -514,6 +536,12 @@ console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
     };
 
     protected resetResponses = () => {
+        // REQUESTS
+        this.discovery_request.set([]);
+        this.authorization_request.set([]);
+        this.token_request.set([]);
+        this.verification_request.set([]);
+        this.revocation_request.set([]);
         // RESPONSES
         this.configuration_response.set([]);
         this.discovery_response.set([]);
@@ -536,6 +564,6 @@ console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
         this.verification_error.set(false);
         this.revocation_error.set(false);
     };
-    pepe = (v: any)=> console.log("WW",v)
+    pepe = (v: any) => console.log("WW", v);
 }
 

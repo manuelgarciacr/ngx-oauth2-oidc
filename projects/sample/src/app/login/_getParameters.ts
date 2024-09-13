@@ -9,10 +9,11 @@ export function getParameters(this: LoginComponent ) {
         this.api.set(object.api);
         // CONFIGURATION
         this.authorization_grant.set(object.authorization_grant);
-        this.no_discovery.set(object.no_discovery);
+        //this.no_discovery.set(object.no_discovery);
         this.no_pkce.set(object.no_pkce);
         this.no_state.set(object.no_state);
         this.no_nonce.set(object.no_nonce);
+        this.test.set(object.test);
         // AUTHORIZATION -> CREDENTIALS-DEPENDENT
         this.access_type.set(object.access_type);
         this.include_granted_scopes.set(object.include_granted_scopes);
@@ -34,6 +35,12 @@ export function getParameters(this: LoginComponent ) {
         this.email.set(object.email);
         this.profile.set(object.profile);
         this.api_scope.set(object.api_scope);
+        // REQUESTS
+        this.discovery_request.set(object.discovery_request);
+        this.authorization_request.set(object.authorization_request);
+        this.token_request.set(object.token_request);
+        this.verification_request.set(object.verification_request);
+        this.revocation_request.set(object.revocation_request);
         // RESPONSES
         this.configuration_response.set(object.configuration_response);
         this.discovery_response.set(object.discovery_response);

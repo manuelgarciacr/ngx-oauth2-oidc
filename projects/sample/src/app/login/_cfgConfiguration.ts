@@ -4,29 +4,33 @@ import { LoginComponent } from "./login.component";
 export function cfgConfiguration(this: LoginComponent, reset: boolean, config: IOAuth2Config, newCfg: IOAuth2Config ) {
 
     let authorization_grant;
-    let no_pkce, no_state, no_nonce;
+    let no_pkce, no_state, no_nonce, test;
 
     if (reset) {
         authorization_grant = "code";
         no_pkce = no_state = no_nonce = false;
+        test = true;
 
         this.authorization_grant.set(authorization_grant as "code");
-        this.no_discovery.set(false);
+        //this.no_discovery.set(false);
         this.no_pkce.set(false);
         this.no_state.set(false);
         this.no_nonce.set(false);
+        this.test.set(true)
     } else {
         const oldAuthorizationGrant = config.configuration?.authorization_grant;
         //const old_no_discovery = config.configuration?.no_discovery;
         const old_no_pkce = config.configuration?.no_pkce;
         const old_no_state = config.configuration?.no_state;
         const old_no_nonce = config.configuration?.no_nonce;
+        const old_test = config.configuration?.test;
 
         authorization_grant = this.authorization_grant();
         //no_discovery = this.no_discovery();
         no_pkce = this.no_pkce();
         no_state = this.no_state();
         no_nonce = this.no_nonce();
+        test = this.test();
 
         reset =
             reset ||
@@ -34,7 +38,8 @@ export function cfgConfiguration(this: LoginComponent, reset: boolean, config: I
             //!!old_no_discovery != no_discovery ||
             !!old_no_pkce != no_pkce ||
             !!old_no_state != no_state ||
-            !!old_no_nonce != no_nonce;
+            !!old_no_nonce != no_nonce ||
+            !!old_test != test;
     }
 
     newCfg.configuration ??= {};
@@ -43,6 +48,7 @@ export function cfgConfiguration(this: LoginComponent, reset: boolean, config: I
     no_pkce && (newCfg.configuration.no_pkce = true);
     no_state && (newCfg.configuration.no_state = true);
     no_nonce && (newCfg.configuration.no_nonce = true);
+    test && (newCfg.configuration.test = true);
 
     if (!newCfg.configuration.authorization_grant) delete newCfg.configuration.authorization_grant;
 
