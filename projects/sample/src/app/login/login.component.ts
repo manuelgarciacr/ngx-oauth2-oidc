@@ -20,6 +20,10 @@ import { cfgClient } from "./_cfgClient";
 import { cfgMetadata } from "./_cfgMetadata";
 import { cfgExample } from "./_cfgExample";
 import { CollapsibleComponent } from "../collapsible/collapsible.component";
+import { MatDialog } from "@angular/material/dialog";
+import { ModalComponent } from "../modal/modal.component";
+import { MatIcon } from "@angular/material/icon";
+import { MatButtonModule } from "@angular/material/button";
 
 @Pipe({
     name: "json4",
@@ -44,10 +48,25 @@ export class Json4Pipe implements PipeTransform {
     }
 }
 
+const text = {
+    GOOGLE_WEB_APP: `
+        <b>&#x2022;</b> Google credentials must be of type 'Web application'<br>
+        <b>&#x2022;</b> The 'issuer' (metadata section) is "https://accounts.google.com"<br>
+        <b>&#x2022;</b> 'authorization' endpoint uses custom parameters`,
+};
+
 @Component({
     standalone: true,
     templateUrl: "login.component.html",
-    imports: [FormsModule, SlicePipe, Json4Pipe, NgIf, CollapsibleComponent],
+    imports: [
+        FormsModule,
+        SlicePipe,
+        Json4Pipe,
+        NgIf,
+        CollapsibleComponent,
+        MatIcon,
+        MatButtonModule,
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: { class: "container-fluid row mt-3" },
     styles: [
@@ -64,6 +83,7 @@ export class Json4Pipe implements PipeTransform {
     ],
 })
 export class LoginComponent implements OnInit {
+    readonly dialog = inject(MatDialog);
     private readonly oauth2 = inject(Oauth2Service);
     private _working = signal(false);
     private count = 0;
@@ -103,6 +123,9 @@ export class LoginComponent implements OnInit {
         ...(this.id_token() ? ["id_token"] : []),
         ...(this.none() ? ["none"] : []),
     ]);
+    protected readonly calculated_no_pkce = computed(() => this.no_pkce());
+    protected readonly calculated_no_state = computed(() => this.no_state());
+    protected readonly calculated_no_nonce = computed(() => this.no_nonce());
     protected readonly calculated_code = computed(() =>
         this.authorization_grant() == "code"
             ? true
@@ -564,6 +587,17 @@ export class LoginComponent implements OnInit {
         this.verification_error.set(false);
         this.revocation_error.set(false);
     };
-    pepe = (v: any) => console.log("WW", v);
+
+    openDialog(
+        enterAnimationDuration: string,
+        exitAnimationDuration: string
+    ): void {
+        this.dialog.open(ModalComponent, {
+            width: "22rem",
+            enterAnimationDuration,
+            exitAnimationDuration,
+            data: { text: text.GOOGLE_WEB_APP },
+        });
+    }
 }
 

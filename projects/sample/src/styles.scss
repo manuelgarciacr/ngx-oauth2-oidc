@@ -1,4 +1,16 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+@import "@angular/material/prebuilt-themes/azure-blue.css";
+@import "@angular/cdk";
+
+$enable-negative-margins: true;
+
 /* You can add global styles to this file, and also import other style files */
+.mt-n1 { margin-top: -0.25rem !important; }
+.mt-n2 { margin-top: -0.5rem !important; }
+.mt-n3 { margin-top: -1rem !important; }
+.mt-n4 { margin-top: -1.5rem !important; }
 .mb-n1 { margin-bottom: -0.25rem !important; }
 .mb-n2 { margin-bottom: -0.5rem !important; }
 .mb-n3 { margin-bottom: -1rem !important; }

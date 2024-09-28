@@ -2,7 +2,7 @@ import { Observable, catchError, lastValueFrom, map } from "rxjs";
 import { debugFn } from "../utils";
 import { IOAuth2Config, payloadType } from "../domain";
 import { convertParameters } from "./_convertParameters";
-import { IOAuth2Parameters } from "ngx-oauth2-oidc";
+import { IOAuth2Parameters } from "../domain";
 
 type strObject = { [key: string]: string };
 

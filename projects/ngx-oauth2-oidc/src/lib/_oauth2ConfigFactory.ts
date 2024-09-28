@@ -17,7 +17,7 @@ import { isObject, toLowerCaseProperties } from "../utils";
  *      all string values and removes empty fields. Converts all string[] to
  *      non-empty strings array.
  *
- * @param val The initial external configuration object
+ * @param ioauth2Config The initial external configuration object
  * @returns The internal configuration object
  */
 export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
@@ -75,11 +75,16 @@ export const oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
     );
 
     if (parmErrors.length)
-        throw new Error(
-            `Unexpected parameters ${parmErrors.join(
+        // throw new Error(
+        //     `Unexpected parameters ${parmErrors.join(
+        //         ", "
+        //     )}. Custom parameters must be included inside the enpoint configuration options`,
+        //     { cause: "oauth2 oauth2ConfigFactory" }
+        // );
+        console.error(
+            `WATNING: Unexpected parameters ${parmErrors.join(
                 ", "
-            )}. Custom parameters must be included inside the enpoint configuration options`,
-            { cause: "oauth2 oauth2ConfigFactory" }
+            )}. Custom parameters must be included inside the enpoint configuration options`
         );
 
     // Metadate names are not unexpected
