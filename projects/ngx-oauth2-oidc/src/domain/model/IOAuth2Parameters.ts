@@ -1,5 +1,8 @@
 import {  urlType } from "../index";
 
+/** Discovery endpoint parameter names */
+const discoveryParameters = [] as string[];
+
 /** Authorization endpoint parameter names */
 const authorizationParameters = [
     'acr_values',
@@ -205,6 +208,7 @@ export const getType = (name: keyof IOAuth2Parameters) => {
 
 /** Parameter names */
 export const parameterNames = {
+    discovery: discoveryParameters,
     authorization: authorizationParameters,
     token: tokenParameters,
     refresh: tokenParameters,

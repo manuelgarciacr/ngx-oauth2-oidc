@@ -5,26 +5,32 @@
     <button *ngIf="hasRefreshToken() || hasAccessToken()" (click)="this.revokeToken()">Revoke token</button>
     <button *ngIf="hasResponses()" (click)="this.resetResponses()" class="bg-danger-subtle">Remove responses</button>
 
-    <app-collapsible [name]="'setConfig()'" [request]="[]" [response]="configuration_response()"
+    <app-collapsible [name]="'setConfig()'" [call]="configuration_call()"
+        [request]="[]" [response]="configuration_response()"
         [error]="configuration_error()" [open]="configuration_open()"
         (toggle_open)="configuration_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'DISCOVERY'" [request]="discovery_request()" [response]="discovery_response()"
+    <app-collapsible [name]="'DISCOVERY'" [call]="discovery_call()"
+        [request]="discovery_request()" [response]="discovery_response()"
         [error]="discovery_error()" [open]="discovery_open()"
         (toggle_open)="discovery_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'AUTHORIZATION'" [request]="authorization_request()" [response]="authorization_response()"
+    <app-collapsible [name]="'AUTHORIZATION'" [call]="authorization_call()"
+        [request]="authorization_request()" [response]="authorization_response()"
         [error]="authorization_error()" [open]="authorization_open()"
         (toggle_open)="authorization_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'TOKEN'" [request]="token_request()" [response]="token_response()"
+    <app-collapsible [name]="'TOKEN'" [call]="token_call()"
+        [request]="token_request()" [response]="token_response()"
         [error]="token_error()" [open]="token_open()"
         (toggle_open)="token_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'VERIFICATION'" [request]="verification_request()" [response]="verification_response()"
+    <app-collapsible [name]="'VERIFICATION'" [call]="verification_call()"
+        [request]="verification_request()" [response]="verification_response()"
         [error]="verification_error()" [open]="verification_open()"
         (toggle_open)="verification_open.set($event)"></app-collapsible>
-    <app-collapsible [name]="'REVOCATION'" [request]="revocation_request()" [response]="revocation_response()"
+    <app-collapsible [name]="'REVOCATION'" [call]="revocation_call()"
+        [request]="revocation_request()" [response]="revocation_response()"
         [error]="revocation_error()" [open]="revocation_open()"
         (toggle_open)="revocation_open.set($event)"></app-collapsible>
 </div>
-<div class="col-sm-5 max-width-sm">
+<div class="col col-config">
     <fieldset class="credentials d-flex border rounded-3 p-3 mb-3">
         <legend class="credentials float-none text-center w-auto px-3">Authorization server <span
                 class="credentials">credentials</span></legend>
@@ -125,13 +131,13 @@
                             </div>
                             <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
                         </div> -->
-            <div class="d-flex flex-wrap mb-2">
+            <!-- <div class="d-flex flex-wrap mb-2">
                 <div class="d-flex flex-row align-items-start mb-2 me-2">
                     <input class="me-2" type="checkbox" value=true [(ngModel)]="test">
                     test
                 </div>
                 <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
-            </div>
+            </div> -->
             <div class="d-flex mb-2 gap-3">
                 <!-- <div class="d-flex border border-black p-2"> -->
                     <div class="d-flex flex-column col">
@@ -211,7 +217,7 @@
                 <span>issuer</span>
             </div>
             <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
-                <input type="text" placeholder="issuer" [(ngModel)]="issuer">
+                <input type="text" disabled spellcheck="false" placeholder="issuer" [(ngModel)]="issuer">
             </div>
         </div>
     </fieldset>
@@ -225,9 +231,9 @@
                 <p>redirect_uri</p>
             </div>
             <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
-                <input type="text" placeholder="client_id" [(ngModel)]="client_id">
-                <input type="text" placeholder="client_secret" [(ngModel)]="client_secret">
-                <input type="text" placeholder="redirect_uri" [(ngModel)]="redirect_uri">
+                <input type="text" spellcheck="false" placeholder="client_id" [(ngModel)]="client_id">
+                <input type="text" spellcheck="false" placeholder="client_secret" [(ngModel)]="client_secret">
+                <input type="text" disabled spellcheck="false" placeholder="redirect_uri" [(ngModel)]="redirect_uri">
             </div>
         </div>
         <div class="d-flex mb-2 gap-3">
@@ -269,13 +275,15 @@
                     <span class="mt-1 mb-2">&#x2022; openid</span>
                     <span class="mb-2">&#x2022; email</span>
                     <span class="mb-2">&#x2022; profile</span>
-                    <span class="mb-2 text-break">&#x2022; {{ api_scope_string() }}</span>
+                    <span class="mb-2 d-flex">&#x2022;
+                        <textarea class="ms-1" disabled spellcheck="false" rows="2" cols="23" placeholder="api scope" (keyup)="apiScopeKeyup()" [(ngModel)]="api_scope_string"></textarea>
+                    </span>
                 </div>
                 <div class="d-flex flex-column col">
                     <input class="me-2 my-2" type="checkbox" [(ngModel)]="openid">
                     <input class="me-2 mb-2" type="checkbox" [(ngModel)]="email">
                     <input class="me-2 mb-2" type="checkbox" [(ngModel)]="profile">
-                    <input class="me-2 mb-2" type="checkbox" [(ngModel)]="api_scope">
+                    <input class="me-2 mb-2" type="checkbox" [disabled]="api_scope_string().trim() == ''" [(ngModel)]="api_scope">
                 </div>
                 <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated value</label>
                 <div class="d-flex flex-column bg-body-secondary col ps-3 pt-2 pe-2 flex-grow-0">
@@ -368,7 +376,7 @@
         </div>
     </fieldset> -->
 </div>
-<div class="d-flex flex-column font-monospace col-sm-7" style="min-height: 75vh">
+<div class="d-flex flex-column font-monospace col" style="min-height: 75vh">
     <label style="z-index: 10" class="text-end me-5 mb-n3 bg-danger text-white ms-auto px-2"
         [style.visibility]="textModified() ? 'visible' : 'hidden'">Modified by hand</label>
     <label class="bg-danger-subtle mt-3">{{configError()}}</label>

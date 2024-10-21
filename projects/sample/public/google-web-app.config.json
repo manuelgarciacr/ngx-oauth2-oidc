@@ -3,10 +3,10 @@
         "tag": "google-web-app",
         "authorization_grant": "code"
     },
-    "authorization": {
-        "include_granted_scopes": "true"
-    },
     "metadata": {
         "issuer": "https://accounts.google.com"
+    },
+    "parameters": {
+        "scope": ["https://www.googleapis.com/auth/drive"]
     }
 }

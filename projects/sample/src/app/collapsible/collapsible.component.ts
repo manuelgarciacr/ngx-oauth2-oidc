@@ -1,5 +1,5 @@
 import { NgIf, SlicePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, input, output, Pipe, PipeTransform } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, Input, input, output, Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
     name: "sort",
@@ -23,11 +23,15 @@ export class SortPipe implements PipeTransform {
 })
 export class CollapsibleComponent {
     @Input({required: true}) name!: string;
+    call = input.required<string>();
     request = input.required<[string, any][]>();
     response = input.required<[string, any][]>();
     error = input.required<boolean>();
     open = input.required<boolean>();
     toggle_open = output<boolean>()
+    reqType = computed(
+        () => this.request()[0]?.[0] == "@URL" ? "URL" : "PAYLOAD"
+    )
 
     toggleOpen() {
         this.toggle_open.emit(!this.open());

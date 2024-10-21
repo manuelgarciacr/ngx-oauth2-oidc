@@ -6,23 +6,26 @@ import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
 
+// TODO: no-storage configuration option
+
 /**
  * Request to then OAuth2 authorization endpoint. Redirects to the endpoint.
- *   In test mode the promise returns an array with the
- *   response (or error) and the request payload.
+ *   The interceptor function inside the onInit method gets the response and actualizes
+ *   the config.parameters. In test mode, the request payload is also stored within
+ *   sessionStorage.
  *
- * @param http
- * @param config
- * @param options
- * @returns
+ * @param httpH ttpClient object
+ * @param config Configuration object saved in memory. Passed by reference and
+ *      updated
+ * @param options Custom parameters for the request.
+ * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _authorization = async (
     http: HttpClient,
     config: IOAuth2Config, // Parameter passed by reference updated (config.metadata)
     options = <customParametersType>{}
-): Promise<IOAuth2Parameters | [IOAuth2Parameters, payloadType]> => {
+): Promise<IOAuth2Parameters> => {
     // Configuration data
-    const test = !!config.configuration?.test;
     const no_pkce = !!config.configuration?.no_pkce;
     // TODO: authorization_grant unsetted
     const grant = config.configuration?.authorization_grant ?? "code";
@@ -35,17 +38,16 @@ export const _authorization = async (
     const arr = (name: string) => (parms[name] as string[]) ?? [];
     const str = (name: string) => (parms[name] as string) ?? "";
 
-    if (!URL) {
-        const err = new Error(
+    // TODO: no-storage configuration option
+    setStore("test", {});
+
+    if (!URL)
+        throw new Error(
             `Values ​​for metadata 'authorization_endpoint' and option 'url' are missing.`,
             {
                 cause: `oauth2 authorization`,
             }
         );
-        // TODO: no-storage configuration option
-        setStore("test", {});
-        throw test ? [err, {}] : err;
-    }
 
     let response_type = arr("response_type");
     let scope = arr("scope");
@@ -62,7 +64,7 @@ export const _authorization = async (
     );
     const isOpenidScope = !!openidScope.length;
     //let hasIdToken = false;
-    const hasIdToken = isOpenidScope;
+    // const hasIdToken = isOpenidScope;
 
     if (grant == "code") {
         codeIdx < 0 && response_type.push("code");
@@ -102,22 +104,22 @@ export const _authorization = async (
 
     let nonce = {};
     //hasIdToken = hasIdToken || response_type.includes("id_token");
-    let onlyIdToken = false;
+    // let onlyIdToken = false;
     const read_nonce = str("nonce");
     const str_nonce = notStrNull(read_nonce, secureRandom(2));
 
     nonce = { nonce: str_nonce };
 
-    if (hasIdToken) {
-        // const read_nonce = str("nonce");
-        // const str_nonce = notStrNull(read_nonce, secureRandom());
+    // if (hasIdToken) {
+    //     // const read_nonce = str("nonce");
+    //     // const str_nonce = notStrNull(read_nonce, secureRandom());
 
-        // nonce = {nonce: str_nonce};
+    //     // nonce = {nonce: str_nonce};
 
-        if (response_type.length == 1) {
-            onlyIdToken = true;
-        }
-    }
+    //     if (response_type.length == 1) {
+    //         onlyIdToken = true;
+    //     }
+    // }
 
     if (grant == "code" && !scope.length) {
         scope = ["openid"];
@@ -155,7 +157,7 @@ export const _authorization = async (
         config,
         { ...parms, ...newOptions, scope, response_type },
         "authorization"
-    );
+    ) as IOAuth2Parameters;
 };
 
 const getPkce = async (

@@ -3,6 +3,11 @@ import { IOAuth2VerifyTokenJoseOptions, IOAuth2VerifyTokenParameters } from "./I
 /** Methods object */
 const methods = {
     /**
+     * Custom parameters for the discovery endpoint
+     */
+    discovery: {} as customParametersType,
+
+    /**
      * Custom parameters for the authorizaton endpoint
      */
     authorization: {} as customParametersType,
@@ -20,7 +25,8 @@ const methods = {
     /**
      * JOSE token verification options
      */
-    verify_token: {} as IOAuth2VerifyTokenParameters & IOAuth2VerifyTokenJoseOptions,
+    verify_token: {} as IOAuth2VerifyTokenParameters &
+        IOAuth2VerifyTokenJoseOptions,
 
     /**
      * Custom parameters for the revocation endpoint

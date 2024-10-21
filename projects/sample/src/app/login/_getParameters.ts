@@ -35,15 +35,23 @@ export function getParameters(this: LoginComponent ) {
         this.email.set(object.email);
         this.profile.set(object.profile);
         this.api_scope.set(object.api_scope);
+        this.api_scope_string.set(object.api_scope_string);
+        // CALLS
+        this.configuration_call.set(object.configuration_call);
+        this.discovery_call.set(object.discovery_call);
+        this.authorization_call.set(object.authorization_call);
+        this.token_call.set(object.token_call);
+        this.verification_call.set(object.verification_call);
+        this.revocation_call.set(object.revocation_call);
         // REQUESTS
-        this.discovery_request.set(object.discovery_request);
+        this.discovery_response.set(object.discovery_request);
         this.authorization_request.set(object.authorization_request);
         this.token_request.set(object.token_request);
         this.verification_request.set(object.verification_request);
         this.revocation_request.set(object.revocation_request);
         // RESPONSES
         this.configuration_response.set(object.configuration_response);
-        this.discovery_response.set(object.discovery_response);
+        this.discovery_request.set(object.discovery_response);
         this.authorization_response.set(object.authorization_response);
         this.token_response.set(object.token_response);
         this.verification_response.set(object.verification_response);

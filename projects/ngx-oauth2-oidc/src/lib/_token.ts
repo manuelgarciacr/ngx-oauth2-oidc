@@ -6,28 +6,44 @@ import {
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
+import { setStore } from "./_store";
 
+// TODO: no-storage configuration option
+
+/**
+ * Request to the token endpoint. Returns the tokens and othe date returned by
+ *   the endpoint and saves it in the configuration parameters (in memory and storage).
+ *   HttpClient post request. In test mode, the request payload is also stored within
+ *   sessionStorage.
+ *
+ * @param http HttpClient object
+ * @param config Configuration object saved in memory. Passed by reference and
+ *      updated
+ * @param options Custom parameters for the request.
+ * @returns Promise with the request response (IOAuth2Parameters or error)
+ */
 export const _token = async (
     http: HttpClient,
-    ioauth2Config: IOAuth2Config,
+    config: IOAuth2Config, // Passed by reference and updated
     options = <customParametersType>{}
 ) => {
-    const config = ioauth2Config ?? {};
-    const cfg = config.configuration!;
+    const cfg = config.configuration ?? {};
     const no_pkce = !!cfg.no_pkce;
     const parms = {
         ...getParameters("token", config),
-        ...options
+        ...options,
     } as customParametersType;
     const meta = config.metadata!;
     const url = (options["url"] as string) ?? meta.token_endpoint ?? "";
     const grant_type = parms["grant_type"];
 
+    // TODO: no-storage configuration option
+    setStore("test", {});
+
     if (!grant_type)
-        throw new Error(
-            `Value ​​for option 'grant_type' is missing.`,
-            { cause: `oauth2 token` }
-        );
+        throw new Error(`Value ​​for option 'grant_type' is missing.`, {
+            cause: `oauth2 token`,
+        });
 
     if (!url)
         throw new Error(

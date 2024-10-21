@@ -8,7 +8,6 @@ export function cfgExample(
         exampleConfig.metadata ?? {};
     newCfg.parameters =
         exampleConfig.parameters ?? {};
-
     newCfg.authorization =
         exampleConfig.authorization ?? {};
     newCfg.token =
@@ -36,7 +35,10 @@ export function cfgExample(
     if (!Object.keys(newCfg.revocation).length)
         delete newCfg.revocation;
 
-    if (!Object.keys(newCfg.metadata).length) delete newCfg.metadata;
-    if (!Object.keys(newCfg.parameters).length) delete newCfg.parameters;
+    if (!Object.keys(newCfg.metadata).length)
+        delete newCfg.metadata;
+
+    if (!Object.keys(newCfg.parameters).length)
+        delete newCfg.parameters;
 
 }

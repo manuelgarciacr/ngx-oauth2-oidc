@@ -68,7 +68,7 @@ const text = {
         MatButtonModule,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    host: { class: "container-fluid row mt-3" },
+    host: { class: "container row mt-3 justify-content-center max-width" },
     styles: [
         "fieldset {background-color: lightsalmon}", // PARAMETERS
         "fieldset.credentials {background-color: darkseagreen}",
@@ -80,6 +80,7 @@ const text = {
         "legend.metadata {background-color: peru; color: white}", // PARAMETERS
         "legend .credentials {background-color: green; color: white}",
         ".text-break {line-break: anywhere}",
+        ".col-config {min-width: 40rem; max-width: 55rem;}",
     ],
 })
 export class LoginComponent implements OnInit {
@@ -147,10 +148,8 @@ export class LoginComponent implements OnInit {
     protected readonly openid = signal(false);
     protected readonly email = signal(false);
     protected readonly profile = signal(false);
-    protected readonly api_scope = signal(true);
-    protected readonly api_scope_string = signal(
-        "https://www.googleapis.com/auth/drive"
-    );
+    protected readonly api_scope = signal(false);
+    protected readonly api_scope_string = signal("");
     protected readonly scope = computed(() => [
         ...(this.openid() ? ["openid"] : []),
         ...(this.email() ? ["email"] : []),
@@ -166,6 +165,13 @@ export class LoginComponent implements OnInit {
     //
     protected readonly config = signal(<IOAuth2Config>{});
     protected readonly textModified = signal(false);
+    // CALLS
+    protected readonly configuration_call = signal("");
+    protected readonly discovery_call = signal("");
+    protected readonly authorization_call = signal("");
+    protected readonly token_call = signal("");
+    protected readonly verification_call = signal("");
+    protected readonly revocation_call = signal("");
     // REQUESTS
     protected readonly discovery_request = signal<[string, any][]>([]);
     protected readonly authorization_request = signal<[string, any][]>([]);
@@ -222,11 +228,11 @@ export class LoginComponent implements OnInit {
                 this.effect.destroy();
             }
 
-            const config = JSON.parse(
-                sessionStorage.getItem("cf") ?? "{}"
+            const cfg = JSON.parse(
+                sessionStorage.getItem("newCfg") ?? "{}"
             ) as IOAuth2Config;
             const api = this.api();
-            const oldApi = config?.configuration?.tag;
+            const oldApi = cfg?.configuration?.tag;
             const exampleConfig = (
                 api == "google-web-app"
                     ? JSON.parse(JSON.stringify(webAppConfig))
@@ -239,7 +245,7 @@ export class LoginComponent implements OnInit {
             ) as customParametersType; // custom
             let reset = oldApi != api;
 
-            let newCfg: IOAuth2Config = {
+            const newCfg: IOAuth2Config = {
                 configuration: {
                     tag: api,
                 },
@@ -248,32 +254,27 @@ export class LoginComponent implements OnInit {
             cfgExample(newCfg, exampleConfig);
 
             // CONFIGURATION
-            reset = cfgConfiguration.bind(this)(reset, config, newCfg);
+            reset = cfgConfiguration.bind(this)(reset, cfg, newCfg);
 
             // CONFIGURATION -> AUTHORIZATION (GOOGLE SPECIFIC)
-            reset = cfgAuthorization.bind(this)(reset, config, newCfg);
+            reset = cfgAuthorization.bind(this)(reset, cfg, newCfg);
 
             // METADATA -> CREDENTIALS-DEPENDENT
-            reset = cfgMetadata.bind(this)(
-                reset,
-                config,
-                newCfg,
-                exampleConfig
-            );
+            reset = cfgMetadata.bind(this)(reset, cfg, newCfg, exampleConfig);
 
             // PARAMETERS -> CREDENTIALS-DEPENDENT
-            reset = cfgClient.bind(this)(reset, config, newCfg, credentials);
+            reset = cfgClient.bind(this)(reset, cfg, newCfg, credentials);
 
             // PARAMETERS -> REDIRECT_URI
-            reset = cfgRedirectUri.bind(this)(reset, config, newCfg);
+            reset = cfgRedirectUri.bind(this)(reset, cfg, newCfg);
 
             // PARAMETERS -> RESPONSE_TYPE
-            reset = cfgResponse.bind(this)(reset, config, newCfg);
+            reset = cfgResponse.bind(this)(reset, cfg, newCfg);
 
             // PARAMETERS -> SCOPE
-            cfgScope.bind(this)(reset, config, newCfg);
+            cfgScope.bind(this)(reset, cfg, newCfg);
 
-            sessionStorage.setItem("cf", JSON.stringify(newCfg));
+            sessionStorage.setItem("newCfg", JSON.stringify(newCfg));
             delete newCfg.parameters?.client_secret;
             this.config.set(newCfg);
             saveParameters.bind(this)();
@@ -289,62 +290,31 @@ export class LoginComponent implements OnInit {
         //      internal configuration of the service. If the service
         //      is destroyed (for example, by redirecting the web page),
         //      you should save it somewhere.
-        const code = params.code;
+        // const code = params.code;
         let id_token = params.id_token;
-        // const id_token = (params as IOAuth2Parameters & { id_token: string })
-        //     .id_token;
 
         const entries = Object.entries(params);
-        console.log("PARAMS", params);
+
         if (entries.length) {
+            sessionStorage.setItem("log03", JSON.stringify(params));
+
             this.authorization_response.set(entries);
         }
-
-        // if (code) {
-        //     // this.accessToken();
-        //     const res = await this.endPoint(
-        //         this.oauth2.token,
-        //         this.token_response,
-        //         this.token_error,
-        //         this.token_open,
-        //         {
-        //             client_secret: this.client_secret(),
-        //         },
-        //         false
-        //     );
-        //     if (!!id_token && !!res?.id_token) {
-        //         console.error(
-        //             `WARNING: Two "id_token" parameters received: ${id_token} & ${res?.id_token}`
-        //         );
-        //     }
-        //     id_token ??= res?.id_token;ng testbed privider
 
         // Some flows respond to the redirect with an id_token
         if (id_token) {
             const res = await this.endPoint(
                 this.oauth2.verify_token,
-                this.verification_request,
+                "verify_token",
+                this.verification_call,
                 this.verification_response,
+                this.verification_request,
                 this.verification_error,
                 this.verification_open,
                 false
             );
-            console.log("VERIRES", res);
-
-            // try {
-            //     const resp = await this.oauth2.verify_token();
-            //     this.verification_response.set(Object.entries(resp));
-            // } catch (err) {
-            //     console.log(
-            //         "ID_TOKEN ERR",
-            //         (err as Error).name,
-            //         (err as Error).message
-            //     );
-            //     this.verification_response.set([
-            //         [(err as Error).name, (err as Error).message],
-            //     ]);
-            // }
         }
+
         // Remove query and fragment strings
         window.history.replaceState({}, "", window.location.pathname);
     }
@@ -363,18 +333,47 @@ export class LoginComponent implements OnInit {
     //     }
     // };
 
+    // protected getConfig = () => {
+    //     try {
+    //         const cfg = JSON.parse(
+    //             sessionStorage.getItem("newCfg") ?? "{}"
+    //         ) as IOAuth2Config;
+    //         this.configError.set("");
+    //         this.textModified.set(true);
+    //         return cfg
+    //     } catch (err) {
+    //         if (err instanceof SyntaxError) this.configError.set(err.message);
+    //         console.log("SETCONFIG ERR", err);
+    //         return {}
+    //     }
+    // }
+
     protected login = async () => {
         let resCfg;
 
         try {
             this.resetResponses();
-            resCfg = await this.oauth2.setConfig(this.config());
+            // const api = this.api();
+            // const exampleConfig = (
+            //     api == "google-web-app"
+            //         ? JSON.stringify(webAppConfig)
+            //         : JSON.stringify(desktopConfig)
+            // )
+            // const cfg = JSON.parse(
+            //     sessionStorage.getItem("newCfg") ?? exampleConfig
+            // ) as IOAuth2Config;
+            const cfg = JSON.parse(
+                sessionStorage.getItem("newCfg") ?? "{}"
+            ) as IOAuth2Config;
+
+            resCfg = await this.oauth2.setConfig(cfg);
             this.configuration_error.set(false);
         } catch (err) {
             this.configuration_error.set(true);
             this.configuration_open.set(true);
             this.configuration_response.set(this.endPointError(err));
         } finally {
+            this.configuration_call.set("setConfig(configurationObject)");
             saveParameters.bind(this)();
         }
 
@@ -382,101 +381,108 @@ export class LoginComponent implements OnInit {
 
         const resDisc = await this.endPoint(
             this.oauth2.fetchDiscoveryDoc,
-            this.discovery_request,
+            // TODO: One object for all five values
+            "fetchDiscoveryDoc",
+            this.discovery_call,
             this.discovery_response,
+            this.discovery_request,
             this.discovery_error,
             this.discovery_open,
             false
         );
-        console.log("RD", resDisc);
+
         if (!resDisc) return;
+
+        sessionStorage.setItem(
+            "logDISC",
+            JSON.stringify(this.discovery_response())
+        );
 
         const resAuth = await this.endPoint(
             this.oauth2.authorization,
-            this.authorization_request,
+            "authorization",
+            this.authorization_call,
             this.authorization_response,
+            this.authorization_request,
             this.authorization_error,
             this.authorization_open,
             false
         );
-        console.log("RA", resAuth);
-        debugger;
-        if (resAuth) this.authorization_request.set(Object.entries(resAuth));
+        // sessionStorage.setItem(
+        //     "log01",
+        //     JSON.stringify(this.authorization_request())
+        // );
+        // sessionStorage.setItem(
+        //     "log02",
+        //     JSON.stringify(resAuth)
+        // );
+        // if (resAuth) this.authorization_request.set(Object.entries(resAuth));
+        // debugger;
     };
 
-    // protected accessToken = async () => {
-    //     const res = await this.endPoint(
-    //         this.oauth2.token,
-    //         this.token_response,
-    //         this.token_error,
-    //         this.token_open,
-    //         {
-    //             client_secret: this.client_secret(),
-    //         },
-    //         false
-    //     );
-    //     if ((res as IOAuth2Parameters & { id_token: string })?.id_token) {
-    //         await this.endPoint(
-    //             this.oauth2.verify_token,
-    //             this.verification_response,
-    //             this.verification_error,
-    //             this.verification_open,
-    //             false
-    //         );
-    //     }
-    // };
-
     protected accessToken = async () => {
-        const id_token = this.oauth2.config?.parameters?.id_token;
         const res = await this.endPoint(
             this.oauth2.token,
-            this.token_request,
+            "token",
+            this.token_call,
             this.token_response,
+            this.token_request,
             this.token_error,
             this.token_open,
             {
                 client_secret: this.client_secret(),
             }
         );
-        console.log("ACCESSTOKENEQ", res, id_token == res?.id_token);
+
+        sessionStorage.setItem("log00", JSON.stringify(this.token_response()));
+
         if (res?.id_token) {
             await this.endPoint(
                 this.oauth2.verify_token,
-                this.verification_request,
+                "verify_token",
+                this.verification_call,
                 this.verification_response,
+                this.verification_request,
                 this.verification_error,
                 this.verification_open,
-                {
-                    id_token: res.id_token,
-                },
+                // {
+                //     id_token: res.id_token,
+                // },
                 false
+            );
+            sessionStorage.setItem(
+                "log01",
+                JSON.stringify(this.verification_response())
             );
         }
     };
 
     protected refreshToken = async () => {
-        const id_token = this.oauth2.config?.parameters?.id_token;
         const res = await this.endPoint(
             this.oauth2.refresh,
-            this.token_request,
+            "refresh",
+            this.token_call,
             this.token_response,
+            this.token_request,
             this.token_error,
             this.token_open,
             {
                 client_secret: this.client_secret(),
             }
         );
-        console.log("REFRESHTOKENEQ", res?.id_token, id_token == res?.id_token);
+
         if (res?.id_token) {
             await this.endPoint(
                 this.oauth2.verify_token,
-                this.verification_request,
+                "verify_token",
+                this.verification_call,
                 this.verification_response,
+                this.verification_request,
                 this.verification_error,
                 this.verification_open,
-                {
-                    id_token: res.id_token,
-                },
+                // {
+                //     id_token: res.id_token,
+                // },
                 false
             );
         }
@@ -485,17 +491,21 @@ export class LoginComponent implements OnInit {
     protected revokeToken = async () => {
         this.endPoint(
             this.oauth2.revocation,
-            this.revocation_request,
+            "revocation",
+            this.revocation_call,
             this.revocation_response,
+            this.revocation_request,
             this.revocation_error,
             this.revocation_open
         );
     };
 
     private endPoint = async (
-        endPoint: Function,
-        request: WritableSignal<[string, any][]>,
+        endPointFn: Function,
+        name: string,
+        call: WritableSignal<string>,
         response: WritableSignal<[string, any][]>,
+        request: WritableSignal<[string, any][]>,
         error: WritableSignal<boolean>,
         open: WritableSignal<boolean>,
         options?: customParametersType | boolean,
@@ -515,24 +525,50 @@ export class LoginComponent implements OnInit {
 
         if (reset) this.resetResponses();
 
+        call.set(
+            `oauth2Service.${name}(${
+                options ? JSON.stringify(options) : ""
+            })`
+        );
+
         try {
-            const httpRes = await endPoint(options);
-            const req = Object.entries(httpRes?.[0] ?? {});
-            const res = Object.entries(httpRes?.[1] ?? {});
-            request.set(req);
+            // console.log("AUTHREQ", this.authorization_request())
+            // debugger;
+            const httpRes = await endPointFn(options);
+            const res = Object.entries(
+                // httpRes?.[0] ?? Object.entries(httpRes ?? {})
+                httpRes ?? {}
+            );
+            // sessionStorage.setItem(
+            //     "log00",
+            //     JSON.stringify(httpRes)
+            // );
+            // sessionStorage.setItem(
+            //     "log01",
+            //     JSON.stringify(res)
+            // );
+            // sessionStorage.setItem(
+            //     "log02",
+            //     JSON.stringify(req)
+            // );
             response.set(res);
             error.set(false);
-            console.log("RES", req, res, httpRes);
             return httpRes;
         } catch (err) {
+            // console.log("ERROR", err);
+            // debugger;
             // Endpoint request error
             console.log(err);
             response.set(this.endPointError(err));
             error.set(true);
             open.set(true);
-            console.log("RES CATCH", err);
             return Promise.resolve(undefined);
         } finally {
+            //const req = Object.entries(httpRes?.[1] ?? {});
+            const req = Object.entries(
+                JSON.parse(sessionStorage.getItem("oauth2_test") ?? "{}")
+            );
+            request.set(req);
             saveParameters.bind(this)();
             this._working.set(false);
         }
@@ -559,6 +595,13 @@ export class LoginComponent implements OnInit {
     };
 
     protected resetResponses = () => {
+        // CALLS
+        this.configuration_call.set("");
+        this.discovery_call.set("");
+        this.authorization_call.set("");
+        this.token_call.set("");
+        this.verification_call.set("");
+        this.revocation_call.set("");
         // REQUESTS
         this.discovery_request.set([]);
         this.authorization_request.set([]);
@@ -598,6 +641,12 @@ export class LoginComponent implements OnInit {
             exitAnimationDuration,
             data: { text: text.GOOGLE_WEB_APP },
         });
+    }
+
+    apiScopeKeyup() {
+        if (this.api_scope_string().trim() == "" && this.api_scope()) {
+            this.api_scope.set(false);
+        }
     }
 }
 

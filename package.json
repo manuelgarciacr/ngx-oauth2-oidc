@@ -37,6 +37,7 @@
     "@angular-devkit/build-angular": "^18.0.1",
     "@angular/cli": "^18.0.1",
     "@angular/compiler-cli": "^18.0.0",
+    "@types/angular-material": "^1.1.77",
     "@types/jasmine": "~5.1.0",
     "angular-eslint": "18.0.0",
     "eslint": "^9.3.0",

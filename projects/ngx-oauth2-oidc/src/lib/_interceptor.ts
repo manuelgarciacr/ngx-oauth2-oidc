@@ -1,5 +1,5 @@
 import { IOAuth2Config, IOAuth2Parameters } from "../domain";
-import { convertParameters } from "./_convertParameters";
+import { updateParameters } from "./_updateParameters";
 
 export const _interceptor = (config: IOAuth2Config | null) => {
     const search = decodeURIComponent(window.location.search);
@@ -35,7 +35,7 @@ export const _interceptor = (config: IOAuth2Config | null) => {
             )
         );
 
-    const newParams = convertParameters(params, config);
+    const newParams = updateParameters(params, config);
 
     if (newParams["error"])
         return Promise.reject(

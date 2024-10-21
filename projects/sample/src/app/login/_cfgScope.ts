@@ -10,13 +10,21 @@ export function cfgScope(this: LoginComponent, reset: boolean, config: IOAuth2Co
         this.email.set(email);
         this.profile.set(profile);
         this.api_scope.set(api_scope);
+        const initialScope = newCfg.parameters?.scope ?? [];
+        const api_scope_string = initialScope
+            .filter(v => v !== "openid" && v !== "email" && v !== "profile")
+            .reduce((_, value) => value, "")
+            .trim();
+        this.api_scope_string.set(api_scope_string)
     } else {
         const scope = config.parameters?.scope ?? [];
 
         const oldOpenid = scope.includes("openid");
         const oldEmail = scope.includes("email");
         const oldProfile = scope.includes("profile");
-        const oldApiScope = scope.includes("none");
+        const api_scope_string = scope.filter(v => v !== "openid" && v !== "email" && v !== "profile")
+            .reduce((_, value) => value, "").trim()
+        const oldApiScope = api_scope_string != "";
 
         openid = this.openid();
         email = this.email();

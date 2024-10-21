@@ -100,13 +100,14 @@ export class Oauth2Service {
         return this.config;
     };
 
-    fetchDiscoveryDoc = async (options = <customParametersType>{}) => {
+    // fetchDiscoveryDoc = async (options = <customParametersType>{}) => {
+    fetchDiscoveryDoc = async () => {
         debugFn("mth", "FETCH_DISCOVERY_DOC");
 
         return _fetchDiscoveryDoc(
             this.http,
             this._config, // Parameter passed by reference updated (config.metadata)
-            toLowerCaseProperties(options)
+            // toLowerCaseProperties(options)
         );
     };
 

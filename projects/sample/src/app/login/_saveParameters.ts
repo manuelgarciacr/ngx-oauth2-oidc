@@ -31,15 +31,23 @@ export function saveParameters(this: LoginComponent ) {
     const email = this.email();
     const profile = this.profile();
     const api_scope = this.api_scope();
+    const api_scope_string = this.api_scope_string();
+    // RESPONSES
+    const configuration_call = this.configuration_call();
+    const discovery_call = this.discovery_call();
+    const authorization_call = this.authorization_call();
+    const token_call = this.token_call();
+    const verification_call = this.verification_call();
+    const revocation_call = this.revocation_call();
     // REQUESTS
-    const discovery_request = this.discovery_request();
+    const discovery_request = this.discovery_response();
     const authorization_request = this.authorization_request();
     const token_request = this.token_request();
     const verification_request = this.verification_request();
     const revocation_request = this.revocation_request();
     // RESPONSES
     const configuration_response = this.configuration_response();
-    const discovery_response = this.discovery_response();
+    const discovery_response = this.discovery_request();
     const authorization_response = this.authorization_response();
     const token_response = this.token_response();
     const verification_response = this.verification_response();
@@ -94,6 +102,14 @@ export function saveParameters(this: LoginComponent ) {
             email,
             profile,
             api_scope,
+            api_scope_string,
+            // CALLS
+            configuration_call,
+            discovery_call,
+            authorization_call,
+            token_call,
+            verification_call,
+            revocation_call,
             // REQUESTS
             discovery_request,
             authorization_request,

@@ -4,6 +4,11 @@
         <button class="ms-4 mb-2" [class.open]="open()"
             (click)="toggleOpen()">></button>
     </label>
+    @if (response().length == 0) {
+        <div class="row" [class.d-none]="!open()">
+            <b class="text-wrap text-break col-6 col-sm-3">EMPTY RESPONSE</b>
+        </div>
+    }
     @for (parm of response() | sort; track $index; let idx = $index){
         <div class="row" [class.d-none]="!open()">
             <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
@@ -12,14 +17,29 @@
             </span>
         </div>
     }
+    <label class="fs-3 fw-bolder my-3" [class.d-none]="!open() || call() == ''">
+        <!-- {{ name }} {{ error() ? "ERROR" : "RESPONSE" }} -->
+        <!-- {{request()}} -->
+        {{ name }} CALL
+        <!-- REQUEST {{request()[0][0] == "URL" ? "URL" : "PAYLOAD"}} -->
+    </label>
+    <div class="row" [class.d-none]="!open() || call() == ''">
+        <!-- <b class="text-wrap text-break " [class.col-6.col-sm-3]="parm[0] != '@URL'">{{parm[0] == "@URL" ? parm[1] :
+            parm[0]}}</b> -->
+        <span class="text-wrap text-break col-12">
+            {{ call() }}
+        </span>
+    </div>
     <label class="fs-3 fw-bolder my-3" [class.d-none]="!open() || request().length == 0">
         <!-- {{ name }} {{ error() ? "ERROR" : "RESPONSE" }} -->
-        REQUEST
-     </label>
+          <!-- {{request()}} -->
+        REQUEST {{reqType()}}
+        <!-- REQUEST {{request()[0][0] == "URL" ? "URL" : "PAYLOAD"}} -->
+    </label>
     @for (parm of request() | sort; track $index; let idx = $index){
         <div class="row" [class.d-none]="!open()">
-            <b class="text-wrap text-break col-6 col-sm-3">{{parm[0]}}</b>
-            <span class="text-wrap text-break col-6 col-sm-9 ">{{(parm[1]?.length > 250) ?
+            <b class="text-wrap text-break " [class.col-6.col-sm-3]="parm[0] != '@URL'">{{parm[0] == "@URL" ? parm[1] : parm[0]}}</b>
+            <span class="text-wrap text-break col-6 col-sm-9" [class]="{'d-none': parm[0] == '@URL'}">{{(parm[1]?.length > 250) ?
                 (parm[1] | slice:0:250)+"..." : parm[1]}}
             </span>
         </div>

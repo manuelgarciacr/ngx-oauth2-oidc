@@ -51,8 +51,8 @@ export const getParameters = (
 
 /**
  * Returns the parameters defined within the configuration object
- *      (standard parameters) that are appropriate for the indicated
- *      method. Removes null or undefined parameters.
+ *   (standard parameters) that are appropriate for the indicated
+ *   method. Removes null or undefined parameters.
  *
  * @param method Method name
  * @param parameters Standard configuration parameters
