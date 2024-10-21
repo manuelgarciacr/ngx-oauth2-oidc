@@ -70,15 +70,12 @@ const text = {
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: { class: "container row mt-3 justify-content-center max-width" },
     styles: [
-        "fieldset {background-color: lightsalmon}", // PARAMETERS
-        "fieldset.credentials {background-color: darkseagreen}",
-        "fieldset.authorization {background-color: burlywood}",
-        "fieldset.metadata {background-color: burlywood}",
-        "legend {background-color: indianred; color: white}", // PARAMETERS
-        "legend.credentials {background-color: green; color: white}", // PARAMETERS
-        "legend.authorization {background-color: peru; color: white}", // PARAMETERS
-        "legend.metadata {background-color: peru; color: white}", // PARAMETERS
-        "legend .credentials {background-color: green; color: white}",
+        ".green {background-color: darkseagreen}", // CREDENTIALS
+        "fieldset.green legend, legend .green {background-color: green; color: white}",
+        ".salmon {background-color: lightsalmon}", // CONFIGURATION & PARAMETERS
+        "fieldset.salmon legend {background-color: indianred; color: white}", // PARAMETERS
+        ".wood {background-color: burlywood}",
+        "fieldset.wood legend {background-color: peru; color: white}", // PARAMETERS
         ".text-break {line-break: anywhere}",
         ".col-config {min-width: 40rem; max-width: 55rem;}",
     ],
@@ -91,7 +88,9 @@ export class LoginComponent implements OnInit {
     protected readonly working = this._working.asReadonly();
     // authorization server credentials
     protected readonly api = signal("google-web-app");
-    protected readonly dependence = computed(() => this.api().replaceAll('-', ' '))
+    protected readonly dependence = computed(() =>
+        this.api().replaceAll("-", " ")
+    );
     // configuration
     protected readonly authorization_grant = signal<"code" | "implicit">(
         "code"
@@ -526,9 +525,7 @@ export class LoginComponent implements OnInit {
         if (reset) this.resetResponses();
 
         call.set(
-            `oauth2Service.${name}(${
-                options ? JSON.stringify(options) : ""
-            })`
+            `oauth2Service.${name}(${options ? JSON.stringify(options) : ""})`
         );
 
         try {

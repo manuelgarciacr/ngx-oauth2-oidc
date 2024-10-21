@@ -31,9 +31,9 @@
         (toggle_open)="revocation_open.set($event)"></app-collapsible>
 </div>
 <div class="col col-config">
-    <fieldset class="credentials d-flex border rounded-3 p-3 mb-3">
-        <legend class="credentials float-none text-center w-auto px-3">Authorization server <span
-                class="credentials">credentials</span></legend>
+    <fieldset class="green d-flex border rounded-3 p-3 mb-3">
+        <legend class="float-none text-center w-auto px-3">Authorization server <span
+                >credentials</span></legend>
         <div class="d-flex flex-column m-auto">
             <label class="d-flex flex-row align-items-start mb-2">
                 <input class="me-2" type="radio" name="api" value="google-web-app" [(ngModel)]="api" > Google: Web
@@ -59,7 +59,7 @@
             </label>
         </div>
     </fieldset>
-    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+    <fieldset class="salmon border rounded-3 p-3 d-flex flex-column mb-3">
         <legend class="float-none text-center w-auto px-3">configuration </legend>
         <div class="m-auto">
             <div class="d-flex flex-wrap mb-2">
@@ -121,9 +121,9 @@
         </div>
     </fieldset>
     <fieldset *ngIf="api() == 'google-web-app' && authorization_grant() == 'code'"
-        class="authorization d-flex border rounded-3 p-3 mb-3">
-        <legend class="authorization float-none text-center w-auto px-3">authorization
-            <span class="credentials ms-3" style="text-transform: capitalize;">
+        class="wood d-flex border rounded-3 p-3 mb-3">
+        <legend class="float-none text-center w-auto px-3">authorization
+            <span class="green ms-3" style="text-transform: capitalize;">
                 ( {{dependence()}} dependent )
             </span>
         </legend>
@@ -164,14 +164,14 @@
             </label>
         </div>
     </fieldset>
-    <fieldset class="metadata border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="metadata float-none text-center w-auto px-3">metadata
-            <span class="credentials ms-3" style="text-transform: capitalize;">
+    <fieldset class="wood border rounded-3 p-3 d-flex flex-column mb-3">
+        <legend class="float-none text-center w-auto px-3">metadata
+            <span class="green ms-3" style="text-transform: capitalize;">
                 ( {{dependence()}} dependent )
             </span>
         </legend>
         <div class="d-flex mb-2 gap-3">
-            <div class="d-flex flex-column flex-grow-0">
+            <div class="d-flex flex-column flex-grow-0 col-2">
                 <span>issuer</span>
             </div>
             <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
@@ -179,21 +179,29 @@
             </div>
         </div>
     </fieldset>
-    <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
+    <fieldset class="wood border border-bottom-0 rounded-3 rounded-bottom-0 p-3 pb-0 d-flex flex-column">
         <legend class="float-none text-center w-auto px-3">parameters
-            <span class="credentials ms-3" style="text-transform: capitalize;">
+            <span class="green ms-3" style="text-transform: capitalize;">
                 ( {{dependence()}} dependent )
             </span>
         </legend>
-        <div class="d-flex mb-2 gap-3">
-            <div class="d-flex flex-column flex-grow-0">
-                <p>client_id</p>
-                <p>client_secret</p>
-                <p>redirect_uri</p>
+        <div class="d-flex gap-3 mb-0">
+            <div class="d-flex flex-column flex-grow-0 col-2">
+                <p class="hr-input">client_id</p>
+                <p class="hr-input">client_secret</p>
             </div>
             <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
                 <input type="text" spellcheck="false" placeholder="client_id" [(ngModel)]="client_id">
                 <input type="text" spellcheck="false" placeholder="client_secret" [(ngModel)]="client_secret">
+            </div>
+        </div>
+    </fieldset>
+    <fieldset class="salmon border border-top-0 rounded-3 rounded-top-0 p-3 pt-0 d-flex flex-column mb-3">
+        <div class="d-flex mb-2 gap-3 mt-0">
+            <div class="d-flex flex-column flex-grow-0 col-2">
+                <p>redirect_uri</p>
+            </div>
+            <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
                 <input type="text" disabled spellcheck="false" placeholder="redirect_uri" [(ngModel)]="redirect_uri">
             </div>
         </div>
