@@ -120,10 +120,13 @@
             </div>
         </div>
     </fieldset>
-    <fieldset *ngIf="true || api() == 'google-web-app' && authorization_grant() == 'code'"
+    <fieldset *ngIf="api() == 'google-web-app' && authorization_grant() == 'code'"
         class="authorization d-flex border rounded-3 p-3 mb-3">
-        <legend class="authorization float-none text-center w-auto px-3">authorization -> <span
-                class="credentials">credentials-dependent</span></legend>
+        <legend class="authorization float-none text-center w-auto px-3">authorization
+            <span class="credentials ms-3" style="text-transform: capitalize;">
+                ( {{dependence()}} dependent )
+            </span>
+        </legend>
         <div class="mx-auto">
             <label class="d-flex flex-wrap mb-2">
                 <span class="text-break col">
@@ -141,8 +144,10 @@
                 </span>
                 <select class="col ms-2" [(ngModel)]="include_granted_scopes">
                     <option value="" selected>unseted (defaults to false)</option>
-                    <option [ngValue]=true>true</option>
-                    <option [ngValue]=false>false</option>
+                    <!-- <option [ngValue]=true>true</option>
+                    <option [ngValue]=false>false</option> -->
+                    <option value="true">true</option>
+                    <option value="false">false</option>
                 </select>
             </label>
             <label class="d-flex flex-wrap mb-2">
@@ -151,15 +156,20 @@
                 </span>
                 <select class="col ms-2" [(ngModel)]="enable_granular_consent">
                     <option value="" selected>unseted (defaults to true)</option>
-                    <option [ngValue]=true>true</option>
-                    <option [ngValue]=false>false</option>
+                    <!-- <option [ngValue]=true>true</option>
+                    <option [ngValue]=false>false</option> -->
+                    <option value="true">true</option>
+                    <option value="false">false</option>
                 </select>
             </label>
         </div>
     </fieldset>
     <fieldset class="metadata border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="metadata float-none text-center w-auto px-3">metadata -> <span
-                class="credentials">credentials-dependent</span></legend>
+        <legend class="metadata float-none text-center w-auto px-3">metadata
+            <span class="credentials ms-3" style="text-transform: capitalize;">
+                ( {{dependence()}} dependent )
+            </span>
+        </legend>
         <div class="d-flex mb-2 gap-3">
             <div class="d-flex flex-column flex-grow-0">
                 <span>issuer</span>
@@ -170,8 +180,11 @@
         </div>
     </fieldset>
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
-        <legend class="float-none text-center w-auto px-3">parameters <span
-                class="credentials ms-3">( Google dependent )</span></legend>
+        <legend class="float-none text-center w-auto px-3">parameters
+            <span class="credentials ms-3" style="text-transform: capitalize;">
+                ( {{dependence()}} dependent )
+            </span>
+        </legend>
         <div class="d-flex mb-2 gap-3">
             <div class="d-flex flex-column flex-grow-0">
                 <p>client_id</p>

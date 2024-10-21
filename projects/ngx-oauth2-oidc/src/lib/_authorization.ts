@@ -27,7 +27,7 @@ export const _authorization = async (
 ): Promise<IOAuth2Parameters> => {
     // Configuration data
     const no_pkce = !!config.configuration?.no_pkce;
-    // TODO: authorization_grant unsetted
+    // TODO: authorization_grant unset
     const grant = config.configuration?.authorization_grant ?? "code";
     const authorization_endpoint = config.metadata?.authorization_endpoint;
     const URL = (options["url"] as string) ?? authorization_endpoint ?? "";

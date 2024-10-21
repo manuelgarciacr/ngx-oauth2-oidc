@@ -1,4 +1,4 @@
-import { NgIf, SlicePipe } from '@angular/common';
+import { CommonModule, NgIf, SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, Input, input, output, Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
@@ -16,7 +16,7 @@ export class SortPipe implements PipeTransform {
 @Component({
     selector: "app-collapsible",
     standalone: true,
-    imports: [NgIf, SlicePipe, SortPipe],
+    imports: [NgIf, SlicePipe, SortPipe, CommonModule],
     templateUrl: `collapsible.component.html`,
     styleUrl: "./collapsible.component.css",
     changeDetection: ChangeDetectionStrategy.OnPush,

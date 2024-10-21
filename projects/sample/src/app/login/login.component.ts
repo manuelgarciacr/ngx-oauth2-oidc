@@ -91,6 +91,7 @@ export class LoginComponent implements OnInit {
     protected readonly working = this._working.asReadonly();
     // authorization server credentials
     protected readonly api = signal("google-web-app");
+    protected readonly dependence = computed(() => this.api().replaceAll('-', ' '))
     // configuration
     protected readonly authorization_grant = signal<"code" | "implicit">(
         "code"
@@ -252,9 +253,10 @@ export class LoginComponent implements OnInit {
             cfgExample(newCfg, exampleConfig);
 
             // CONFIGURATION
-            reset = cfgConfiguration.bind(this)(reset, cfg, newCfg);
+            if (api == "google-web-app")
+                reset = cfgConfiguration.bind(this)(reset, cfg, newCfg);
 
-            // CONFIGURATION -> AUTHORIZATION (GOOGLE SPECIFIC)
+            // AUTHORIZATION (GOOGLE SPECIFIC)
             reset = cfgAuthorization.bind(this)(reset, cfg, newCfg);
 
             // METADATA -> CREDENTIALS-DEPENDENT

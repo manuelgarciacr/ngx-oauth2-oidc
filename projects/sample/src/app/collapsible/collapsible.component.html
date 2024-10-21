@@ -38,7 +38,9 @@
     </label>
     @for (parm of request() | sort; track $index; let idx = $index){
         <div class="row" [class.d-none]="!open()">
-            <b class="text-wrap text-break " [class.col-6.col-sm-3]="parm[0] != '@URL'">{{parm[0] == "@URL" ? parm[1] : parm[0]}}</b>
+            <b class="text-wrap text-break " [ngClass]="{'col-6 col-sm-3': parm[0] != '@URL'}">{{parm[0] == "@URL" ? parm[1] : parm[0]}}</b>
+            <!-- <b class="text-wrap text-break " [class.col-6.col-sm-3]="parm[0] != '@URL'">{{parm[0] == "@URL" ? parm[1] :
+                parm[0]}}</b> -->
             <span class="text-wrap text-break col-6 col-sm-9" [class]="{'d-none': parm[0] == '@URL'}">{{(parm[1]?.length > 250) ?
                 (parm[1] | slice:0:250)+"..." : parm[1]}}
             </span>

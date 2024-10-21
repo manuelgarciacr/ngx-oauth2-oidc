@@ -39,15 +39,15 @@ export function cfgAuthorization(
     newCfg.authorization ??= {};
     newCfg.authorization["access_type"] = this.access_type();
     newCfg.authorization["include_granted_scopes"] =
-        this.include_granted_scopes();
+        this.include_granted_scopes() == "true"
     newCfg.authorization["enable_granular_consent"] =
-        this.enable_granular_consent();
+        this.enable_granular_consent() == "true";
 
     if (!newCfg.authorization["access_type"])
         delete newCfg.authorization["access_type"];
-    if (!newCfg.authorization["include_granted_scopes"])
+    if (this.include_granted_scopes() == "")
         delete newCfg.authorization["include_granted_scopes"];
-    if (!newCfg.authorization["enable_granular_consent"])
+    if (this.enable_granular_consent() == "")
         delete newCfg.authorization["enable_granular_consent"];
 
     // const authorization = newCfg.configuration?.authorization ?? {};
