@@ -98,7 +98,6 @@ export class LoginComponent implements OnInit {
     //protected readonly no_discovery = signal(false);
     protected readonly no_pkce = signal(false);
     protected readonly no_state = signal(false);
-    protected readonly no_nonce = signal(false);
     protected readonly test = signal(true);
     // authorization -> credentials-dependent
     protected readonly access_type = signal("");
@@ -126,7 +125,6 @@ export class LoginComponent implements OnInit {
     ]);
     protected readonly calculated_no_pkce = computed(() => this.no_pkce());
     protected readonly calculated_no_state = computed(() => this.no_state());
-    protected readonly calculated_no_nonce = computed(() => this.no_nonce());
     protected readonly calculated_code = computed(() =>
         this.authorization_grant() == "code"
             ? true

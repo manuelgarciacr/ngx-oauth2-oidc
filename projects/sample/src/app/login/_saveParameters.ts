@@ -8,7 +8,6 @@ export function saveParameters(this: LoginComponent ) {
     //const no_discovery = this.no_discovery();
     const no_pkce = this.no_pkce();
     const no_state = this.no_state();
-    const no_nonce = this.no_nonce();
     const test = this.test();
     // AUTHORIZATION -> CREDENTIALS-DEPENDENT
     const access_type = this.access_type();
@@ -79,7 +78,6 @@ export function saveParameters(this: LoginComponent ) {
             //no_discovery,
             no_pkce,
             no_state,
-            no_nonce,
             test,
             // AUTHORIZATION -> CREDENTIALS-DEPENDENT
             access_type,

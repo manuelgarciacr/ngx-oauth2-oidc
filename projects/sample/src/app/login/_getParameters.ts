@@ -12,7 +12,6 @@ export function getParameters(this: LoginComponent ) {
         //this.no_discovery.set(object.no_discovery);
         this.no_pkce.set(object.no_pkce);
         this.no_state.set(object.no_state);
-        this.no_nonce.set(object.no_nonce);
         this.test.set(object.test);
         // AUTHORIZATION -> CREDENTIALS-DEPENDENT
         this.access_type.set(object.access_type);

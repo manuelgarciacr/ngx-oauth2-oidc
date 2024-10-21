@@ -58,13 +58,6 @@
                 Custom configuration object
             </label>
         </div>
-        <!-- <div *ngIf="api() == 'google-web-app'" role="button" class="text-break text-wrap bg-body-secondary ms-2 pe-2 py-2" (click)="openDialog('1000ms', '1000ms')">
-            <ul>
-                <li>Google credentials must be of type 'Web application'</li>
-                <li>The 'issuer' (metadata section) is "https://accounts.google.com"</li>
-                <li>'authorization' endpoint uses custom parameters</li>
-            </ul>
-        </div> -->
     </fieldset>
     <fieldset class="border rounded-3 p-3 d-flex flex-column mb-3">
         <legend class="float-none text-center w-auto px-3">configuration </legend>
@@ -103,69 +96,27 @@
                     </label>
                 </div>
             </div>
-            <!-- <div class="d-flex flex-wrap mb-2">
-                <div class="d-flex flex-row align-items-start mb-2 me-2">
-                    <input class="me-2" type="checkbox" value=true [(ngModel)]="no_discovery">
-                    no_discovery
+           <div class="d-flex mb-2 gap-3">
+                <div class="d-flex flex-column col">
+                    <span class="mt-1 mb-2">test</span>
+                    <span class="mb-2">no_pkce</span>
+                    <span class="mb-2">no_state</span>
                 </div>
-                <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
-            </div> -->
-            <!-- <div class="d-flex flex-wrap mb-2">
-                            <div class="d-flex flex-row align-items-start mb-2 me-2">
-                                <input class="me-2" type="checkbox" value=true [(ngModel)]="no_pkce">
-                                no_pkce
-                            </div>
-                            <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
-                        </div>
-                        <div class="d-flex flex-wrap mb-2">
-                            <div class="d-flex flex-row align-items-start mb-2 me-2">
-                                <input class="me-2" type="checkbox" value=true [(ngModel)]="no_state">
-                                no_state
-                            </div>
-                            <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
-                        </div>
-                        <div class="d-flex flex-wrap mb-2">
-                            <div class="d-flex flex-row align-items-start mb-2 me-2">
-                                <input class="me-2" type="checkbox" value=true [(ngModel)]="no_nonce">
-                                no_nonce
-                            </div>
-                            <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
-                        </div> -->
-            <!-- <div class="d-flex flex-wrap mb-2">
-                <div class="d-flex flex-row align-items-start mb-2 me-2">
-                    <input class="me-2" type="checkbox" value=true [(ngModel)]="test">
-                    test
+                <div class="d-flex flex-column col">
+                    <input class="me-2 my-2" type="checkbox" [(ngModel)]="test">
+                    <input class="me-2 mb-2" type="checkbox" [(ngModel)]="no_pkce">
+                    <input class="me-2 mb-2" type="checkbox" [(ngModel)]="no_state">
                 </div>
-                <span class="col bg-body-secondary ms-5 ms-sm-2">Ignored if authorization_grant is not "code"</span>
-            </div> -->
-            <div class="d-flex mb-2 gap-3">
-                <!-- <div class="d-flex border border-black p-2"> -->
-                    <div class="d-flex flex-column col">
-                        <span class="mt-1 mb-2">test</span>
-                        <span class="mb-2">no_pkce</span>
-                        <span class="mb-2">no_state</span>
-                        <span class="mb-2">no_nonce</span>
-                    </div>
-                    <div class="d-flex flex-column col">
-                        <input class="me-2 my-2" type="checkbox" [(ngModel)]="test">
-                        <input class="me-2 mb-2" type="checkbox" [(ngModel)]="no_pkce">
-                        <input class="me-2 mb-2" type="checkbox" [(ngModel)]="no_state">
-                        <input class="me-2 mb-2" type="checkbox" [(ngModel)]="no_nonce">
-                    </div>
-                    <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated values</label>
-                    <div class="d-flex flex-column bg-body-secondary col ps-3 pt-2 pe-2 flex-grow-0">
-                        <br class="mt-1">
-                        <label class="d-flex flex-row mb-2">
-                            <input class="me-2" type="checkbox" disabled [ngModel]="calculated_no_pkce()">
-                        </label>
-                        <label class="d-flex flex-row align-items-start mb-2">
-                            <input class="me-2" type="checkbox" disabled [ngModel]="calculated_no_state()">
-                        </label>
-                        <label class="d-flex flex-row align-items-start mb-2">
-                            <input class="me-2" type="checkbox" disabled [ngModel]="calculated_no_nonce()">
-                        </label>
-                    </div>
-                <!-- </div> -->
+                <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated values</label>
+                <div class="d-flex flex-column bg-body-secondary col ps-3 pt-2 pe-2 flex-grow-0">
+                    <br class="mt-1">
+                    <label class="d-flex flex-row mb-2">
+                        <input class="me-2" type="checkbox" disabled [ngModel]="calculated_no_pkce()">
+                    </label>
+                    <label class="d-flex flex-row align-items-start mb-2">
+                        <input class="me-2" type="checkbox" disabled [ngModel]="calculated_no_state()">
+                    </label>
+                </div>
             </div>
         </div>
     </fieldset>
@@ -205,9 +156,6 @@
                 </select>
             </label>
         </div>
-        <!-- <div *ngIf="include_granted_scopes()" class="bg-body-secondary ms-2 p-2">
-            * If 'include_granted_scopes' and granted scopes includes openid, email or profile
-        </div> -->
     </fieldset>
     <fieldset class="metadata border rounded-3 p-3 d-flex flex-column mb-3">
         <legend class="metadata float-none text-center w-auto px-3">metadata -> <span
@@ -303,83 +251,12 @@
             </div>
         </div>
     </fieldset>
-    <!-- <fieldset class="d-flex justify-content-center rounded-3 p-3 mb-3">
-        <legend class="float-none text-center w-auto px-3">parameters -> response_type</legend>
-        <div class="d-flex flex-column col m-auto">
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="code"> code
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="token"> token
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="id_token"> id_token
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="none"> none
-            </label>
-        </div>
-        <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated values</label>
-        <div class="d-flex flex-column bg-body-secondary col m-auto pt-2 px-2">
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_code()"> code
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_token()"> token
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_id_token()"> id_token
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_none()"> none
-            </label>
-        </div>
-    </fieldset> -->
-    <!-- <fieldset class="d-flex border rounded-3 p-3 mb-3">
-        <legend class="float-none text-center w-auto px-3">parameters -> scope</legend>
-        <div class="d-flex flex-column col m-auto">
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="openid">
-                openid
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="email">
-                email
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="profile">
-                profile
-            </label>
-            <label class="d-flex flex-row text-break align-items-start mb-2">
-                <input class="me-2" type="checkbox" [(ngModel)]="api_scope">
-                {{ api_scope_string() }}
-            </label>
-        </div>
-        <label class="col text-center bg-body-secondary flex-grow-0 my-auto mx-2 px-2">Calculated values</label>
-        <div class="d-flex flex-column bg-body-secondary col m-auto pt-2 px-2">
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_openid()">
-                openid
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_email()">
-                email
-            </label>
-            <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_profile()">
-                profile
-            </label>
-            <label class="d-flex flex-row text-break align-items-start mb-2">
-                <input class="me-2" type="checkbox" disabled [ngModel]="calculated_api_scope()">
-                {{ api_scope_string() }}
-            </label>
-        </div>
-    </fieldset> -->
 </div>
 <div class="d-flex flex-column font-monospace col" style="min-height: 75vh">
+    <b>Initial Configuration Object</b>
     <label style="z-index: 10" class="text-end me-5 mb-n3 bg-danger text-white ms-auto px-2"
         [style.visibility]="textModified() ? 'visible' : 'hidden'">Modified by hand</label>
     <label class="bg-danger-subtle mt-3">{{configError()}}</label>
     <textarea style="field-sizing: content; min-height: 30rem;" [ngModel]="config() | json4"
-        (ngModelChange)="'setConfig($event)'" spellcheck="false"></textarea>
+        (ngModelChange)="'setConfig($event)'" readonly spellcheck="false"></textarea>
 </div>

@@ -6,10 +6,9 @@ import { getParameters } from "./_getParameters";
 /**
  * Verification of the id_token saved in the configuration. Makes use of the 'jose' library.
  *   Needs the jwks_uri metadata (see jose library) and the issuer. You also need the parameters.
- *   id_token, client_id, audience (client_id) and nonce (if no_nonce configuration option
- *   is not configured). This data can be overwritten by the options parameter data. Returns
- *   the payload of the id_token and saves it to storage and memory. In test mode, the request payload
- *   is also stored inside sessionStorage.
+ *   id_token, client_id, audience (client_id) and nonce. This data can be overwritten by the
+ *   options parameter data. Returns the payload of the id_token and saves it to storage and
+ *   memory. In test mode, the request payload is also stored inside sessionStorage.
  *
  * @param config Configuration object saved in memory.
  * @param userProfile id_token payload saved in memory. Passed by reference and

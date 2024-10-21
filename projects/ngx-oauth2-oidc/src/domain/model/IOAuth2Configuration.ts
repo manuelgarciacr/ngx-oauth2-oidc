@@ -24,6 +24,7 @@ const configuration = {
      * If true, the service don't request for an id_token. Default is false.
      */
     no_OIDC: false,
+
     /**
      * If true, the service will not use PKCE support. Default is false.
      */
@@ -34,12 +35,7 @@ const configuration = {
      */
     no_state: false,
 
-    /**
-     * If true, the service will not use the oauth2 parameter "nonce". Default is false.
-     */
-    no_nonce: false,
-
-    /**
+     /**
      * If true, the methods return the request parameters along with the response.
      */
     test: false,
