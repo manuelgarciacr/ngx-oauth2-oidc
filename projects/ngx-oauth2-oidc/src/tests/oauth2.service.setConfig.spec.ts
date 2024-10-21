@@ -11,7 +11,7 @@ import { provideOAuth2 } from "../lib/provide-oauth2";
 describe("Oauth2Service setConfig", () => {
     const issuer = "issuerName";
     const oauth2Config = { metadata: { issuer } };
-    const settedConfig = {
+    const configuration = {
         ...oauth2Config,
         configuration: { well_known_sufix: ".well-known/openid-configuration" },
         parameters: {}
@@ -38,14 +38,14 @@ describe("Oauth2Service setConfig", () => {
         httpTesting = TestBed.inject(HttpTestingController);
     });
 
-    it("#setConfig should store and return the setted configuration", () => {
-        expect(service.setConfig(oauth2Config)).toEqual(settedConfig);
-        expect(service.config).toEqual(settedConfig);
+    it("#setConfig should store and return the established settings", () => {
+        expect(service.setConfig(oauth2Config)).toEqual(configuration);
+        expect(service.config).toEqual(configuration);
         expect(
             JSON.parse(
                 window.sessionStorage.getItem("oauth2_config") ?? ""
             )
-        ).toEqual(settedConfig);
+        ).toEqual(configuration);
         expect(
             JSON.parse(
                 window.sessionStorage.getItem("oauth2_initialConfig") ?? ""

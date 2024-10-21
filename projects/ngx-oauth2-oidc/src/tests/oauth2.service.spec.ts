@@ -16,12 +16,12 @@ describe("Oauth2Service creation", () => {
         parameters: {},
     };
     const providedConfig = { metadata: { issuer: "firstIssuer" } };
-    const settedProvidedConfig = {
+    const establishedProvidedConfig = {
         ...emptyConfig,
         ...providedConfig,
     }
     const storedConfig = { metadata: { issuer: "secondIssuer" } };
-    const settedStoredConfig = {
+    const establishedStoredConfig = {
         ...emptyConfig,
         ...storedConfig,
     };
@@ -58,7 +58,7 @@ describe("Oauth2Service creation", () => {
         service = TestBed.inject(Oauth2Service);
 
         expect(service).toBeTruthy();
-        expect(service.config).toEqual(settedProvidedConfig);
+        expect(service.config).toEqual(establishedProvidedConfig);
     });
 
     it("OAuth2Service should be created with stored configuration", () => {
@@ -72,7 +72,7 @@ describe("Oauth2Service creation", () => {
         service = TestBed.inject(Oauth2Service);
 
         expect(service).toBeTruthy();
-        expect(service.config).toEqual(settedStoredConfig);
+        expect(service.config).toEqual(establishedStoredConfig);
     });
 
 });

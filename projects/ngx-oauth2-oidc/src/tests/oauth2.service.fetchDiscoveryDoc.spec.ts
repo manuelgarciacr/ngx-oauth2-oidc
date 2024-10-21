@@ -12,7 +12,7 @@ import { IOAuth2Metadata } from "ngx-oauth2-oidc";
 describe("Oauth2Service fetchDiscoveryDoc", () => {
     const issuer = "issuerName";
     const oauth2Config = { metadata: { issuer } };
-    const settedConfig = {
+    const configuration = {
         ...oauth2Config,
         configuration: { well_known_sufix: ".well-known/openid-configuration" },
         parameters: {}
@@ -57,8 +57,8 @@ describe("Oauth2Service fetchDiscoveryDoc", () => {
     });
 
     it("#fetchDiscoveryDoc should return value from promise and store", (done: DoneFn) => {
-        expect(service.setConfig(oauth2Config)).toEqual(settedConfig);
-        expect(service.config).toEqual(settedConfig);
+        expect(service.setConfig(oauth2Config)).toEqual(configuration);
+        expect(service.config).toEqual(configuration);
 
         const config = {...service.config};
 
