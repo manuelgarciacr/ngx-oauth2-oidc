@@ -49,7 +49,7 @@ export const request = async <T>(
     for (const key in options) {
         let v = options![key as keyof typeof options]; // Option value
         Array.isArray(v) && (v = v.join(" ")); // String array to a string of space separated values.
-        if (v) params = params.set(key, v.toString()); // If not nullish nor empty, added to params.
+        if (v || v === false) params = params.set(key, v.toString()); // If not nullish nor empty, added to params.
     }
 
     // Create payload from params

@@ -26,22 +26,28 @@ export function cfgAuthorization(
             "";
 
         access_type = this.access_type();
-        include_granted_scopes = this.include_granted_scopes();
-        enable_granular_consent = this.enable_granular_consent();
+        include_granted_scopes =
+            this.include_granted_scopes() === ""
+                ? ""
+                : this.include_granted_scopes() === "true";
+        enable_granular_consent =
+            this.enable_granular_consent() === ""
+                ? ""
+                : this.enable_granular_consent() === "true";
 
         reset =
             reset ||
-            oldAccess != access_type ||
-            oldInclude != include_granted_scopes ||
-            oldEnable != enable_granular_consent;
+            oldAccess !== access_type ||
+            oldInclude !== include_granted_scopes ||
+            oldEnable !== enable_granular_consent;
     }
 
     newCfg.authorization ??= {};
     newCfg.authorization["access_type"] = this.access_type();
     newCfg.authorization["include_granted_scopes"] =
-        this.include_granted_scopes() == "true"
+        include_granted_scopes;
     newCfg.authorization["enable_granular_consent"] =
-        this.enable_granular_consent() == "true";
+        enable_granular_consent;
 
     if (!newCfg.authorization["access_type"])
         delete newCfg.authorization["access_type"];

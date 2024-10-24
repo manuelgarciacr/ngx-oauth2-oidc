@@ -81,67 +81,48 @@ const text = {
     ],
 })
 export class LoginComponent implements OnInit {
-    readonly dialog = inject(MatDialog);
-    private readonly oauth2 = inject(Oauth2Service);
-    private _working = signal(false);
     private count = 0;
+    private readonly oauth2 = inject(Oauth2Service);
+    private readonly _working = signal(false);
     protected readonly working = this._working.asReadonly();
+    protected readonly dialog = inject(MatDialog);
+    protected readonly config = signal(<IOAuth2Config>{});
+    protected readonly configError = signal("");
+    protected readonly textModified = signal(false);
+
     // authorization server credentials
     protected readonly api = signal("google-web-app");
     protected readonly dependence = computed(() =>
         this.api().replaceAll("-", " ")
     );
+
     // configuration
-    protected readonly authorization_grant = signal<"code" | "implicit">(
-        "code"
-    );
-    //protected readonly no_discovery = signal(false);
+    protected readonly authorization_grant = signal<
+        "code" | "implicit" | "hybrid"
+    >("code");
+    protected readonly test = signal(true);
     protected readonly no_pkce = signal(false);
     protected readonly no_state = signal(false);
-    protected readonly test = signal(true);
-    // authorization -> credentials-dependent
+    protected readonly calculated_no_pkce = computed(() => this.no_pkce());
+    protected readonly calculated_no_state = computed(() => this.no_state());
+
+    // authorization -> Google Web App Dependent
     protected readonly access_type = signal("");
     protected readonly include_granted_scopes = signal("");
     protected readonly enable_granular_consent = signal("");
-    // metadata -> credentials-dependent
+
+    // metadata -> credentials dependent
     protected readonly issuer = signal("");
-    // parameters -> credentials-dependent
+
+    // parameters -> credentials dependent
     protected readonly client_id = signal("");
     protected readonly client_secret = signal("");
+
     // parameters.redirect_uri
     protected readonly redirect_uri = signal(
         window.location.href.split("?")[0]
     );
-    // parameters.response_type
-    protected readonly code = signal(false);
-    protected readonly token = signal(false);
-    protected readonly id_token = signal(false);
-    protected readonly none = signal(false);
-    protected readonly response_type = computed(() => [
-        ...(this.code() ? ["code"] : []),
-        ...(this.token() ? ["token"] : []),
-        ...(this.id_token() ? ["id_token"] : []),
-        ...(this.none() ? ["none"] : []),
-    ]);
-    protected readonly calculated_no_pkce = computed(() => this.no_pkce());
-    protected readonly calculated_no_state = computed(() => this.no_state());
-    protected readonly calculated_code = computed(() =>
-        this.authorization_grant() == "code"
-            ? true
-            : this.authorization_grant() == "implicit"
-            ? false
-            : this.code()
-    );
-    protected readonly calculated_token = computed(() => this.token());
-    protected readonly calculated_id_token = computed(() => this.id_token());
-    protected readonly calculated_none = computed(() =>
-        this.authorization_grant() == "code" ||
-        this.code() ||
-        this.token() ||
-        this.id_token()
-            ? false
-            : this.none()
-    );
+
     // parameters.scope
     protected readonly openid = signal(false);
     protected readonly email = signal(false);
@@ -157,12 +138,68 @@ export class LoginComponent implements OnInit {
     protected readonly calculated_openid = computed(
         () => this.openid() || this.scope().length == 0
     );
-    protected readonly calculated_email = computed(() => this.email());
-    protected readonly calculated_profile = computed(() => this.profile());
+    protected readonly calculated_email = computed(
+        () => this.email() || this.scope().length == 0
+    );
+    protected readonly calculated_profile = computed(
+        () => this.profile() || this.scope().length == 0
+    );
     protected readonly calculated_api_scope = computed(() => this.api_scope());
-    //
-    protected readonly config = signal(<IOAuth2Config>{});
-    protected readonly textModified = signal(false);
+
+    // parameters.response_type
+    protected readonly code = signal(false);
+    protected readonly token = signal(false);
+    protected readonly id_token = signal(false);
+    protected readonly none = signal(false);
+    protected readonly response_type = computed(() => [
+        ...(this.code() ? ["code"] : []),
+        ...(this.token() ? ["token"] : []),
+        ...(this.id_token() ? ["id_token"] : []),
+        ...(this.none() ? ["none"] : []),
+    ]);
+    protected readonly calculated_code = computed(
+        () =>
+            this.authorization_grant() == "code" ||
+            this.authorization_grant() == "hybrid"
+                ? true
+                : this.authorization_grant() == "implicit"
+                ? false
+                : this.code() // other response type
+    );
+    protected readonly calculated_token = computed(() =>
+        this.authorization_grant() == "code"
+            ? false
+            : this.authorization_grant() != "implicit" &&
+              this.authorization_grant() != "hybrid"
+            ? this.token() // other response type
+            : this.token() || this.api_scope() // implicit or hybrid
+            ? true
+            : false
+    );
+    protected readonly calculated_id_token = computed(() =>
+        this.authorization_grant() == "code"
+            ? false
+            : this.authorization_grant() != "implicit" &&
+              this.authorization_grant() != "hybrid"
+            ? this.id_token() // other response type
+            : this.id_token() || // implicit or hybrid
+              this.calculated_openid() ||
+              this.calculated_email() ||
+              this.calculated_profile()
+            ? true
+            : false
+    );
+    protected readonly calculated_none = computed(() =>
+        this.authorization_grant() == "code" ||
+        this.authorization_grant() == "implicit" ||
+        this.authorization_grant() == "hybrid" ||
+        this.calculated_code() ||
+        this.calculated_token() ||
+        this.calculated_id_token()
+            ? false
+            : this.none()
+    );
+
     // CALLS
     protected readonly configuration_call = signal("");
     protected readonly discovery_call = signal("");
@@ -170,12 +207,14 @@ export class LoginComponent implements OnInit {
     protected readonly token_call = signal("");
     protected readonly verification_call = signal("");
     protected readonly revocation_call = signal("");
+
     // REQUESTS
     protected readonly discovery_request = signal<[string, any][]>([]);
     protected readonly authorization_request = signal<[string, any][]>([]);
     protected readonly token_request = signal<[string, any][]>([]);
     protected readonly verification_request = signal<[string, any][]>([]);
     protected readonly revocation_request = signal<[string, any][]>([]);
+
     // RESPONSES
     protected readonly configuration_response = signal<[string, any][]>([]);
     protected readonly discovery_response = signal<[string, any][]>([]);
@@ -183,6 +222,7 @@ export class LoginComponent implements OnInit {
     protected readonly token_response = signal<[string, any][]>([]);
     protected readonly verification_response = signal<[string, any][]>([]);
     protected readonly revocation_response = signal<[string, any][]>([]);
+
     // OPENED DATA
     protected readonly configuration_open = signal(false);
     protected readonly discovery_open = signal(false);
@@ -190,6 +230,7 @@ export class LoginComponent implements OnInit {
     protected readonly token_open = signal(false);
     protected readonly verification_open = signal(false);
     protected readonly revocation_open = signal(false);
+
     // ERRORS
     protected readonly configuration_error = signal(false);
     protected readonly discovery_error = signal(false);
@@ -197,7 +238,8 @@ export class LoginComponent implements OnInit {
     protected readonly token_error = signal(false);
     protected readonly verification_error = signal(false);
     protected readonly revocation_error = signal(false);
-    //
+
+    // Tracking
     protected readonly hasResponses = computed(
         () =>
             !!Object.entries(this.configuration_response()).length ||
@@ -217,12 +259,13 @@ export class LoginComponent implements OnInit {
     protected readonly hasAccessToken = () =>
         !!this.oauth2.config?.parameters?.access_token;
     protected readonly hasCode = () => !!this.oauth2.config?.parameters?.code;
-    protected readonly configError = signal("");
+
+    // Global effect event
     private effect = effect(
         () => {
             this.count++;
             if (this.count > 100) {
-                console.log("EFFECT CANCEL");
+                console.error("EFFECT CANCEL");
                 this.effect.destroy();
             }
 
@@ -267,11 +310,11 @@ export class LoginComponent implements OnInit {
             // PARAMETERS -> REDIRECT_URI
             reset = cfgRedirectUri.bind(this)(reset, cfg, newCfg);
 
-            // PARAMETERS -> RESPONSE_TYPE
-            reset = cfgResponse.bind(this)(reset, cfg, newCfg);
-
             // PARAMETERS -> SCOPE
-            cfgScope.bind(this)(reset, cfg, newCfg);
+            reset = cfgScope.bind(this)(reset, cfg, newCfg);
+
+            // PARAMETERS -> RESPONSE_TYPE
+            cfgResponse.bind(this)(reset, cfg, newCfg);
 
             sessionStorage.setItem("newCfg", JSON.stringify(newCfg));
             delete newCfg.parameters?.client_secret;
@@ -599,12 +642,14 @@ export class LoginComponent implements OnInit {
         this.token_call.set("");
         this.verification_call.set("");
         this.revocation_call.set("");
+
         // REQUESTS
         this.discovery_request.set([]);
         this.authorization_request.set([]);
         this.token_request.set([]);
         this.verification_request.set([]);
         this.revocation_request.set([]);
+
         // RESPONSES
         this.configuration_response.set([]);
         this.discovery_response.set([]);
@@ -612,6 +657,7 @@ export class LoginComponent implements OnInit {
         this.token_response.set([]);
         this.verification_response.set([]);
         this.revocation_response.set([]);
+
         // OPENED DATA
         this.configuration_open.set(false);
         this.discovery_open.set(false);
@@ -619,6 +665,7 @@ export class LoginComponent implements OnInit {
         this.token_open.set(false);
         this.verification_open.set(false);
         this.revocation_open.set(false);
+
         // ERRORS
         this.configuration_error.set(false);
         this.discovery_error.set(false);
@@ -644,6 +691,10 @@ export class LoginComponent implements OnInit {
         if (this.api_scope_string().trim() == "" && this.api_scope()) {
             this.api_scope.set(false);
         }
+    }
+
+    onTextareaSizeChange(scrollHeight: Event) {
+        console.log(`Textarea size changed to ${scrollHeight} pixels`);
     }
 }
 

@@ -3,6 +3,8 @@ import { IOAuth2Config, customParametersType } from "../domain";
 import { setStore } from "./_store";
 import { getParameters } from "./_getParameters";
 
+// TODO: Verify _hash claims (npm oidc-token-hash)
+
 /**
  * Verification of the id_token saved in the configuration. Makes use of the 'jose' library.
  *   Needs the jwks_uri metadata (see jose library) and the issuer. You also need the parameters.

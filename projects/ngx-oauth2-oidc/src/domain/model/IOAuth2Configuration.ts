@@ -61,7 +61,7 @@ export const configurationOptions = Object.keys(configuration);
 
 /** Authorization grant values */
 export const authorizationGrantValues = [
-    "code", "implicit" //, "password", "client", "extension",
+    "code", "implicit", "hybrid" //, "password", "client", "extension",
 ] as const;
 
 /** Authorization */

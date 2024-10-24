@@ -27,6 +27,7 @@ export const _authorization = async (
 ): Promise<IOAuth2Parameters> => {
     // Configuration data
     const no_pkce = !!config.configuration?.no_pkce;
+    const no_state = !!config.configuration?.no_state;
     // TODO: authorization_grant unset
     const grant = config.configuration?.authorization_grant ?? "code";
     const authorization_endpoint = config.metadata?.authorization_endpoint;
@@ -35,7 +36,8 @@ export const _authorization = async (
         ...getParameters("authorization", config),
         ...options,
     } as customParametersType;
-    const arr = (name: string) => (parms[name] as string[]) ?? [];
+    const arr = (name: string) =>
+        (<string[]>parms[name] ?? []).map(str => str.toLocaleLowerCase());
     const str = (name: string) => (parms[name] as string) ?? "";
 
     // TODO: no-storage configuration option
@@ -49,37 +51,58 @@ export const _authorization = async (
             }
         );
 
+    const basicGrant = grant == "code" || grant == "implicit" || grant == "hybrid";
     let response_type = arr("response_type");
     let scope = arr("scope");
+    let pkce;
+    let state = {};
+    let nonce = {};
 
-    for (const idx in response_type)
-        response_type[idx] = response_type[idx].toLowerCase();
+    /////////
+    // SCOPE
 
-    for (const idx in scope) scope[idx] = scope[idx].toLowerCase();
-
-    const codeIdx = response_type.indexOf("code");
-    const noneIdx = response_type.indexOf("none");
-    const openidScope = scope.filter(item =>
-        ["openid", "email", "profile"].includes(item)
-    );
-    const isOpenidScope = !!openidScope.length;
-    //let hasIdToken = false;
-    // const hasIdToken = isOpenidScope;
-
-    if (grant == "code") {
-        codeIdx < 0 && response_type.push("code");
-        noneIdx >= 0 && response_type.splice(noneIdx, 1);
-
-        //hasIdToken = isOpenidScope
-    } else {
-        const multipleTypes = response_type.length > 1;
-
-        noneIdx >= 0 && multipleTypes && response_type.splice(noneIdx, 1);
+    if (!scope.length) {
+        scope = ["openid", "email", "profile"];
     }
 
-    let pkce;
+    /////////
+    // RESPONSE_TYPE
 
-    if (grant == "code" && !no_pkce) {
+    if (basicGrant || response_type.length > 1) {
+        const noneIdx = response_type.indexOf("none");
+
+        if (noneIdx >= 0) response_type.splice(noneIdx, 1);
+    }
+
+    if (grant == "code") {
+        response_type = ["code"];
+    }
+
+    if (grant == "implicit") {
+        // scope is not empty
+        const userScopes = ["openid", "email", "profile"];
+        const codeIdx = response_type.indexOf("code");
+        const noResponse = !response_type.length;
+        const hasUserScope = scope.some(str => userScopes.includes(str))
+        const hasApiScope = scope.some(str => !userScopes.includes(str));
+
+        codeIdx >= 0 && response_type.splice(codeIdx, 1);
+
+        if (noResponse) {
+            hasUserScope && response_type.push("id_token");
+            hasApiScope && response_type.push("token");
+        }
+    }
+
+    /////////
+    // PKCE
+
+    // TODO: https://engineering.99x.io/demystifying-spa-security-with-pkce-fb55af7d3f5
+    if (no_pkce) {
+        delete parms["code_challenge"];
+        delete parms["code_challenge_method"];
+        delete parms["code_verifier"];
+    } else if (grant == "code") {
         const code_verifier =
             parms["code_verifier"] ??
             config.token?.["code_verifier"] ??
@@ -89,62 +112,54 @@ export const _authorization = async (
         pkce = await getPkce(parms, code_verifier as string);
     }
 
-    if (no_pkce) {
-        delete parms["code_challenge"];
-        delete parms["code_challenge_method"];
+    /////////
+    // STATE
+
+    if (no_state) {
+        delete parms["state"];
+    } else {
+        const read_state = str("state");
+        let str_state = notStrNull(read_state, secureRandom(2));
+        if (options["statePayload"]) {
+            str_state += options["statePayload"] as string;
+        }
+        state = { state: str_state };
     }
 
-    if (grant == "implicit") {
-        codeIdx >= 0 && response_type.splice(codeIdx, 1);
+    /////////
+    // NONCE
 
-        // if (!response_type.length){
-        //     response_type = ["token", "id_token"]
-        // }
+    const idTokenIdx = response_type.indexOf("id_token");
+
+    if (grant == "code" || (grant == "implicit" && idTokenIdx >= 0)) {
+        // TODO: Hashed nonce
+        const read_nonce = str("nonce");
+        const str_nonce = notStrNull(read_nonce, secureRandom(2));
+
+        nonce = { nonce: str_nonce }
+    } else {
+        delete parms["nonce"]
     }
 
-    let nonce = {};
-    //hasIdToken = hasIdToken || response_type.includes("id_token");
-    // let onlyIdToken = false;
-    const read_nonce = str("nonce");
-    const str_nonce = notStrNull(read_nonce, secureRandom(2));
-
-    nonce = { nonce: str_nonce };
-
-    // if (hasIdToken) {
-    //     // const read_nonce = str("nonce");
-    //     // const str_nonce = notStrNull(read_nonce, secureRandom());
-
-    //     // nonce = {nonce: str_nonce};
-
-    //     if (response_type.length == 1) {
-    //         onlyIdToken = true;
-    //     }
-    // }
-
-    if (grant == "code" && !scope.length) {
-        scope = ["openid"];
-    }
-
-    let state = str("state");
-
-    state = notStrNull(state, secureRandom(2));
-
-    if (options["statePayload"]) {
-        state += options["statePayload"] as string;
-    }
-
-    const { code_verifier, ...pkceOptions } = pkce ?? {};
-
-    const newOptions = {
-        state,
-        ...nonce,
-        ...pkceOptions,
+    const newParameters = {
+        ...pkce,
+        ...state,
+        ...nonce
     };
 
     config.parameters = {
         ...config.parameters,
-        ...newOptions,
-        code_verifier,
+        ...newParameters,
+    };
+
+    // The code_verifier is used by the token endpoint
+    delete newParameters["code_verifier"];
+
+    const payload = {
+        ...parms,
+        ...newParameters,
+        scope,
+        response_type,
     };
 
     // TODO: no-storage configuration option
@@ -155,7 +170,7 @@ export const _authorization = async (
         URL,
         http,
         config,
-        { ...parms, ...newOptions, scope, response_type },
+        payload,
         "authorization"
     ) as IOAuth2Parameters;
 };
