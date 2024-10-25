@@ -24,6 +24,8 @@ export function getParameters(this: LoginComponent ) {
         this.client_secret.set(object.client_secret);
         // PARAMETERS -> REDIRECT_URI
         this.redirect_uri.set(object.redirect_uri);
+        // PARAMETERS -> LOGIN_HINT
+        this.login_hint.set(object.login_hint);
         // PARAMETERS -> RESPONSE_TYPE
         this.code.set(object.code);
         this.token.set(object.token);

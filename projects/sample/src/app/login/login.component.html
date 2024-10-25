@@ -209,11 +209,21 @@
         <div class="d-flex mb-2 gap-3 mt-0">
             <div class="d-flex flex-column flex-grow-0 col-2">
                 <p>redirect_uri</p>
+                <p>login_hint</p>
             </div>
             <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
                 <input type="text" disabled spellcheck="false" placeholder="redirect_uri" [(ngModel)]="redirect_uri">
+                <input type="text" spellcheck="false" placeholder="login_hint" [(ngModel)]="login_hint">
             </div>
         </div>
+        <!-- <div class="d-flex mb-2 gap-3 mt-0">
+            <div class="d-flex flex-column flex-grow-0 col-2">
+                <p>login_hint</p>
+            </div>
+            <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
+                <input type="text" spellcheck="false" placeholder="login_hint" [(ngModel)]="login_hint">
+            </div>
+        </div> -->
         <div class="d-flex mb-2 gap-3">
             <span class="col">scope</span>
             <div class="d-flex border border-black p-2">

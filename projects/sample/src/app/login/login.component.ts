@@ -24,6 +24,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { ModalComponent } from "../modal/modal.component";
 import { MatIcon } from "@angular/material/icon";
 import { MatButtonModule } from "@angular/material/button";
+import { cfgLoginHint } from "./_cfgLoginHint";
 
 @Pipe({
     name: "json4",
@@ -122,6 +123,9 @@ export class LoginComponent implements OnInit {
     protected readonly redirect_uri = signal(
         window.location.href.split("?")[0]
     );
+
+    // parameters.login_hint
+    protected readonly login_hint = signal("");
 
     // parameters.scope
     protected readonly openid = signal(false);
@@ -309,6 +313,9 @@ export class LoginComponent implements OnInit {
 
             // PARAMETERS -> REDIRECT_URI
             reset = cfgRedirectUri.bind(this)(reset, cfg, newCfg);
+
+            // PARAMETERS -> LOGIN_HINT
+            reset = cfgLoginHint.bind(this)(reset, cfg, newCfg);
 
             // PARAMETERS -> SCOPE
             reset = cfgScope.bind(this)(reset, cfg, newCfg);
@@ -691,10 +698,6 @@ export class LoginComponent implements OnInit {
         if (this.api_scope_string().trim() == "" && this.api_scope()) {
             this.api_scope.set(false);
         }
-    }
-
-    onTextareaSizeChange(scrollHeight: Event) {
-        console.log(`Textarea size changed to ${scrollHeight} pixels`);
     }
 }
 

@@ -20,6 +20,8 @@ export function saveParameters(this: LoginComponent ) {
     const client_secret = this.client_secret();
     // PARAMETERS -> REDIRECT_URI
     const redirect_uri = this.redirect_uri();
+    // PARAMETERS -> LOGIN_HINT
+    const login_hint = this.login_hint();
     // PARAMETERS -> RESPONSE_TYPE
     const code = this.code();
     const token = this.token();
@@ -95,6 +97,8 @@ export function saveParameters(this: LoginComponent ) {
             none,
             // PARAMETERS -> REDIRECT_URI
             redirect_uri,
+            // PARAMETERS -> LOGIN_HINT
+            login_hint,
             // PARAMETERS -> SCOPE
             openid,
             email,

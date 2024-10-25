@@ -82,13 +82,12 @@ export const _authorization = async (
         // scope is not empty
         const userScopes = ["openid", "email", "profile"];
         const codeIdx = response_type.indexOf("code");
-        const noResponse = !response_type.length;
         const hasUserScope = scope.some(str => userScopes.includes(str))
         const hasApiScope = scope.some(str => !userScopes.includes(str));
 
         codeIdx >= 0 && response_type.splice(codeIdx, 1);
 
-        if (noResponse) {
+        if (!response_type.length) {
             hasUserScope && response_type.push("id_token");
             hasApiScope && response_type.push("token");
         }
