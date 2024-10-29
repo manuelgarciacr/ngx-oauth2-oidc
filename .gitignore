@@ -45,3 +45,6 @@ projects/ngx-oauth2-oidc/src/lib/_request.NOPUSH.ts
 projects/sample/src/google-web-app.config.ts
 projects/sample/public/google-web-app.secret.json
 projects/sample/public/google-desktop.secret.json
+projects/sample/public/google.secret.json
+projects/sample/public/dropbox.secret.json
+projects/sample/public/facebook.secret.json

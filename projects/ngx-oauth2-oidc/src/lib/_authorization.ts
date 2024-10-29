@@ -81,16 +81,26 @@ export const _authorization = async (
     if (grant == "implicit") {
         // scope is not empty
         const userScopes = ["openid", "email", "profile"];
-        const codeIdx = response_type.indexOf("code");
-        const hasUserScope = scope.some(str => userScopes.includes(str))
+        const hasUserScope = scope.some(str => userScopes.includes(str));
         const hasApiScope = scope.some(str => !userScopes.includes(str));
+        const codeIdx = response_type.indexOf("code");
+        const tokenIdx = response_type.indexOf("token");
+        const idTokenIdx = response_type.indexOf("id_token");
 
         codeIdx >= 0 && response_type.splice(codeIdx, 1);
 
-        if (!response_type.length) {
-            hasUserScope && response_type.push("id_token");
-            hasApiScope && response_type.push("token");
-        }
+        hasUserScope &&
+            idTokenIdx < 0 &&
+            tokenIdx < 0 &&
+            response_type.push("id_token");
+
+        hasApiScope &&
+            tokenIdx < 0 &&
+            response_type.push("token");
+
+        // if (!response_type.length) {
+        //     hasUserScope && response_type.push("id_token");
+        // }
     }
 
     /////////

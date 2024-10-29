@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, Pipe, PipeTransform, WritableSignal, computed, effect, inject, signal, type OnInit } from "@angular/core";
 import { Oauth2Service, IOAuth2Config, IOAuth2Parameters } from "ngx-oauth2-oidc";
-import webAppConfig  from "../../../public/google-web-app.config.json";
-import desktopConfig from "../../../public/google-desktop.config.json";
-import webAppConfigSecret from "../../../public/google-web-app.secret.json";
-import desktopConfigSecret from "../../../public/google-desktop.secret.json";
+import googleConfig  from "../../../public/google.config.json";
+import facebookConfig from "../../../public/facebook.config.json";
+import dropboxConfig from "../../../public/dropbox.config.json";
+import googleSecret from "../../../public/google.secret.json";
+import facebookSecret from "../../../public/facebook.secret.json";
+import dropboxSecret from "../../../public/dropbox.secret.json";
 import { FormsModule } from "@angular/forms"
 import { SlicePipe, NgIf } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
@@ -92,7 +94,7 @@ export class LoginComponent implements OnInit {
     protected readonly textModified = signal(false);
 
     // authorization server credentials
-    protected readonly api = signal("google-web-app");
+    protected readonly api = signal("google");
     protected readonly dependence = computed(() =>
         this.api().replaceAll("-", " ")
     );
@@ -170,28 +172,22 @@ export class LoginComponent implements OnInit {
                 ? false
                 : this.code() // other response type
     );
-    protected readonly calculated_token = computed(() =>
-        this.authorization_grant() == "code"
-            ? false
-            : this.authorization_grant() != "implicit" &&
-              this.authorization_grant() != "hybrid"
-            ? this.token() // other response type
-            : this.token() || this.api_scope() // implicit or hybrid
-            ? true
-            : false
+    protected readonly calculated_token = computed(
+        () =>
+            this.authorization_grant() == "code"
+                ? false
+                : this.authorization_grant() != "implicit"
+                ? this.token() // hybrid or other response type
+                : this.hasApiScope() || this.token() // implicit
     );
     protected readonly calculated_id_token = computed(() =>
         this.authorization_grant() == "code"
             ? false
-            : this.authorization_grant() != "implicit" &&
-              this.authorization_grant() != "hybrid"
-            ? this.id_token() // other response type
-            : this.id_token() || // implicit or hybrid
-              this.calculated_openid() ||
-              this.calculated_email() ||
-              this.calculated_profile()
-            ? true
-            : false
+            : this.authorization_grant() != "implicit"
+            ? this.id_token() // hybrid or other response type
+            : !this.token() && !this.id_token() // implicit
+            ? this.hasUserScope()
+            : this.id_token()
     );
     protected readonly calculated_none = computed(() =>
         this.authorization_grant() == "code" ||
@@ -263,6 +259,13 @@ export class LoginComponent implements OnInit {
     protected readonly hasAccessToken = () =>
         !!this.oauth2.config?.parameters?.access_token;
     protected readonly hasCode = () => !!this.oauth2.config?.parameters?.code;
+    private readonly hasUserScope = computed(
+        () =>
+            this.calculated_openid() ||
+            this.calculated_email() ||
+            this.calculated_profile()
+    );
+    private readonly hasApiScope = computed(() => this.calculated_api_scope());
 
     // Global effect event
     private effect = effect(
@@ -279,14 +282,18 @@ export class LoginComponent implements OnInit {
             const api = this.api();
             const oldApi = cfg?.configuration?.tag;
             const exampleConfig = (
-                api == "google-web-app"
-                    ? JSON.parse(JSON.stringify(webAppConfig))
-                    : JSON.parse(JSON.stringify(desktopConfig))
+                api == "google"
+                    ? JSON.parse(JSON.stringify(googleConfig))
+                    : api == "facebook"
+                    ? JSON.parse(JSON.stringify(facebookConfig))
+                    : JSON.parse(JSON.stringify(dropboxConfig))
             ) as IOAuth2Config; // custom
             const credentials = (
-                api == "google-web-app"
-                    ? JSON.parse(JSON.stringify(webAppConfigSecret))
-                    : JSON.parse(JSON.stringify(desktopConfigSecret))
+                api == "google"
+                    ? JSON.parse(JSON.stringify(googleSecret))
+                    : api == "facebook"
+                    ? JSON.parse(JSON.stringify(facebookSecret))
+                    : JSON.parse(JSON.stringify(dropboxSecret))
             ) as customParametersType; // custom
             let reset = oldApi != api;
 
@@ -299,8 +306,8 @@ export class LoginComponent implements OnInit {
             cfgExample(newCfg, exampleConfig);
 
             // CONFIGURATION
-            if (api == "google-web-app")
-                reset = cfgConfiguration.bind(this)(reset, cfg, newCfg);
+            //if (api == "google-web-app")
+            reset = cfgConfiguration.bind(this)(reset, cfg, newCfg);
 
             // AUTHORIZATION (GOOGLE SPECIFIC)
             reset = cfgAuthorization.bind(this)(reset, cfg, newCfg);
@@ -309,7 +316,7 @@ export class LoginComponent implements OnInit {
             reset = cfgMetadata.bind(this)(reset, cfg, newCfg, exampleConfig);
 
             // PARAMETERS -> CREDENTIALS-DEPENDENT
-            reset = cfgClient.bind(this)(reset, cfg, newCfg, credentials);
+            reset = cfgClient.bind(this)(reset, cfg, newCfg, exampleConfig, credentials);
 
             // PARAMETERS -> REDIRECT_URI
             reset = cfgRedirectUri.bind(this)(reset, cfg, newCfg);
@@ -478,9 +485,11 @@ export class LoginComponent implements OnInit {
             this.token_request,
             this.token_error,
             this.token_open,
-            {
-                client_secret: this.client_secret(),
-            }
+            this.client_secret()
+                ? {
+                      client_secret: this.client_secret(),
+                  }
+                : true
         );
 
         sessionStorage.setItem("log00", JSON.stringify(this.token_response()));

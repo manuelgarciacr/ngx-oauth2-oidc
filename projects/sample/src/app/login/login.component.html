@@ -36,16 +36,24 @@
                 >credentials</span></legend>
         <div class="d-flex flex-column m-auto">
             <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="radio" name="api" value="google-web-app" [(ngModel)]="api" > Google: Web
-                application
-                <button *ngIf="api() == 'google-web-app'" class="pt-2 mt-n4" style="transform: scale(.8)" mat-icon-button aria-label="Help" (click)="openDialog('500ms', '500ms')">
+                <input class="me-2" type="radio" name="api" value="google" [(ngModel)]="api" >
+                Google
+                <button *ngIf="api() == 'google'" class="pt-2 mt-n4" style="transform: scale(.8)" mat-icon-button aria-label="Help" (click)="openDialog('500ms', '500ms')">
                     <mat-icon color="primary" fontIcon="help"></mat-icon>
                 </button>
             </label>
             <label class="d-flex flex-row align-items-start mb-2">
-                <input class="me-2" type="radio" name="api" value="google-desktop" [(ngModel)]="api">
-                Google: Desktop
-                <button *ngIf="api() == 'google-desktop'" class="pt-2 mt-n4" style="transform: scale(.8)" mat-icon-button aria-label="Help">
+                <input class="me-2" type="radio" name="api" value="facebook" [(ngModel)]="api">
+                Facebook
+                <button *ngIf="api() == 'facebook'" class="pt-2 mt-n4" style="transform: scale(.8)" mat-icon-button
+                    aria-label="Help">
+                    <mat-icon color="primary" fontIcon="help"></mat-icon>
+                </button>
+            </label>
+            <label class="d-flex flex-row align-items-start mb-2">
+                <input class="me-2" type="radio" name="api" value="dropbox" [(ngModel)]="api">
+                Dropbox
+                <button *ngIf="api() == 'dropbox'" class="pt-2 mt-n4" style="transform: scale(.8)" mat-icon-button aria-label="Help">
                     <mat-icon color="primary" fontIcon="help"></mat-icon>
                 </button>
             </label>

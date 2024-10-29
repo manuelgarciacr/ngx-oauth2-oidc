@@ -60,7 +60,6 @@ const tokenParameters = [
     "req_cnf",
     "requested_token_type",
     "resource",
-    "scope",
     "subject_token",
     "subject_token_type",
     "username",
@@ -141,7 +140,7 @@ const parameters = {
     response_type: [] as string[], // authorization request	IETF	[RFC6749]
     rpt: undefined as unknown, // client request, token endpoint	[Kantara_UMA_WG]	[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]
     rs_cnf: undefined as unknown, // token response	IETF	[RFC9201, Section 5]
-    scope: [] as string[], // authorization request, authorization response, token request, token response	IETF	[RFC6749]
+    scope: [] as string[], // authorization request, authorization response, token request ???????, token response	IETF	[RFC6749]
     session_state: undefined as unknown, // authorization response, access token response	[OpenID_Foundation_Artifact_Binding_Working_Group]	[OpenID Connect Session Management 1.0, Section 2]
     sign_info: undefined as unknown, // client-rs request, rs-client response	IETF	[RFC-ietf-ace-key-groupcomm-18]
     state: "", // authorization request, authorization response	IETF	[RFC6749]

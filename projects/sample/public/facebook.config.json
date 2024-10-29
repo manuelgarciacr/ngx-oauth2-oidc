@@ -1,0 +1,13 @@
+{
+    "configuration": {
+        "tag": "facebook",
+        "authorization_grant": "code"
+    },
+    "metadata": {
+        "issuer": "https://www.dropbox.com",
+        "revocation_endpoint": "https://api.dropbox.com/2/oauth2/revoke"
+    },
+    "parameters": {
+        "scope": ["files.metadata.read"]
+    }
+}
