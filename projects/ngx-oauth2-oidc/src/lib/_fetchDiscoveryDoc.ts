@@ -14,16 +14,17 @@ import { request } from "./_request";
  *
  * @param http HttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
- *      updated
+ *      updated (configuration.metadata)
  * @param options Custom parameters for the request.
  * @returns Promise with the request response (IOAuth2Metadata or error)
  */
 export const _fetchDiscoveryDoc = async (
     http: HttpClient,
-    config: IOAuth2Config, // Passed by reference and updated
+    config: IOAuth2Config, // Passed by reference and updated (configuration.metadata)
     options = <customParametersType>{}
 ): Promise<IOAuth2Metadata> => {
     // Configuration data
+    const test = config.configuration?.test;
     const discovery_endpoint = config.configuration?.discovery_endpoint;
     const issuer = config.metadata?.issuer ?? "";
     const sufix =
@@ -40,7 +41,7 @@ export const _fetchDiscoveryDoc = async (
     //     : { URL };
 
     // TODO: no-storage configuration option
-    setStore("test", {});
+    setStore("test", test ? {} : null);
 
     if (!discoveryIsFeasible)
         throw new Error(`discovery_endpoint or issuer is missing.`, {

@@ -1,5 +1,5 @@
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
-import { IOAuth2Config, IOAuth2Parameters, customParametersType, payloadType } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters, customParametersType } from "../domain";
 import { isStrNull, notStrNull, secureRandom } from "../utils";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
@@ -16,16 +16,17 @@ import { setStore } from "./_store";
  *
  * @param httpH ttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
- *      updated
+ *      updated (configuration.parameters)
  * @param options Custom parameters for the request.
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _authorization = async (
     http: HttpClient,
-    config: IOAuth2Config, // Parameter passed by reference updated (config.metadata)
+    config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
     options = <customParametersType>{}
 ): Promise<IOAuth2Parameters> => {
     // Configuration data
+    const test = config.configuration?.test;
     const no_pkce = !!config.configuration?.no_pkce;
     const no_state = !!config.configuration?.no_state;
     // TODO: authorization_grant unset
@@ -38,10 +39,10 @@ export const _authorization = async (
     } as customParametersType;
     const arr = (name: string) =>
         (<string[]>parms[name] ?? []).map(str => str.toLocaleLowerCase());
-    const str = (name: string) => (parms[name] as string) ?? "";
+    const strOption = (name: string) => (options[name] as string) ?? "";
 
     // TODO: no-storage configuration option
-    setStore("test", {});
+    setStore("test", test ? {} : null);
 
     if (!URL)
         throw new Error(
@@ -127,10 +128,11 @@ export const _authorization = async (
     if (no_state) {
         delete parms["state"];
     } else {
-        const read_state = str("state");
+        const read_state = strOption("state");
+        const read_state_payload = strOption("statePayload");
         let str_state = notStrNull(read_state, secureRandom(2));
-        if (options["statePayload"]) {
-            str_state += options["statePayload"] as string;
+        if (read_state_payload) {
+            str_state += read_state_payload;
         }
         state = { state: str_state };
     }
@@ -142,7 +144,7 @@ export const _authorization = async (
 
     if (grant == "code" || (grant == "implicit" && idTokenIdx >= 0)) {
         // TODO: Hashed nonce
-        const read_nonce = str("nonce");
+        const read_nonce = strOption("nonce");
         const str_nonce = notStrNull(read_nonce, secureRandom(2));
 
         nonce = { nonce: str_nonce }

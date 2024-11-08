@@ -8,12 +8,12 @@ import { setStore } from "./_store";
  *
  * @param obj The object of string type parameters
  * @param config Configuration object saved in memory. Passed by reference and
- *      updated
+ *      updated (configuration.metadata)
  * @returns An IOAuth2Parameters object
  */
 export const updateMetadata = (
     obj: { [key: string]: string },
-    config: IOAuth2Config // Passed by reference uand pdated (config.parameters)
+    config: IOAuth2Config // Passed by reference and updated (configuration.metadata)
 ) => {
 
     config.metadata = {

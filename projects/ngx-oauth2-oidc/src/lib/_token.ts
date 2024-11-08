@@ -18,17 +18,17 @@ import { setStore } from "./_store";
  *
  * @param http HttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
- *      updated
+ *      updated (configuration.parameters)
  * @param options Custom parameters for the request.
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _token = async (
     http: HttpClient,
-    config: IOAuth2Config, // Passed by reference and updated
+    config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
     options = <customParametersType>{}
 ) => {
-    const cfg = config.configuration ?? {};
-    const no_pkce = !!cfg.no_pkce;
+    const test = config.configuration?.test;
+    const no_pkce = !!config.configuration?.no_pkce;
     const parms = {
         ...getParameters("token", config),
         ...options,
@@ -38,7 +38,7 @@ export const _token = async (
     const grant_type = parms["grant_type"];
 
     // TODO: no-storage configuration option
-    setStore("test", {});
+    setStore("test", test ? {} : null);
 
     if (!grant_type)
         throw new Error(`Value ​​for option 'grant_type' is missing.`, {

@@ -1,0 +1,13 @@
+<label class="mt-4"><b class="mx-4">User name:</b> {{ userName() }}</label><br>
+<label><b class="mx-4">User email:</b> {{ userEmail() }}</label><br>
+<label><b class="mx-4">Id token:</b> {{ idToken() ? "received" : "missing"}}</label><br>
+<label><b class="mx-4">Id expiration:</b> {{ idExpiration() }}</label><br>
+<label><b class="mx-4">Access token:</b> {{ accessToken() ? "received" : "missing"}}</label><br>
+<label><b class="mx-4">Access expiration:</b> {{ accessExpiration() }}</label><br>
+<label class="d-flex">
+    <b class="mx-4 align-top">Drive files:</b>
+    <textarea rows="10" class="flex-grow-1 me-3"readonly spellcheck="false">{{ driveFiles() }}</textarea>
+</label><br>
+
+<button class="m-4" (click)="refreshToken()">Refresh token</button>
+<button class="m-4" (click)="logout()">Logout</button>

@@ -34,7 +34,7 @@ export const getParameters = (
     method: keyof IOAuth2Methods,
     config: IOAuth2Config
 ): customParametersType => {
-    const parameters = config.parameters!;
+    const parameters = config.parameters ?? {};
     const customParams = config[method] ?? {};
     const standardParms = getStandardParameters(method, parameters);
     // const _parms = { ...standardParms, ...customParams } as {

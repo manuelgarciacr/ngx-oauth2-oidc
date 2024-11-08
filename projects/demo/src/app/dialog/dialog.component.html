@@ -1,0 +1,10 @@
+<h2 class="bg-danger text-white px-5 py-2" mat-dialog-title>{{data.title}}</h2>
+<mat-dialog-content>
+    <p class="fs-4" [class.d-none]="data.line01.length == 0">{{data.line01}}</p>
+    <mat-label class="fs-5" [class.d-none]="data.line02.length == 0">
+        {{data.line02}}
+     </mat-label>
+</mat-dialog-content>
+<mat-dialog-actions>
+    <button class="fs-3 font-bold" mat-button [mat-dialog-close]="" cdkFocusInitial>Ok</button>
+</mat-dialog-actions>

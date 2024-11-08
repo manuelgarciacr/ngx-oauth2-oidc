@@ -4,7 +4,7 @@
         "authorization_grant": "code"
     },
     "metadata": {
-        "issuer": "https://www.dropbox.com",
+        "issuer": "https://www.facebook.com",
         "revocation_endpoint": "https://api.dropbox.com/2/oauth2/revoke"
     },
     "parameters": {

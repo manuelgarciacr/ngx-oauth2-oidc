@@ -12,16 +12,19 @@ import {
 } from "@angular/core";
 import {
     IOAuth2Config,
+    IOAuth2Parameters,
     customParametersType,
-    IJwk,
+    payloadType,
 } from "../domain";
-import { oauth2ConfigFactory } from "./_oauth2ConfigFactory";
+import { _oauth2ConfigFactory } from "./_oauth2ConfigFactory";
 import { _interceptor } from "./_interceptor";
 import { _verify_token } from "./_verify_token";
 import { _fetchDiscoveryDoc } from "./_fetchDiscoveryDoc";
 import { _authorization } from "./_authorization";
 import { _token } from "./_token";
 import { _revocation } from "./_revocation";
+import { _errorArray } from "./_errorArray";
+import { _setParameters } from "./_setParameters";
 
 export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     "OAuth2 Config"
@@ -35,51 +38,67 @@ export class Oauth2Service {
     private readonly http = inject(HttpClient);
 
     private _config: IOAuth2Config = {};
-    private _jwks: IJwk[] | null = null;
-    private _userProfile: object | null = null; // Api user profile
+    private _initialConfig: IOAuth2Config = {};
+    // private _jwks: IJwk[] | null = null;
+    private _idToken: payloadType | null = null; // Api user id_token claims
+    private _isIdTokenIntercepted = false;
+    private _isAccessTokenIntercepted = false;
 
     get config() {
         return this._config;
     }
-    get jwks() {
-        return this._jwks;
+    get initialConfig() {
+        return this._initialConfig;
     }
-    get userProfile() {
-        return this._userProfile;
+    // get jwks() {
+    //     return this._jwks;
+    // }
+    get idToken() {
+        return this._idToken;
     }
 
-    readonly isAuthenticated = computed(() => this.userProfile != null);
+    // FLAGS
+    get isIdTokenIntercepted() {
+        return this._isIdTokenIntercepted;
+    }
+    get isAccessTokenIntercepted() {
+        return this._isAccessTokenIntercepted;
+    }
+    readonly isAuthenticated = computed(() => this.idToken != null);
 
     constructor(
         @Inject(OAUTH2_CONFIG_TOKEN) protected oauth2Config?: IOAuth2Config
     ) {
         debugFn("mth", "CONSTRUCTOR", oauth2Config);
 
-        let config = getStoreObject("config");
+        const storedConfig = getStoreObject("config");
+        const initialConfig = getStoreObject("initialConfig");
+        // const jwks = getStoreObject("jwks");
+        const idToken = getStoreObject("idToken");
+        const config = storedConfig ?? oauth2Config ?? {};
 
-        if (config) {
-            debugFn("int", "STORED CONFIGURATION", config);
+        this._config = _oauth2ConfigFactory(config);
+        this._initialConfig = initialConfig as IOAuth2Config;
+        // this._jwks = jwks as IJwk[];
+        this._idToken = idToken as payloadType;
+
+        if (storedConfig) {
+            debugFn("int", "STORED CONFIGURATION", storedConfig);
         }
-
-        config = oauth2Config ?? config;
 
         if (oauth2Config) {
-            debugFn("int", "CONSTRUCTOR CONFIGURATION", config);
+            debugFn("int", "CONSTRUCTOR CONFIGURATION", oauth2Config);
         }
 
-        this.setConfig(config ?? {});
-
-        const jwks = getStoreObject("jwks");
-        const userProfile = getStoreObject("userProfile");
-
-        this._jwks = jwks as IJwk[] | null;
-        this._userProfile = userProfile;
+        if (oauth2Config && !storedConfig) {
+            setStore("initialConfig", this.config);
+        }
     }
 
     setConfig = (oauth2Config: IOAuth2Config) => {
         debugFn("mth", "SET_CONFIG", { ...oauth2Config });
 
-        const config = oauth2ConfigFactory(oauth2Config);
+        const config = _oauth2ConfigFactory(oauth2Config);
 
         debugFn(
             "int",
@@ -89,16 +108,62 @@ export class Oauth2Service {
         );
 
         this._config = config;
+        this._initialConfig = config;
+        // this._jwks = null;
+        this._idToken = null;
 
-        setStore("initialConfig", oauth2Config);
+        // TODO: no-storage configuration option
+
+        // setStore("initialConfig", oauth2Config);
         setStore("config", config);
-        setStore("discoveryDoc");
-        setStore("jwks");
-        setStore("userProfile");
-        setStore("profile");
+        setStore("initialConfig", config);
+        // setStore("discoveryDoc");
+        // setStore("jwks");
+        setStore("idToken");
+        setStore("test");
 
         return this.config;
     };
+
+    setParameters = (parameters: IOAuth2Parameters) => {
+        debugFn("mth", "SET_PARAMETERS", { ...parameters });
+
+        // for (const parm in parameters) {
+        //     const key = parm as keyof IOAuth2Parameters;
+        //     const value = parameters[key] as any;
+
+        //     if (value === undefined || value === null)
+        //         delete this._config.parameters[key];
+        //     else this._config.parameters[key] = value;
+        // }
+
+        const parms = { ...parameters };
+        const configParms = { ...this._config.parameters };
+
+        for (const parm in parameters) {
+            const key = parm as keyof IOAuth2Parameters;
+            const value = parameters[key] as any;
+
+            if (value === undefined || value === null) {
+                delete parms[key];
+                delete configParms[key];
+            }
+        }
+
+        parameters = _setParameters(parms, "setParameters");
+
+        this._config.parameters = { ...configParms, ...parameters };
+
+        // TODO: no-storage configuration option
+        setStore("config", this.config);
+    };
+
+    removeIdToken = () => {
+        debugFn("mth", "REMOVE_ID_TOKEN");
+
+        this._idToken = null;
+        setStore("idToken");
+    }
 
     // fetchDiscoveryDoc = async (options = <customParametersType>{}) => {
     fetchDiscoveryDoc = async () => {
@@ -106,8 +171,8 @@ export class Oauth2Service {
 
         return _fetchDiscoveryDoc(
             this.http,
-            this._config, // Parameter passed by reference updated (config.metadata)
-            // toLowerCaseProperties(options)
+            this._config // Parameter passed by reference and updated (config.metadata)
+            //toLowerCaseProperties(options)
         );
     };
 
@@ -116,7 +181,7 @@ export class Oauth2Service {
 
         return _authorization(
             this.http,
-            this.config,
+            this._config, // Parameter passed by reference and updated (config.parameters)
             toLowerCaseProperties(options)
         );
     };
@@ -124,19 +189,27 @@ export class Oauth2Service {
     token = async (options = <customParametersType>{}) => {
         debugFn("mth", "TOKEN");
 
-        return _token(this.http, this.config, {
-            grant_type: "authorization_code",
-            ...toLowerCaseProperties(options),
-        });
+        return _token(
+            this.http,
+            this._config, // Parameter passed by reference and updated (config.parameters)
+            {
+                grant_type: "authorization_code",
+                ...toLowerCaseProperties(options),
+            }
+        );
     };
 
     refresh = async (options = <customParametersType>{}) => {
         debugFn("mth", "REFRESH");
 
-        return _token(this.http, this.config, {
-            grant_type: "refresh_token",
-            ...toLowerCaseProperties(options),
-        });
+        return _token(
+            this.http,
+            this._config, // Parameter passed by reference and updated (config.parameters)
+            {
+                grant_type: "refresh_token",
+                ...toLowerCaseProperties(options),
+            }
+        );
     };
 
     revocation = async (options = <customParametersType>{}) => {
@@ -144,7 +217,7 @@ export class Oauth2Service {
 
         return _revocation(
             this.http,
-            this.config,
+            this._config, // Parameter passed by reference and could be updated (config.parameters)
             toLowerCaseProperties(options)
         );
     };
@@ -152,17 +225,39 @@ export class Oauth2Service {
     verify_token = async (options = <customParametersType>{}) => {
         debugFn("mth", "VERIFY_TOKEN");
 
-        return _verify_token(
+        this._idToken = null;
+        // TODO: no-storage configuration option
+        setStore("idToken");
+
+        const idToken = {};
+        const res = _verify_token(
             this.config,
-            this.userProfile,
+            idToken, // Parameter passed by reference and updated (this.idToken)
             toLowerCaseProperties(options)
         );
+
+        this._idToken = idToken;
+
+        return res;
     };
 
     interceptor = async () => {
-        debugFn("mth", "TOKEN_ID_VERIFY");
+        debugFn("mth", "INTERCEPTOR");
 
-        return _interceptor(this.config);
+        const int = _interceptor(
+            this._config // Parameter passed by reference and updated (config.parameters)
+        );
+
+        await int.then(v => {
+            this._isIdTokenIntercepted = !!v.id_token;
+            this._isAccessTokenIntercepted = !!v.access_token;
+        });
+
+        return int;
+    };
+
+    errorArray = (err: unknown) => {
+        return _errorArray(err);
     };
 }
 

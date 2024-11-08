@@ -18,15 +18,16 @@ import { setStore } from "./_store";
  *
  * @param http HttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
- *      updated
+ *      could be updated (configuration.parameters)
  * @param options Custom parameters for the request.
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _revocation = async (
     http: HttpClient,
-    config: IOAuth2Config, // Passed by reference and updated
+    config: IOAuth2Config, // Passed by reference and could be updated (configuration.parameters)
     options = <customParametersType>{}
 ) => {
+    const test = config.configuration?.test;
     const parms = {
         ...getParameters("revocation", config),
         ...options,
@@ -35,7 +36,7 @@ export const _revocation = async (
     const url = (options["url"] as string) ?? meta.revocation_endpoint ?? "";
 
     // TODO: no-storage configuration option
-    setStore("test", {});
+    setStore("test", test ? {} : null);
 
     if (!url)
         throw new Error(

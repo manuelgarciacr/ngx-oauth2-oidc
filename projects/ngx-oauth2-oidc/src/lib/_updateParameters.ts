@@ -5,16 +5,17 @@ import { setStore } from "./_store";
 
 /**
  * Converts an object of string type parameters to an IOAuth2Parameters object
- *   and saves the new configuration parameters.
+ *   and saves the new configuration parameters. Converts the "expires_in" parameter
+ *   in a
  *
  * @param obj The object of string type parameters
  * @param config Configuration object saved in memory. Passed by reference and
- *      updated
+ *      updated (configuration.parameters)
  * @returns An IOAuth2Parameters object
  */
 export const updateParameters = (
     obj: { [key: string]: string },
-    config: IOAuth2Config // Passed by reference uand pdated (config.parameters)
+    config: IOAuth2Config // Passed by reference and updated (configuration.parameters)
 ) => {
     const newObj = <customParametersType>{}; //<IOAuth2Parameters>{};
 
@@ -33,6 +34,11 @@ export const updateParameters = (
                 : value;
 
         (newObj[key] as unknown) = newValue;
+    }
+
+    if (newObj["expires_in"]) {
+        newObj["expires_in"] =
+            new Date().getTime() + (newObj["expires_in"] as number) * 1000;
     }
 
     config.parameters = {

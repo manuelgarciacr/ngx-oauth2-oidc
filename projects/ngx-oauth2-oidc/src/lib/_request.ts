@@ -34,12 +34,13 @@ export const request = async <T>(
 
     const test = config.configuration?.test;
 
+    // TODO: no-storage configuration option
+    setStore("test", test ? {} : null);
+
     if (!url) {
         const err = new Error(`missing endpoint.`, {
             cause: `oauth2 ${endpoint}`,
         });
-        // TODO: no-storage configuration option
-        setStore("test", {});
         throw err;
     }
 
@@ -58,23 +59,23 @@ export const request = async <T>(
     //     return obj;
     // }, {} as payloadType);
 
-    // For testing purposes
-    const payload: payloadType = !test
-        ? {}
-        : params.keys().length
-        ? params.keys().reduce((obj, key) => {
-              obj[key] = params.get(key)!;
-              return obj;
-          }, {} as payloadType)
-        : { "@URL": url };
-
     const headers = new HttpHeaders({
         Accept: "application/json",
         "Content-Type": "application/x-www-form-urlencoded",
     });
 
-    // TODO: no-storage configuration option
-    setStore("test", payload);
+    // For testing purposes
+    if (test) {
+        const payload: payloadType = params.keys().length
+            ? params.keys().reduce((obj, key) => {
+                obj[key] = params.get(key)!;
+                return obj;
+            }, {} as payloadType)
+            : { "@URL": url };
+
+        // TODO: no-storage configuration option
+        setStore("test", payload);
+    }
 
     if (method == "HREF") {
         // Redirection

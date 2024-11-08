@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, JWTPayload, jwtVerify } from "jose";
 import { IOAuth2Config, customParametersType } from "../domain";
 import { setStore } from "./_store";
 import { getParameters } from "./_getParameters";
@@ -13,33 +13,35 @@ import { getParameters } from "./_getParameters";
  *   memory. In test mode, the request payload is also stored inside sessionStorage.
  *
  * @param config Configuration object saved in memory.
- * @param userProfile id_token payload saved in memory. Passed by reference and
+ * @param idToken id_token payload saved in memory. Passed by reference and
  *      updated
  * @param options Custom parameters for the request.
  * @returns The Promise with the id_token payload or error
  */
 export const _verify_token = async (
     config: IOAuth2Config,
-    userProfile: object | null, // Passed by reference and updated
+    idToken: object, // Passed by reference and updated
     options = <customParametersType>{}
 ) => {
+    const test = config.configuration?.test;
     const meta = config.metadata ?? {};
     const parms = getParameters("verify_token", config);
     const str = (name: string) =>
         (options[name] as string) ?? parms[name] ?? "";
-
-    // TODO: no-storage configuration option
-    setStore("test", {});
-
     const id_token = str("id_token");
 
-    if (!id_token)
-        throw new Error(
-            "Values ​​for parameter 'id_token' and option 'id_token' are missing.",
-            {
-                cause: "oauth2 verify_token",
-            }
-        );
+    // TODO: no-storage configuration option
+    setStore("test", test ? {} : null);
+
+    if (!id_token) return;
+
+    // if (!id_token)
+    //     throw new Error(
+    //         "Values ​​for parameter 'id_token' and option 'id_token' are missing.",
+    //         {
+    //             cause: "oauth2 verify_token",
+    //         }
+    //     );
 
     const jwks_uri = (options["jwks_uri"] as string) ?? meta?.jwks_uri ?? "";
 
@@ -83,17 +85,29 @@ export const _verify_token = async (
     const JWKS = createRemoteJWKSet(new URL(jwks_uri));
 
     // Token payload
-    const { payload } = await jwtVerify(id_token, JWKS, options);
 
-    if (payload["nonce"] && payload["nonce"] != nonce)
-        throw new Error('unexpected "nonce" claim value', {
-            cause: "JWTClaimValidationFailed",
+    let payload: JWTPayload = {};
+    try {
+        const { payload: readPayload } = await jwtVerify(id_token, JWKS, options);
+        payload = readPayload
+    } catch(err) {
+        const error = new Error((err as Error).message, {
+            cause: "oauth2 verify_token",
         });
+        error.name = (err as Error).name;
+        throw error
+    }
 
-    userProfile = payload;
-    setStore("userProfile", payload);
+    if (payload["nonce"] && payload["nonce"] != nonce) {
+        const error = Error('unexpected "nonce" claim value', {
+            cause: "oauth2 verify_token",
+        });
+        error.name = "JWTClaimValidationFailed";
+        throw error
+    }
 
-    const test = config.configuration?.test;
+    Object.assign(idToken, payload);
+    setStore("idToken", payload);
 
     const paramsObj = test
         ? ({ id_token, jwks_uri, issuer, audience, nonce, ...options } as {
