@@ -1,5 +1,5 @@
 import { getStoreObject, setStore } from "./_store";
-import { debugEnum, debugFn, toLowerCaseProperties } from "../utils";
+import { debugEnum, debugFn } from "../utils";
 import {
     HttpClient,
 } from "@angular/common/http";
@@ -43,6 +43,7 @@ export class Oauth2Service {
     private _idToken: payloadType | null = null; // Api user id_token claims
     private _isIdTokenIntercepted = false;
     private _isAccessTokenIntercepted = false;
+    private _isCodeIntercepted = false;
 
     get config() {
         return this._config;
@@ -50,9 +51,6 @@ export class Oauth2Service {
     get initialConfig() {
         return this._initialConfig;
     }
-    // get jwks() {
-    //     return this._jwks;
-    // }
     get idToken() {
         return this._idToken;
     }
@@ -64,6 +62,9 @@ export class Oauth2Service {
     get isAccessTokenIntercepted() {
         return this._isAccessTokenIntercepted;
     }
+    get isCodeIntercepted() {
+        return this._isCodeIntercepted;
+    }
     readonly isAuthenticated = computed(() => this.idToken != null);
 
     constructor(
@@ -73,13 +74,11 @@ export class Oauth2Service {
 
         const storedConfig = getStoreObject("config");
         const initialConfig = getStoreObject("initialConfig");
-        // const jwks = getStoreObject("jwks");
         const idToken = getStoreObject("idToken");
         const config = storedConfig ?? oauth2Config ?? {};
 
         this._config = _oauth2ConfigFactory(config);
         this._initialConfig = initialConfig as IOAuth2Config;
-        // this._jwks = jwks as IJwk[];
         this._idToken = idToken as payloadType;
 
         if (storedConfig) {
@@ -109,16 +108,12 @@ export class Oauth2Service {
 
         this._config = config;
         this._initialConfig = config;
-        // this._jwks = null;
         this._idToken = null;
 
         // TODO: no-storage configuration option
 
-        // setStore("initialConfig", oauth2Config);
         setStore("config", config);
         setStore("initialConfig", config);
-        // setStore("discoveryDoc");
-        // setStore("jwks");
         setStore("idToken");
         setStore("test");
 
@@ -128,15 +123,6 @@ export class Oauth2Service {
     setParameters = (parameters: IOAuth2Parameters) => {
         debugFn("mth", "SET_PARAMETERS", { ...parameters });
 
-        // for (const parm in parameters) {
-        //     const key = parm as keyof IOAuth2Parameters;
-        //     const value = parameters[key] as any;
-
-        //     if (value === undefined || value === null)
-        //         delete this._config.parameters[key];
-        //     else this._config.parameters[key] = value;
-        // }
-
         const parms = { ...parameters };
         const configParms = { ...this._config.parameters };
 
@@ -145,12 +131,14 @@ export class Oauth2Service {
             const value = parameters[key] as any;
 
             if (value === undefined || value === null) {
-                delete parms[key];
                 delete configParms[key];
             }
         }
 
-        parameters = _setParameters(parms, "setParameters");
+        parameters = _setParameters(
+            parms as customParametersType,
+            "setParameters"
+        );
 
         this._config.parameters = { ...configParms, ...parameters };
 
@@ -163,30 +151,65 @@ export class Oauth2Service {
 
         this._idToken = null;
         setStore("idToken");
-    }
+    };
 
-    // fetchDiscoveryDoc = async (options = <customParametersType>{}) => {
-    fetchDiscoveryDoc = async () => {
+    /**
+     * Each endpoint uses the parameters defined within the 'parameters' section (config.parameters)
+     *      that are applicable to it. Custom endpoint parameters (config.endpoint_name} can
+     *      override standard parameters. Inline custom parameters (o auth2Service.endpoint(customParameters, ...) )
+     *      can override the configured parameters (standard or custom). An inline parameter with a
+     *      null value removes the configured parameter ( oauth2Service.endpoint({parm: null}, ...) ).
+     *
+     * @param customParameters
+     * @param url
+     * @returns
+     */
+    fetchDiscoveryDoc = async (
+        customParameters = <customParametersType>{},
+        url?: string
+    ) => {
         debugFn("mth", "FETCH_DISCOVERY_DOC");
 
         return _fetchDiscoveryDoc(
             this.http,
-            this._config // Parameter passed by reference and updated (config.metadata)
-            //toLowerCaseProperties(options)
+            this._config, // Parameter passed by reference and updated (config.metadata)
+            customParameters,
+            url
         );
     };
 
-    authorization = async (options = <customParametersType>{}) => {
+    /**
+     * Each endpoint uses the parameters defined within the 'parameters' section (config.parameters)
+     *      that are applicable to it. Custom endpoint parameters (config.endpoint_name} can
+     *      override standard parameters. Inline custom parameters (o auth2Service.endpoint(customParameters, ...) )
+     *      can override the configured parameters (standard or custom). An inline parameter with a
+     *      null value removes the configured parameter ( oauth2Service.endpoint({parm: null}, ...) ).
+     *
+     * @param customParameters
+     * @param statePayload
+     * @param url
+     * @returns
+     */
+    authorization = async (
+        customParameters = <customParametersType>{},
+        statePayload?: string,
+        url?: string
+    ) => {
         debugFn("mth", "AUTHORIZATION");
 
         return _authorization(
             this.http,
             this._config, // Parameter passed by reference and updated (config.parameters)
-            toLowerCaseProperties(options)
+            customParameters,
+            statePayload,
+            url
         );
     };
 
-    token = async (options = <customParametersType>{}) => {
+    token = async (
+        customParameters = <customParametersType>{},
+        url?: string
+    ) => {
         debugFn("mth", "TOKEN");
 
         return _token(
@@ -194,12 +217,16 @@ export class Oauth2Service {
             this._config, // Parameter passed by reference and updated (config.parameters)
             {
                 grant_type: "authorization_code",
-                ...toLowerCaseProperties(options),
-            }
+                ...customParameters,
+            },
+            url
         );
     };
 
-    refresh = async (options = <customParametersType>{}) => {
+    refresh = async (
+        customParameters = <customParametersType>{},
+        url?: string
+    ) => {
         debugFn("mth", "REFRESH");
 
         return _token(
@@ -207,36 +234,48 @@ export class Oauth2Service {
             this._config, // Parameter passed by reference and updated (config.parameters)
             {
                 grant_type: "refresh_token",
-                ...toLowerCaseProperties(options),
-            }
+                redirect_uri: null,
+                ...customParameters,
+            },
+            url
         );
     };
 
-    revocation = async (options = <customParametersType>{}) => {
+    revocation = async (
+        customParameters = <customParametersType>{},
+        url?: string
+    ) => {
         debugFn("mth", "REVOCATION");
 
         return _revocation(
             this.http,
             this._config, // Parameter passed by reference and could be updated (config.parameters)
-            toLowerCaseProperties(options)
+            customParameters,
+            url
         );
     };
 
-    verify_token = async (options = <customParametersType>{}) => {
+    verify_token = async (
+        customParameters = <customParametersType>{},
+        issuer?: string,
+        jwks_uri?: string
+    ) => {
         debugFn("mth", "VERIFY_TOKEN");
 
         this._idToken = null;
         // TODO: no-storage configuration option
         setStore("idToken");
 
-        const idToken = {};
         const res = _verify_token(
             this.config,
-            idToken, // Parameter passed by reference and updated (this.idToken)
-            toLowerCaseProperties(options)
-        );
-
-        this._idToken = idToken;
+            customParameters,
+            issuer,
+            jwks_uri
+        ).then(idToken => {
+            this._idToken = (idToken as payloadType) ?? null;
+            // TODO: no-storage configuration option
+            setStore("idToken", idToken);
+        });
 
         return res;
     };
@@ -251,6 +290,7 @@ export class Oauth2Service {
         await int.then(v => {
             this._isIdTokenIntercepted = !!v.id_token;
             this._isAccessTokenIntercepted = !!v.access_token;
+            this._isCodeIntercepted = !!v.code;
         });
 
         return int;

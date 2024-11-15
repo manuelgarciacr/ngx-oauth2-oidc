@@ -6,6 +6,10 @@ import { MatButton } from '@angular/material/button';
 import { IOAuth2Config, Oauth2Service } from 'ngx-oauth2-oidc';
 import { MatDialog } from '@angular/material/dialog';
 import { DialogComponent } from '..';
+import googleJson from "../../assets/google.json";
+import gitlabJson from "../../assets/gitlab.json";
+import dropboxJson from "../../assets/dropbox.json";
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
     standalone: true,
@@ -23,57 +27,26 @@ export class LoginComponent {
 
     async ngOnInit() {
         try {
-            // authorization response interception
             await this.oauth2.interceptor();
-            // received id_token verification
+            this.oauth2.isCodeIntercepted && await this.oauth2.token();
             await this.oauth2.verify_token();
+            this.oauth2.idToken?.["sub"] && this.router.navigate(["/home"]);
+
         } catch (err) {
-            console.log(this.oauth2.errorArray(err), err);
-            // expired id_token verification errors are ignored
-            if ((err as Error).cause != "oauth2 verify_token" || this.oauth2.isIdTokenIntercepted) {
-                this.openErrorDialog(err)
-            }
-        }
-
-        const sub = this.oauth2.idToken?.["sub"] ?? "";
-
-        if (sub) {
-            this.router.navigate(["/home"]);
+            (err as Error).name != "JWTExpired" && this.openErrorDialog(err)
         }
     }
 
     loginGoogle = () => {
-        this.login({
-            configuration: {
-                authorization_grant: "implicit",
-            },
-            metadata: {
-                issuer: "https://accounts.google.com",
-            },
-            parameters: {
-                // response_type: ["token", "id_token"],
-                client_id:
-                    "115940404174-2re8nu673gkn13jclq25spmgo9sdh1t2.apps.googleusercontent.com",
-                scope: [
-                    "email",
-                    "profile",
-                    // "https://www.googleapis.com/auth/userinfo.profile",
-                    // "openid",
-                    // "https://www.googleapis.com/auth/userinfo.email",
-                    "https://www.googleapis.com/auth/drive.readonly"
-                ],
-            },
-        });
+        this.login(JSON.parse(JSON.stringify(googleJson)));
     };
 
-    loginFacebook = () => {
-        sessionStorage.setItem("user", "Pepe");
-        this.router.navigate(["/home"]);
+    loginGitlab = () => {
+        this.login(JSON.parse(JSON.stringify(gitlabJson)));
     };
 
     loginDropbox = () => {
-        sessionStorage.setItem("user", "Pepe");
-        this.router.navigate(["/home"]);
+        this.login(JSON.parse(JSON.stringify(dropboxJson)));
     };
 
     login = async (cfg: IOAuth2Config) => {
@@ -85,8 +58,8 @@ export class LoginComponent {
             await this.oauth2.fetchDiscoveryDoc();
             await this.oauth2.authorization();
         } catch (err) {
-            const array = this.oauth2.errorArray(err);
-            console.error(array.length == 1 ? array[0] : array);
+            console.error(err);
+            this.openErrorDialog(err);
         } finally {
             this._working.set(false);
         }
@@ -100,9 +73,20 @@ export class LoginComponent {
 
     openErrorDialog(err: unknown) {
         const error = err as Error;
+        if (err instanceof HttpErrorResponse) {
+            if (err.error instanceof Error) {
+                const error = err.error;
+                error.cause = err.error.cause;
+                error.name = err.error.name;
+                error.message = err.error.message
+            } else {
+                error.cause = err.status;
+                error.message = JSON.stringify(err.error, null, 4);
+            }
+        }
         this.openDialog(
             "ERROR",
-            error.cause as string,
+            [error.cause, error.name].join(' '),
             error.message
         );
     }

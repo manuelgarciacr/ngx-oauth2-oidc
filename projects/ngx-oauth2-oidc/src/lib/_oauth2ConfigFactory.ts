@@ -1,8 +1,8 @@
 import {
     IOAuth2Config,
-    IOAuth2Parameters,
     configSections,
     configurationOptions,
+    customParametersType,
     metadataNames,
 } from "../domain";
 import { debugFn } from "../utils/debugFn";
@@ -37,13 +37,13 @@ export const _oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
 
         if (!isObject(value))
             throw new Error(
-                `initial configuration section "${section}" is not an object.`,
+                `Initial configuration section "${section}" is not an object.`,
                 { cause: "oauth2 oauth2ConfigFactory" }
             );
 
         if (!(configSections as string[]).includes(section))
             throw new Error(
-                `unexpected initial configuration section "${section}".`,
+                `Unexpected initial configuration section "${section}".`,
                 { cause: "oauth2 oauth2ConfigFactory" }
             );
 
@@ -61,40 +61,19 @@ export const _oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
 
     if (confErrors.length)
         throw new Error(
-            `Unexpected configuration options and methods: ${confErrors.join(
+            `Unexpected configuration options: ${confErrors.join(
                 ", "
             )}`,
             { cause: "oauth2 oauth2ConfigFactory" }
         );
 
-    cfg.parameters = _setParameters(cfg.parameters, "oauth2ConfigFactory");
+    cfg.parameters = _setParameters(cfg.parameters as customParametersType, "oauth2ConfigFactory");
     cfg.parameters.redirect_uri ??= window.location.href
         .split("#")[0]
         .split("?")[0];
 
-    // Parameter names are not unexpected
-
-    // cfg.parameters ??= {};
-
-    // const parmKeys = Object.keys(cfg.parameters);
-    // const parmErrors = parmKeys.filter(
-    //     key => !parameterNames.all.includes(key)
-    // );
-
-    // if (parmErrors.length)
-    //     // throw new Error(
-    //     //     `Unexpected parameters ${parmErrors.join(
-    //     //         ", "
-    //     //     )}. Custom parameters must be included inside the enpoint configuration options`,
-    //     //     { cause: "oauth2 oauth2ConfigFactory" }
-    //     // );
-    //     console.error(
-    //         `WARNING: Unexpected parameters ${parmErrors.join(
-    //             ", "
-    //         )}. Custom parameters must be included inside the enpoint configuration options`
-    //     );
-
-    // Metadate names are not unexpected
+    // TODO: _setMetadata function
+    // Metadata names are not unexpected (are warnings)
 
     cfg.metadata ??= {};
 
@@ -102,68 +81,10 @@ export const _oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
     const metaErrors = metaKeys.filter(name => !metadataNames.includes(name));
 
     if (metaErrors.length)
-        // throw new Error(
-        //     `Unexpected metadata ${metaErrors.join(", ")}.`,
-        //     { cause: "oauth2 oauth2ConfigFactory" }
-        // );
         console.error(
-            `WARNING: Unexpected metadata ${metaErrors.join(
-                ", "
-            )}.`
+            `WARNING: Unexpected metadata fields ${metaErrors.join(", ")}.`,
+            { cause: "oauth2 oauth2ConfigFactory" }
         );
-
-    // Default configuration values
-
-    // if (!cfg.configuration.well_known_sufix) {
-    //     cfg.configuration.well_known_sufix = ".well-known/openid-configuration";
-    // }
-
-    // Parameters types
-
-    // for (const parm in cfg.parameters) {
-    //     const key = parm as keyof IOAuth2Parameters;
-    //     const value = cfg.parameters[key];
-    //     const type = getType(key);
-
-    //     if (type == "array" && !Array.isArray(value)) {
-    //         throw new Error(`The parameter "${key}" must be an array`, {
-    //             cause: "oauth2 oauth2ConfigFactory",
-    //         });
-    //     }
-
-    //     if (
-    //         type == "json" &&
-    //         !isJSON(value)
-    //     ) {
-    //         throw new Error(`The parameter "${key}" must be of type JSON`, {
-    //             cause: "oauth2 oauth2ConfigFactory",
-    //         });
-    //     }
-
-    //     if (
-    //         type != "array" &&
-    //         type != "json" &&
-    //         type != "undefined" &&
-    //         type != typeof value
-    //     ) {
-    //         throw new Error(
-    //             `The parameter "${key}" must be of type ${type}`,
-    //             {
-    //                 cause: "oauth2 oauth2ConfigFactory",
-    //             }
-    //         );
-    //     }
-    // }
-
-    // cfg.parameters.redirect_uri ??= window.location.href.split("?")[0];
 
     return cfg;
 };
-
-const isJSON = (v: unknown) => {
-    try {
-        return !!v && typeof v == "string" && !!JSON.parse(v)
-    } catch {
-        return false
-    }
-}

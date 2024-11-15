@@ -5,6 +5,7 @@ import { inject } from "@angular/core";
 export const idTokenGuard =
     (path: string = ""): CanActivateFn =>
     () => {
+        // TODO: no-storage configuration option
         const cfgStr = sessionStorage.getItem("oauth2_config");
         const cfg = JSON.parse(cfgStr ?? "{}") as IOAuth2Config;
         const idToken = !!cfg.parameters?.id_token;

@@ -32,7 +32,7 @@ export const httpRequest = <T>(
                 updateMetadata(res, config)
             ),
             catchError(err => {
-                console.log("HTTPREQUEST", err)
+                console.error("HTTPREQUEST", err)
                 throw err;
             })
         )

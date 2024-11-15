@@ -6,22 +6,21 @@ export const _interceptor = (
 ) => {
     const search = decodeURIComponent(window.location.search);
     const hash = decodeURIComponent(window.location.hash);
-    const str = search.length ? search : hash;
+    const str = hash.length ? hash : search;
     const substr = str.substring(1);
     const array = substr.length ? substr.split("&") : [];
     const entries = array.map(v => v.split("="));
     const params = Object.fromEntries(entries);
-console.log("INTERC", params, params.access_token == config?.parameters?.access_token,
-    params.id_token == config?.parameters?.id_token
-)
+
     // Remove query and fragment strings
+    // TODO: optional remove URL fragment
     window.history.replaceState({}, "", window.location.pathname);
 
     if (!entries.length) return Promise.resolve({} as IOAuth2Parameters);
 
     if (!config)
         return Promise.reject(
-            new Error(`no configuration defined.`, {
+            new Error(`No configuration defined.`, {
                 cause: "oauth2 interceptor",
             })
         );
@@ -30,7 +29,7 @@ console.log("INTERC", params, params.access_token == config?.parameters?.access_
 
     if (state && state != params["state"])
         return Promise.reject(
-            new Error(`ilegal state received.`, {
+            new Error(`Ilegal state received.`, {
                 cause: "oauth2 interceptor",
             })
         );
@@ -40,7 +39,7 @@ console.log("INTERC", params, params.access_token == config?.parameters?.access_
     if (newParams["error"])
         return Promise.reject(
             new Error(
-                `${newParams["error"]} ${newParams["error_description"] ?? ""}`,
+                `${JSON.stringify(newParams, null, 4)}`,
                 {
                     cause: "oauth2 interceptor",
                 }

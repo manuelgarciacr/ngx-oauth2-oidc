@@ -1,0 +1,9 @@
+{
+    "metadata": {
+        "issuer": "https://gitlab.com/"
+    },
+    "parameters": {
+        "client_id": "b29818b2013d252cc66a913852f269e364941d50e39beaf651dbbd2ec8882b49",
+        "scope": ["openid", "email", "read_api"]
+    }
+}

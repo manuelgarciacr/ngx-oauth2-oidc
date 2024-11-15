@@ -45,3 +45,7 @@ $demo-theme: mat.define-theme((
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+.gitlab-logo {
+    transform: scale(1.25);
+}

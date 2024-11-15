@@ -1,4 +1,5 @@
-import { IOAuth2Configuration, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, methodNames } from "../index";
+import { IOAuth2Configuration, IOAuth2Metadata, IOAuth2Parameters } from "../index";
+import { methods } from "./IOAuth2Methods";
 
 /** Configuration object */
 const config = {
@@ -10,13 +11,14 @@ const config = {
 
     /** Parameters section. OAuth parameters. Values ​​returned by endpoints override configured values */
     parameters: {} as IOAuth2Parameters,
+
+    ...methods
 };
 
 /** Configuration object type */
-export interface IOAuth2Config extends IOAuth2Methods, Partial<typeof config> {}
+export interface IOAuth2Config extends Partial<typeof config> {} // IOAuth2Methods, Partial<typeof config> {}
 
 /** Configuration object sections */
 export const configSections = [
     ...Object.keys(config),
-    ...methodNames,
 ] as (keyof typeof config)[];

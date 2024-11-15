@@ -1,5 +1,4 @@
 import { IOAuth2Config, IOAuth2Methods, IOAuth2Parameters, customParametersType, parameterNames } from "../domain";
-//import "../utils/objectFilter";
 
 interface IFilter {
     filter(predicate: (key: string, value: any, object: object) => any): {
@@ -22,9 +21,9 @@ const attributes = {
 
 /**
  * Returns the parameters defined within the configuration object
- *      (standard and custom parameters) that are appropriate for
- *      the indicated method. Remove null or undefined
- *      values. Custom parameters overwrite standar parameters.
+ *   (standard and custom parameters) that are appropriate for
+ *   the indicated method. Remove null or undefined
+ *   values. Custom parameters overwrite standar parameters.
  *
  * @param method Method name
  * @param config Configuration object
@@ -37,10 +36,8 @@ export const getParameters = (
     const parameters = config.parameters ?? {};
     const customParams = config[method] ?? {};
     const standardParms = getStandardParameters(method, parameters);
-    // const _parms = { ...standardParms, ...customParams } as {
-    //     [key: string]: unknown;
-    // };
     const _parms = { ...standardParms, ...customParams };
+
     Object.defineProperty(_parms, "filter", attributes);
 
     const parms = (_parms as IFilter).filter((_: string, value: unknown) => value != null);

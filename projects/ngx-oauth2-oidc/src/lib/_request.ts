@@ -6,8 +6,6 @@ import { setStore } from "./_store";
 
 type strObject = {[key: string]: string};
 
-// TODO: no-storage configuration option
-
 /**
  * Request to an OAuth2 endpoint. Redirects to the endpoint or makes a HttpClient
  *   get or post request.
@@ -17,22 +15,38 @@ type strObject = {[key: string]: string};
  * @param {HttpClient} http- HttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated
- * @param options OAuth2 parameters (standard and custom) for the request. (payload)
+ * @param customParameters OAuth2 parameters (standard and custom) for the request. (payload)
  * @param endpoint Endpoint name (for error messages and to determine the type of response)
  * @returns Promise with the request response (or error). In test mode the promise
- *   returns an array with the response (or error) and the request payload.
+ *      returns an array with the response (or error) and the request payload.
  */
 export const request = async <T>(
     method: "HREF" | "GET" | "POST",
     url: string,
     http: HttpClient,
     config: IOAuth2Config, // Passed by reference and updated
-    options = <customParametersType>{},
+    customParameters = <customParametersType>{},
     endpoint: keyof IOAuth2Methods
 ): Promise<IOAuth2Parameters | IOAuth2Metadata> => {
-    debugFn("prv", "REQUEST", config, options);
+    debugFn("prv", "REQUEST", config, customParameters);
 
     const test = config.configuration?.test;
+    const content_type =
+        config.configuration?.content_type ??
+        "application/x-www-form-urlencoded";
+    const revocation_header = config.configuration?.revocation_header;
+    const tokenHeader =
+        endpoint === "revocation" && revocation_header
+            ? {
+                  Authorization: `Bearer ${customParameters["token"]}`,
+                  "Content-Type": "application/json; charset=utf-8",
+              }
+            : undefined;
+    const headers = new HttpHeaders({
+        Accept: "application/json",
+        "Content-Type": content_type,
+        ...tokenHeader,
+    });
 
     // TODO: no-storage configuration option
     setStore("test", test ? {} : null);
@@ -44,33 +58,24 @@ export const request = async <T>(
         throw err;
     }
 
+    if (revocation_header) delete customParameters["token"];
+
     let params = new HttpParams({ fromObject: {} }); // Empty HttpParams object
 
     // options to params
-    for (const key in options) {
-        let v = options![key as keyof typeof options]; // Option value
+    for (const key in customParameters) {
+        let v = customParameters![key as keyof typeof customParameters]; // Option value
         Array.isArray(v) && (v = v.join(" ")); // String array to a string of space separated values.
         if (v || v === false) params = params.set(key, v.toString()); // If not nullish nor empty, added to params.
     }
-
-    // Create payload from params
-    // const payload = params.keys().reduce((obj, key) => {
-    //     obj[key] = params.get(key)!;
-    //     return obj;
-    // }, {} as payloadType);
-
-    const headers = new HttpHeaders({
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-    });
 
     // For testing purposes
     if (test) {
         const payload: payloadType = params.keys().length
             ? params.keys().reduce((obj, key) => {
-                obj[key] = params.get(key)!;
-                return obj;
-            }, {} as payloadType)
+                  obj[key] = params.get(key)!;
+                  return obj;
+              }, {} as payloadType)
             : { "@URL": url };
 
         // TODO: no-storage configuration option
@@ -89,8 +94,9 @@ export const request = async <T>(
         // Http request
         const req =
             method == "POST"
-                ? http.post<strObject>(url, params, {
+                ? http.post<strObject>(url, "null", {
                       headers,
+                      params,
                       observe: "body",
                   })
                 : http.get<strObject>(url, {

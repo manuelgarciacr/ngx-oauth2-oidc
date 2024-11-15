@@ -1,10 +1,11 @@
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
-import { IOAuth2Config, IOAuth2Parameters, customParametersType } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters, customParametersType, payloadType } from "../domain";
 import { isStrNull, notStrNull, secureRandom } from "../utils";
 import { request } from "./_request";
 import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
+import { _setParameters } from "./_setParameters";
 
 // TODO: no-storage configuration option
 
@@ -17,57 +18,88 @@ import { setStore } from "./_store";
  * @param httpH ttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated (configuration.parameters)
- * @param options Custom parameters for the request.
+ * @param customParameters Custom parameters for the request.
+ * @param statePayload Payload to add to state parameter
+ * @param url Custom endpoint URL.
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _authorization = async (
     http: HttpClient,
     config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
-    options = <customParametersType>{}
+    customParameters = <customParametersType>{},
+    statePayload?: string,
+    url?: string
 ): Promise<IOAuth2Parameters> => {
-    // Configuration data
+    // Configuration options
     const test = config.configuration?.test;
     const no_pkce = !!config.configuration?.no_pkce;
     const no_state = !!config.configuration?.no_state;
-    // TODO: authorization_grant unset
+    // TODO: authorization_grant 'hybrid' and 'free'
     const grant = config.configuration?.authorization_grant ?? "code";
+    const basicGrant = ["code", "implicit", "hybrid"].includes(grant);
+    // Metadata fields
     const authorization_endpoint = config.metadata?.authorization_endpoint;
-    const URL = (options["url"] as string) ?? authorization_endpoint ?? "";
-    const parms = {
-        ...getParameters("authorization", config),
-        ...options,
-    } as customParametersType;
+    // url
+    url ??= authorization_endpoint ?? "";
+    // Endpoint parameters
     const arr = (name: string) =>
-        (<string[]>parms[name] ?? []).map(str => str.toLocaleLowerCase());
-    const strOption = (name: string) => (options[name] as string) ?? "";
+        (<string[]>parms[name] ?? []).map(str => str.toLowerCase());
+    const parms = _setParameters({
+        ...getParameters("authorization", config),
+        ...{ state: null, nonce: null }, // This parameters must be created or as custom parameters
+        ...customParameters,
+    });
+    const scope = arr("scope");
+    const response_type = arr("response_type");
+    const code_verifier =
+        (parms["code_verifier"] as string) ??
+        config.token?.["code_verifier"] ??
+        config.parameters?.code_verifier ??
+        "";
+    const code_challenge_method = parms["code_challenge_method"] as
+        | "S256"
+        | "plain"
+        | undefined;
+    const code_challenge = parms["code_challenge"] as string | undefined;
+    const pkce = { code_challenge, code_challenge_method, code_verifier };
+    const readState = parms["state"] as string | undefined;
+    const state = {
+        state: statePayload ? readState + statePayload : readState,
+    };
+    const nonce = { nonce: parms["nonce"] as string | undefined };
 
     // TODO: no-storage configuration option
     setStore("test", test ? {} : null);
 
-    if (!URL)
+    ///////////////////////////////////////////////////////////////////
+    //
+    // Errors & warnings
+    //
+
+    if (!url)
         throw new Error(
-            `Values ​​for metadata 'authorization_endpoint' and option 'url' are missing.`,
+            `The value of the 'authorization_endpoint' metadata field or the 'url' option is missing.`,
             {
                 cause: `oauth2 authorization`,
             }
         );
 
-    const basicGrant = grant == "code" || grant == "implicit" || grant == "hybrid";
-    let response_type = arr("response_type");
-    let scope = arr("scope");
-    let pkce;
-    let state = {};
-    let nonce = {};
+    //
+    // End of errors & warnings
+    //
+    ///////////////////////////////////////////////////////////////////
+    //
+    // Modify endpoint parameters based on the values ​​of other parameters
+    //      and configuration options
+    //
 
-    /////////
-    // SCOPE
+    // SCOPE (must be processed before response_type)
 
     if (!scope.length) {
-        scope = ["openid", "email", "profile"];
+        scope.push("openid", "email", "profile");
     }
 
-    /////////
-    // RESPONSE_TYPE
+    // RESPONSE_TYPE (must be processed before nonce)
 
     if (basicGrant || response_type.length > 1) {
         const noneIdx = response_type.indexOf("none");
@@ -76,7 +108,7 @@ export const _authorization = async (
     }
 
     if (grant == "code") {
-        response_type = ["code"];
+        response_type.splice(0, 10, "code");
     }
 
     if (grant == "implicit") {
@@ -95,67 +127,59 @@ export const _authorization = async (
             tokenIdx < 0 &&
             response_type.push("id_token");
 
-        hasApiScope &&
-            tokenIdx < 0 &&
-            response_type.push("token");
-
-        // if (!response_type.length) {
-        //     hasUserScope && response_type.push("id_token");
-        // }
+        hasApiScope && tokenIdx < 0 && response_type.push("token");
     }
 
-    /////////
     // PKCE
 
     // TODO: https://engineering.99x.io/demystifying-spa-security-with-pkce-fb55af7d3f5
-    if (no_pkce) {
+
+    for (const prop in pkce) delete (pkce as payloadType)[prop];
+
+    if (no_pkce || grant != "code") {
         delete parms["code_challenge"];
         delete parms["code_challenge_method"];
         delete parms["code_verifier"];
-    } else if (grant == "code") {
-        const code_verifier =
-            parms["code_verifier"] ??
-            config.token?.["code_verifier"] ??
-            config.parameters?.code_verifier ??
-            "";
-
-        pkce = await getPkce(parms, code_verifier as string);
+    } else {
+        Object.assign(pkce, await getPkce(parms, code_verifier as string));
     }
 
-    /////////
     // STATE
+
+    for (const prop in state) delete (state as payloadType)[prop];
 
     if (no_state) {
         delete parms["state"];
     } else {
-        const read_state = strOption("state");
-        const read_state_payload = strOption("statePayload");
-        let str_state = notStrNull(read_state, secureRandom(2));
-        if (read_state_payload) {
-            str_state += read_state_payload;
-        }
-        state = { state: str_state };
+        Object.assign(state, {
+            state: notStrNull(parms["state"], secureRandom(2)) + statePayload,
+        });
     }
 
-    /////////
     // NONCE
 
     const idTokenIdx = response_type.indexOf("id_token");
 
+    for (const prop in nonce) delete (nonce as payloadType)[prop];
+
     if (grant == "code" || (grant == "implicit" && idTokenIdx >= 0)) {
         // TODO: Hashed nonce
-        const read_nonce = strOption("nonce");
-        const str_nonce = notStrNull(read_nonce, secureRandom(2));
+        const str_nonce = notStrNull(parms["nonce"], secureRandom(2));
 
-        nonce = { nonce: str_nonce }
+        Object.assign(nonce, { nonce: str_nonce });
     } else {
-        delete parms["nonce"]
+        delete parms["nonce"];
     }
+
+    //
+    // End of modifying endpoint parameters
+    //
+    ///////////////////////////////////////////////////////////////////
 
     const newParameters = {
         ...pkce,
         ...state,
-        ...nonce
+        ...nonce,
     };
 
     config.parameters = {
@@ -164,7 +188,7 @@ export const _authorization = async (
     };
 
     // The code_verifier is used by the token endpoint
-    delete newParameters["code_verifier"];
+    delete (newParameters as payloadType)["code_verifier"];
 
     const payload = {
         ...parms,
@@ -178,10 +202,10 @@ export const _authorization = async (
 
     return request<IOAuth2Parameters>(
         "HREF",
-        URL,
+        url,
         http,
         config,
-        payload,
+        payload as customParametersType,
         "authorization"
     ) as IOAuth2Parameters;
 };
@@ -194,14 +218,14 @@ const getPkce = async (
 
     if (!isStrNull(method))
         throw new Error(
-            `the code challenge method "${method}",
+            `The code challenge method "${method}",
             must be a string or nullish.`,
             { cause: "oauth2 authorization" },
         );
 
     if (!isStrNull(verifier))
         throw new Error(
-            `the code verifier "${verifier}",
+            `The code verifier "${verifier}",
                 must be a string or nullish.`,
             { cause: "oauth2 authorization" }
         );

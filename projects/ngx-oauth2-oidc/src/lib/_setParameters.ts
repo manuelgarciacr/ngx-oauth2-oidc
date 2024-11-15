@@ -1,14 +1,14 @@
-import { getType, IOAuth2Parameters, parameterNames } from "../domain";
+import { customParametersType, getType, IOAuth2Parameters, parameterNames } from "../domain";
 import { toLowerCaseProperties } from "../utils";
 
-export const _setParameters = (ioauth2Parameters = <IOAuth2Parameters>{}, functionName = "") => {
+export const _setParameters = (ioauth2Parameters = <customParametersType>{}, functionName = "") => {
 
     if (!ioauth2Parameters || Object.entries(ioauth2Parameters).length == 0)
         return {};
 
     const parameters = toLowerCaseProperties(ioauth2Parameters)!; // Internal configuration parameters object
 
-    // Parameter names are not unexpected
+    // Parameter names are not unexpected (are warnongs)
 
     const parmKeys = Object.keys(parameters);
     const parmErrors = parmKeys.filter(
@@ -16,11 +16,13 @@ export const _setParameters = (ioauth2Parameters = <IOAuth2Parameters>{}, functi
     );
 
     if (parmErrors.length)
-        console.error({
-            WARNING: `Unexpected parameters: ${parmErrors.join(", ")}.`,
-            message: `Custom parameters must be included inside the enpoint configuration options.`,
-            cause: `oauth2 ${functionName}`
-        });
+        console.error(
+            `WARNING: Unexpected parameters: ${parmErrors.join(", ")}.`,
+            {
+                message: `Custom parameters must be included inside the enpoint configuration options.`,
+                cause: `oauth2 ${functionName}`,
+            }
+        );
 
     // Parameters types
 
@@ -29,10 +31,21 @@ export const _setParameters = (ioauth2Parameters = <IOAuth2Parameters>{}, functi
         const value = parameters[key];
         const type = getType(key);
 
-        if (functionName == "setParameters" && ( value === "undefined" || value === null))
-            break;
+        if (value === undefined || value === null) {
+            delete parameters[key];
+            continue
+        }
 
-        if (type == "array" && !Array.isArray(value)) {
+        if (type == "array" && typeof value === "string")
+            (parameters[key] as string[]) = [value];
+
+        if (type == "array" && typeof value === "number")
+            (parameters[key] as unknown as number[]) = [value];
+
+        if (type == "array" && typeof value === "bigint")
+            (parameters[key] as unknown as bigint[]) = [value];
+
+        if (type == "array" && !Array.isArray(parameters[key])) {
             throw new Error(`The parameter "${key}" must be an array`, {
                 cause: `oauth2 ${functionName}`,
             });
@@ -50,9 +63,12 @@ export const _setParameters = (ioauth2Parameters = <IOAuth2Parameters>{}, functi
             type != "undefined" &&
             type != typeof value
         ) {
-            throw new Error(`The parameter "${key}" must be of type ${type}`, {
-                cause: `oauth2 ${functionName}`,
-            });
+            throw new Error(
+                `The parameter "${key}" must be of type ${type}`,
+                {
+                    cause: `oauth2 ${functionName}`,
+                }
+            );
         }
     }
 

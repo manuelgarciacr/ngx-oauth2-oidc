@@ -27,11 +27,6 @@ export {
     methodNames
 } from "./model/IOAuth2Methods";
 
-// export {
-//     IOAuth2Configuration,
-//     configurationNames
-// } from "./model/IOAuth2Configuration";
-
 export {
     IOAuth2Metadata,
     metadataNames

@@ -6,12 +6,12 @@ const configuration = {
     /**
      * Authorizationn grant values:
      *
-     *  code: authorization code grant,
-     *  implicit: implicit grant,
-     *  password: resource owner password credentials grant,
-     *  client: client credentials grant,
-     *  extension: additional grant types
-     *  uma: User-Managed Access
+     *  'code': Authorization code grant. Default value.
+     *  'implicit': Implicit grant,
+     *  'hybrid': Code and implicit mixed grant,
+     *  'free: Parameters are not modified by the configuration options (config.configuration)
+     *      or by other parameters.
+     *
      */
     authorization_grant: "" as authorizationGrantType,
 
@@ -35,7 +35,13 @@ const configuration = {
      */
     no_state: false,
 
-     /**
+    /**
+     * If true, the revocation endpoint includes the the token in the authorization
+     *  header. Default is false.
+     */
+    revocation_header: false,
+
+    /**
      * If true, the methods return the request parameters along with the response.
      */
     test: false,
@@ -51,6 +57,12 @@ const configuration = {
      *      discovery document URI.
      */
     well_known_sufix: "",
+
+    /**
+     * 'Content-Type' header value for GET/POST requests (without HREF
+     *      redirection) from endpoints. Default "application/x-www-form-urlencoded".
+     */
+    content_type: "",
 };
 
 /** Options object type */
@@ -61,7 +73,7 @@ export const configurationOptions = Object.keys(configuration);
 
 /** Authorization grant values */
 export const authorizationGrantValues = [
-    "code", "implicit", "hybrid" //, "password", "client", "extension",
+    "code", "implicit", "hybrid", "free"
 ] as const;
 
 /** Authorization */

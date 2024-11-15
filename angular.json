@@ -155,7 +155,8 @@
             "tsConfig": "projects/demo/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              {
+                "projects/demo/src/assets",
+               {
                 "glob": "**/*",
                 "input": "public"
               }

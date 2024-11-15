@@ -2,8 +2,9 @@ import { debugFn } from "../utils";
 
 /**
  * Returns a new URL form a base URL.
- *      Replaces the protocol if provided. Adds sufix if provided.
- *      Removes trailing slashes if removeTrailingSlash is true.
+ *   Replaces the protocol if provided. Adds sufix if provided.
+ *   Removes trailing slashes if removeTrailingSlash is true.
+ *
  * @param base Initial URL
  * @param protocol New protocol
  * @param sufix URL sufix

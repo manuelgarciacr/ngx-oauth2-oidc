@@ -132,7 +132,7 @@
             </div>
         </div>
     </fieldset>
-    <fieldset *ngIf="api() == 'google-web-app' && authorization_grant() == 'code'"
+    <fieldset *ngIf="api() == 'google' && authorization_grant() == 'code'"
         class="wood d-flex border rounded-3 p-3 mb-3">
         <legend class="float-none text-center w-auto px-3">authorization
             <span class="green ms-3" style="text-transform: capitalize;">
@@ -156,8 +156,6 @@
                 </span>
                 <select class="col ms-2" [(ngModel)]="include_granted_scopes">
                     <option value="" selected>unseted (defaults to false)</option>
-                    <!-- <option [ngValue]=true>true</option>
-                    <option [ngValue]=false>false</option> -->
                     <option value="true">true</option>
                     <option value="false">false</option>
                 </select>
@@ -168,8 +166,6 @@
                 </span>
                 <select class="col ms-2" [(ngModel)]="enable_granular_consent">
                     <option value="" selected>unseted (defaults to true)</option>
-                    <!-- <option [ngValue]=true>true</option>
-                    <option [ngValue]=false>false</option> -->
                     <option value="true">true</option>
                     <option value="false">false</option>
                 </select>
@@ -210,9 +206,6 @@
     </fieldset>
     <fieldset class="salmon border rounded-3 p-3 d-flex flex-column mb-3">
         <legend class="float-none text-center w-auto px-3">parameters
-            <!-- <span class="green ms-3" style="text-transform: capitalize;">
-                ( {{dependence()}} dependent )
-            </span> -->
         </legend>
         <div class="d-flex mb-2 gap-3 mt-0">
             <div class="d-flex flex-column flex-grow-0 col-2">
@@ -224,14 +217,6 @@
                 <input type="text" spellcheck="false" placeholder="login_hint" [(ngModel)]="login_hint">
             </div>
         </div>
-        <!-- <div class="d-flex mb-2 gap-3 mt-0">
-            <div class="d-flex flex-column flex-grow-0 col-2">
-                <p>login_hint</p>
-            </div>
-            <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
-                <input type="text" spellcheck="false" placeholder="login_hint" [(ngModel)]="login_hint">
-            </div>
-        </div> -->
         <div class="d-flex mb-2 gap-3">
             <span class="col">scope</span>
             <div class="d-flex border border-black p-2">

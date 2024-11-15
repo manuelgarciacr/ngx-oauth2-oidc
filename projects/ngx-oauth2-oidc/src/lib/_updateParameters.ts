@@ -1,12 +1,10 @@
 import { IOAuth2Config, IOAuth2Parameters, customParametersType, getType } from "../domain";
 import { setStore } from "./_store";
 
-// TODO: no-storage configuration option
-
 /**
  * Converts an object of string type parameters to an IOAuth2Parameters object
  *   and saves the new configuration parameters. Converts the "expires_in" parameter
- *   in a
+ *   in a Epoch date (milliseconds)
  *
  * @param obj The object of string type parameters
  * @param config Configuration object saved in memory. Passed by reference and

@@ -1,7 +1,7 @@
 import { IOAuth2VerifyTokenJoseOptions, IOAuth2VerifyTokenParameters } from "./IOAuth2Parameters";
 
 /** Methods object */
-const methods = {
+export const methods = {
     /**
      * Custom parameters for the discovery endpoint
      */
@@ -41,7 +41,7 @@ export interface IOAuth2Methods extends Partial<typeof methods> {}
 export const methodNames = Object.keys(methods);
 
 /** Oauth2 parameter type */
-export type parameterType = boolean | string | number | string[] | null;
+export type parameterType = boolean | string | number | bigint | string[] | null;
 
 /** Oauth2 custom parameters type */
 export type customParametersType = {

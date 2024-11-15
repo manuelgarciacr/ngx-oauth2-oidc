@@ -149,13 +149,12 @@ const parameters = {
     subject_token_type: "", // token request	IESG	[RFC8693, Section 2.1]
     ticket: undefined as unknown, // client request, token endpoint	[Kantara_UMA_WG]	[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]
     token_type: "", // authorization response, token response	IETF	[RFC6749]
-    // Proposed standard token revocation endpoint
-    token_type_hint: "" as "access_token" | "refresh_token" | "pct", // token revocation
+    token_type_hint: "" as "access_token" | "refresh_token" | "pct", // IETF    [RFC7009} OAuth 2.0 Token Revocation
     ui_locales: "", // authorization request	[OpenID_Foundation_Artifact_Binding_Working_Group]	[OpenID Connect Core 1.0 incorporating errata set 1]
     upgraded: undefined as unknown, // authorization server response, token endpoint	[Kantara_UMA_WG]	[UMA 2.0 Grant for OAuth 2.0, Section 3.3.5]
     username: "", // token request	IETF	[RFC6749]
     vtr: "", // authorization request, token request	IESG	[RFC8485]
-}
+};
 
 /** Verify token method parameters object */
 const verifyTokenJoseOptions = {

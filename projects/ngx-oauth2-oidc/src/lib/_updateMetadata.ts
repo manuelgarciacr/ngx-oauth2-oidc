@@ -1,8 +1,6 @@
 import { IOAuth2Config, IOAuth2Metadata } from "../domain";
 import { setStore } from "./_store";
 
-// TODO: no-storage configuration option
-
 /**
  * Gets an object of string type parameters and saves the new configuration metadata.
  *
