@@ -21,11 +21,6 @@ const configuration = {
     // no_discovery: false,
 
     /**
-     * If true, the service don't request for an id_token. Default is false.
-     */
-    no_OIDC: false,
-
-    /**
      * If true, the service will not use PKCE support. Default is false.
      */
     no_pkce: false,
@@ -34,6 +29,11 @@ const configuration = {
      * If true, the service will not use the oauth2 parameter "state". Default is false.
      */
     no_state: false,
+
+    /**
+     * If true, the service will not use the web worker, only uses HttpClient. Default is false.
+     */
+    no_worker: false,
 
     /**
      * If true, the revocation endpoint includes the the token in the authorization

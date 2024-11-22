@@ -1,10 +1,9 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from "@angular/common/http";
-import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, customParametersType, payloadType } from "../domain";
+import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, customParametersType, payloadType, workerRequest } from "../domain";
 import { debugFn } from "../utils";
 import { httpRequest } from "./_httpRequest";
 import { setStore } from "./_store";
-
-type strObject = {[key: string]: string};
+import { Observable } from "rxjs";
 
 /**
  * Request to an OAuth2 endpoint. Redirects to the endpoint or makes a HttpClient
@@ -12,7 +11,7 @@ type strObject = {[key: string]: string};
  *
  * @param method Request method ("""HREF" for redirection)
  * @param url Endpoint URL
- * @param {HttpClient} http- HttpClient object
+ * @param {HttpClient | workerRequest} request- HttpClient object or worker request
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated
  * @param customParameters OAuth2 parameters (standard and custom) for the request. (payload)
@@ -23,7 +22,7 @@ type strObject = {[key: string]: string};
 export const request = async <T>(
     method: "HREF" | "GET" | "POST",
     url: string,
-    http: HttpClient,
+    request: HttpClient | workerRequest,
     config: IOAuth2Config, // Passed by reference and updated
     customParameters = <customParametersType>{},
     endpoint: keyof IOAuth2Methods
@@ -38,15 +37,15 @@ export const request = async <T>(
     const tokenHeader =
         endpoint === "revocation" && revocation_header
             ? {
-                  Authorization: `Bearer ${customParameters["token"]}`,
-                  "Content-Type": "application/json; charset=utf-8",
+                  Authorization: `Bearer ${customParameters["token"]}`
               }
             : undefined;
-    const headers = new HttpHeaders({
+    const headersInit = {
         Accept: "application/json",
         "Content-Type": content_type,
         ...tokenHeader,
-    });
+    };
+    const headers = new HttpHeaders(headersInit);
 
     // TODO: no-storage configuration option
     setStore("test", test ? {} : null);
@@ -60,54 +59,68 @@ export const request = async <T>(
 
     if (revocation_header) delete customParameters["token"];
 
-    let params = new HttpParams({ fromObject: {} }); // Empty HttpParams object
+    const payload = {} as payloadType;
 
     // options to params
     for (const key in customParameters) {
         let v = customParameters![key as keyof typeof customParameters]; // Option value
         Array.isArray(v) && (v = v.join(" ")); // String array to a string of space separated values.
-        if (v || v === false) params = params.set(key, v.toString()); // If not nullish nor empty, added to params.
+        if (v || v === false) payload[key] = v.toString(); // If not nullish nor empty, added to params.
     }
+
+    const params =  new HttpParams({ fromObject: payload})
 
     // For testing purposes
     if (test) {
-        const payload: payloadType = params.keys().length
-            ? params.keys().reduce((obj, key) => {
-                  obj[key] = params.get(key)!;
-                  return obj;
-              }, {} as payloadType)
+        const data = Object.keys(payload).length
+            ? payload
             : { "@URL": url };
 
         // TODO: no-storage configuration option
-        setStore("test", payload);
+        setStore("test", data);
     }
 
-    if (method == "HREF") {
-        // Redirection
-        const req = new HttpRequest<string>(method, url, null, {
-            //headers,
-            params,
-        });
-        location.href = req.urlWithParams;
-        return {};
-    } else {
+    let req:
+        | Observable<payloadType>
+        | Observable<{ data: payloadType; error: payloadType }>;
+
+    if (request instanceof HttpClient){
+        if (method == "HREF") {
+            // Redirection
+            const req = new HttpRequest<string>(method, url, null, {
+                //headers,
+                params
+            });
+            location.href = req.urlWithParams;
+            return {};
+        }
         // Http request
-        const req =
+        req =
             method == "POST"
-                ? http.post<strObject>(url, "null", {
-                      headers,
-                      params,
-                      observe: "body",
-                  })
-                : http.get<strObject>(url, {
-                      headers,
-                      params,
-                      observe: "body",
-                  });
-        return httpRequest<IOAuth2Parameters | IOAuth2Metadata>(
-            req,
-            config!,
-            endpoint !== "discovery"
-        );
+                ? request.post<payloadType>(url, "null", {
+                    headers,
+                    params,
+                    observe: "body",
+                })
+                : request.get<payloadType>(url, {
+                    headers,
+                    params,
+                    observe: "body",
+                });
+    } else {
+        req = (request as workerRequest)({
+            url,
+            headers: headersInit,
+            parameters: payload,
+            body: undefined,
+            method,
+        }, endpoint)
     }
+
+    return httpRequest(
+        req,
+        request instanceof HttpClient,
+        config!,
+        endpoint !== "discovery"
+    );
 };

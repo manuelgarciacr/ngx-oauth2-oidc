@@ -1,16 +1,16 @@
-import { CommonModule } from '@angular/common';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
-import { Oauth2Service } from "ngx-oauth2-oidc";
-import { catchError, lastValueFrom, tap } from 'rxjs';
-import { DialogComponent, openErrorDialog } from '../dialog/dialog.component';
+import { Oauth2Service, payloadType } from "ngx-oauth2-oidc";
+import { catchError, firstValueFrom, lastValueFrom, Observable, tap } from 'rxjs';
+import { openErrorDialog } from '../dialog/dialog.component';
+import { Pause } from '../utils/pause';
 
 @Component({
     selector: "app-home",
     standalone: true,
-    imports: [CommonModule, DialogComponent],
+    imports: [],
     templateUrl: "./home.component.html",
     styleUrl: "./home.component.scss",
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,24 +38,28 @@ export class HomeComponent implements OnInit {
     protected readonly refreshToken = signal("");
     protected readonly apiData = signal("");
 
-    async ngOnInit(): Promise<void> {
+    async ngOnInit() {
+        const head = "data:text/javascript;charset=UTF-8,";
+
+        this.http
+            .get("assets/_worker.js", { responseType: "text" })
+            .subscribe(data => {
+                this.oauth2.setWorker(head + encodeURIComponent(data));
+            });
+
+        const pause = Pause(100);
+        await pause.start();
+
         // Prevent storage tampering
         window.addEventListener("storage", () => this.logout());
 
-        this.getTokensData();
-
         try {
             await this.oauth2.interceptor();
-            await this.oauth2.verify_token();
             this.getTokensData();
-            await this.getApiData();
+            this.getApiData();
         } catch (err) {
-            openErrorDialog.bind(this)(err).subscribe(_ => {
-                (err as Error).cause === "oauth2 verify_token" &&
-                    this.logout();
-            });
+            openErrorDialog.bind(this)(err)
         }
-
     }
 
     logout = () => {
@@ -63,45 +67,80 @@ export class HomeComponent implements OnInit {
         this.router.navigate(["/login"]);
     };
 
-    getApiData = async () => {
+    getApiData = () => {
+        if (!this.oauth2.callWorker) return;
+
+        const noWorker = !!this.oauth2.config.configuration?.no_worker;
         const iss = this.oauth2.idToken?.["iss"] ?? "";
-        const req =
+        const request =
             iss == "https://accounts.google.com"
-                ? ["get", "https://www.googleapis.com/drive/v3/files"]
+                ? ["GET", "https://www.googleapis.com/drive/v3/files"]
                 : iss == "https://gitlab.com"
-                ? ["get", "https://gitlab.com/api/v4/projects?owned=true"]
+                ? ["GET", "https://gitlab.com/api/v4/projects?owned=true"]
                 : iss == "https://www.dropbox.com"
                 ? [
-                      "post",
+                      "POST",
                       "https://api.dropboxapi.com/2/files/list_folder",
-                      '{"path": ""}',
+                      {"path": ""} // '{"path": ""}',
                   ]
                 : "";
 
-        if (!req) {
+        if (!request) {
             this.apiData.set("");
             return;
         }
 
-        const headers = new HttpHeaders({
-            Authorization: `Bearer ${this.accessToken()}`,
-            "Content-Type": "application/json",
-        });
+        const method = request[0] as string;
+        const url = request[1] as string;
+        const headers = {
+                    Authorization: `Bearer ${this.accessToken()}`,
+                    accept: "application/json",
+                    "Content-Type": "application/json",
+                };
+        const body = request[2] as payloadType;
+        let req:
+            | Observable<
+                  payloadType | { data: payloadType; error: payloadType }
+              >
 
-        const request =
-            req[0] == "get"
-                ? this.http.get(req[1], { headers })
-                : this.http.post(req[1], req[2], { headers });
-
-        return lastValueFrom(
-            request.pipe(
-                tap(res =>
-                    this.apiData.set(JSON.stringify(res, null, 4))
-                ),
-                catchError(err => {
-                    throw err;
-                })
+        if (noWorker){
+           // Http request
+            req =
+                method == "POST"
+                    ? this.http.post<payloadType>(url, body, {
+                        headers,
+                        observe: "body",
+                    })
+                    : this.http.get<payloadType>(url, {
+                        headers,
+                        observe: "body",
+                    });
+        } else {
+            req = this.oauth2.callWorker({
+                url,
+                headers,
+                parameters: {},
+                body,
+                method,
+            }, (data: any) =>
+                console.log("GET_API_DATA", data)
             )
+        }
+
+        firstValueFrom(
+            req
+                .pipe(
+                    tap(res => {
+                        const isWorker = Object.keys(res).sort().join("") == "dataerror";
+                        if (isWorker && res.error) throw res.error;
+                        const data = isWorker ? res.data : res
+                        this.apiData.set(JSON.stringify(data, null, 4))
+                    }),
+                    catchError(error => {
+                        openErrorDialog.bind(this)(error)
+                        throw error;
+                    })
+                )
         );
     };
 

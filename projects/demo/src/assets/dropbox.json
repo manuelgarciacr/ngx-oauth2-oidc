@@ -1,7 +1,7 @@
 {
     "configuration": {
         "revocation_header": true,
-        "content_type": "application/json; charset=utf-8"
+        "content_type": "application/json"
     },
     "metadata": {
         "issuer": "https://www.dropbox.com",

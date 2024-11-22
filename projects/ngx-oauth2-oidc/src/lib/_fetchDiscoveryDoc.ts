@@ -1,8 +1,8 @@
-import { customParametersType, IOAuth2Config, IOAuth2Metadata } from "../domain";
+import { customParametersType, IOAuth2Config, IOAuth2Metadata, workerRequest } from "../domain";
 import { mountUrl } from "./_mountUrl";
 import { HttpClient } from "@angular/common/http";
 import { setStore } from "./_store";
-import { request } from "./_request";
+import { request as fnRequest } from "./_request";
 import { _setParameters } from "./_setParameters";
 import { getParameters } from "./_getParameters";
 
@@ -14,7 +14,7 @@ import { getParameters } from "./_getParameters";
  *   get request. In test mode, the request payload is also stored within
  *   sessionStorage.
  *
- * @param http HttpClient object
+ * @param request HttpClient object or worker request
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated (configuration.metadata)
  * @param customParameters Custom parameters for the request.
@@ -22,7 +22,7 @@ import { getParameters } from "./_getParameters";
  * @returns Promise with the request response (IOAuth2Metadata or error)
  */
 export const _fetchDiscoveryDoc = async (
-    http: HttpClient,
+    request: HttpClient | workerRequest,
     config: IOAuth2Config, // Passed by reference and updated (configuration.metadata)
     customParameters = <customParametersType>{},
     url?: string
@@ -59,10 +59,10 @@ export const _fetchDiscoveryDoc = async (
         // TODO: Test use when not experimental
     }
 
-    return request(
+    return fnRequest(
         "GET",
         url,
-        http,
+        request,
         config,
         parms,
         "discovery"

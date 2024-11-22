@@ -1,13 +1,11 @@
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
-import { IOAuth2Config, IOAuth2Parameters, customParametersType, payloadType } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters, customParametersType, payloadType, workerRequest } from "../domain";
 import { isStrNull, notStrNull, secureRandom } from "../utils";
-import { request } from "./_request";
+import { request as fnRequest} from "./_request";
 import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
 import { _setParameters } from "./_setParameters";
-
-// TODO: no-storage configuration option
 
 /**
  * Request to then OAuth2 authorization endpoint. Redirects to the endpoint.
@@ -15,7 +13,7 @@ import { _setParameters } from "./_setParameters";
  *   the config.parameters. In test mode, the request payload is also stored within
  *   sessionStorage.
  *
- * @param httpH ttpClient object
+ * @param request HttpClient object or worker request
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated (configuration.parameters)
  * @param customParameters Custom parameters for the request.
@@ -24,7 +22,7 @@ import { _setParameters } from "./_setParameters";
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _authorization = async (
-    http: HttpClient,
+    request: HttpClient | workerRequest,
     config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
     customParameters = <customParametersType>{},
     statePayload?: string,
@@ -51,11 +49,9 @@ export const _authorization = async (
     });
     const scope = arr("scope");
     const response_type = arr("response_type");
-    const code_verifier =
-        (parms["code_verifier"] as string) ??
-        config.token?.["code_verifier"] ??
-        config.parameters?.code_verifier ??
-        "";
+    const code_verifier = (parms["code_verifier"] ??
+        config.token?.["code_verifier"] ?? // Code verifier is used by the token endpoint
+        config.parameters?.code_verifier) as string | undefined;
     const code_challenge_method = parms["code_challenge_method"] as
         | "S256"
         | "plain"
@@ -132,8 +128,6 @@ export const _authorization = async (
 
     // PKCE
 
-    // TODO: https://engineering.99x.io/demystifying-spa-security-with-pkce-fb55af7d3f5
-
     for (const prop in pkce) delete (pkce as payloadType)[prop];
 
     if (no_pkce || grant != "code") {
@@ -182,14 +176,6 @@ export const _authorization = async (
         ...nonce,
     };
 
-    config.parameters = {
-        ...config.parameters,
-        ...newParameters,
-    };
-
-    // The code_verifier is used by the token endpoint
-    delete (newParameters as payloadType)["code_verifier"];
-
     const payload = {
         ...parms,
         ...newParameters,
@@ -197,13 +183,24 @@ export const _authorization = async (
         response_type,
     };
 
+    // The 'code_verifier' is used by the token endpoint
+    delete payload["code_verifier"];
+    // The 'code_challenge' and 'code_challenge_method' are no longer needed
+    delete newParameters["code_challenge"];
+    delete newParameters["code_challenge_method"];
+
+    config.parameters = {
+        ...config.parameters,
+        ...newParameters,
+    };
+
     // TODO: no-storage configuration option
     setStore("config", config);
 
-    return request<IOAuth2Parameters>(
+    return fnRequest<IOAuth2Parameters>(
         "HREF",
         url,
-        http,
+        request,
         config,
         payload as customParametersType,
         "authorization"
@@ -249,7 +246,7 @@ const getPkce = async (
 
     return {
         code_challenge_method: method as "S256" | "plain",
-        code_verifier: verifier,
+        code_verifier: verifier as string | undefined,
         code_challenge: challenge,
     };
 }

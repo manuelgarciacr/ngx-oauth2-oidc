@@ -1,5 +1,4 @@
-export { urlType } from "./model/urlType";
-export { payloadType } from "./model/payloadType";
+export { urlType, workerRequest, payloadType } from "./model/types";
 export { IJwk } from "./model/IJwk";
 
 export {

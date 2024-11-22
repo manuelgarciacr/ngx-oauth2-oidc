@@ -2,8 +2,9 @@ import {
     IOAuth2Config,
     IOAuth2Parameters,
     customParametersType,
+    workerRequest,
 } from "../domain";
-import { request } from "./_request";
+import { request as fnRequest} from "./_request";
 import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
@@ -15,7 +16,7 @@ import { _setParameters } from "./_setParameters";
  *   HttpClient post request. In test mode, the request payload is also stored within
  *   sessionStorage.
  *
- * @param http HttpClient object
+ * @param request HttpClient object or worker request
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated (configuration.parameters)
  * @param customParameters Custom parameters for the request.
@@ -23,7 +24,7 @@ import { _setParameters } from "./_setParameters";
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _token = async (
-    http: HttpClient,
+    request: HttpClient | workerRequest,
     config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
     customParameters = <customParametersType>{},
     url?: string
@@ -77,6 +78,15 @@ export const _token = async (
         delete parms["assertion"];
         delete parms["device_code"];
         delete parms["refresh_token"];
+
+        if (!no_pkce) {
+            // "code_verifier" is for only one use
+            delete config.token?.["code_verifier"];
+            delete config.parameters?.code_verifier;
+
+            // TODO: no-storage configuration option
+            setStore("config", config);
+        }
     }
 
     if (grant_type == "refresh_token") {
@@ -95,10 +105,10 @@ export const _token = async (
     //
     ///////////////////////////////////////////////////////////////////
 
-    return request<IOAuth2Parameters>(
+    return fnRequest<IOAuth2Parameters>(
         "POST",
         url,
-        http,
+        request,
         config,
         parms,
         "token"

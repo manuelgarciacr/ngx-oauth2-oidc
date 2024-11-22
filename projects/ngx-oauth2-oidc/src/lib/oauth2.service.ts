@@ -8,7 +8,7 @@ import {
     Injectable,
     InjectionToken,
     computed,
-    inject,
+    inject
 } from "@angular/core";
 import {
     IOAuth2Config,
@@ -25,6 +25,7 @@ import { _token } from "./_token";
 import { _revocation } from "./_revocation";
 import { _errorArray } from "./_errorArray";
 import { _setParameters } from "./_setParameters";
+import { catchError, filter, fromEvent, map, tap } from "rxjs";
 
 export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     "OAuth2 Config"
@@ -44,6 +45,12 @@ export class Oauth2Service {
     private _isIdTokenIntercepted = false;
     private _isAccessTokenIntercepted = false;
     private _isCodeIntercepted = false;
+    private _worker?: Worker;
+    // = new Worker(
+    //     //"data:text/javascript;charset=US-ASCII,onmessage%20%3D%20function%28event%29%20%7B%0A%20%20const%20url%20%3D%20event.data.url%3B%0A%20%20const%20options%20%3D%20event.data.options%3B%0A%0A%20%20fetch%28url%2C%20options%29%0A%20%20%20%20.then%28response%20%3D%3E%20%7B%0A%20%20%20%20%20%20%2F%2F%20Process%20the%20response%20data%0A%20%20%20%20%20%20const%20responseData%20%3D%20response.json%28%29%3B%0A%20%20%20%20%20%20self.postMessage%28responseData%29%3B%0A%20%20%20%20%7D%29%0A%20%20%20%20.catch%28error%20%3D%3E%20%7B%0A%20%20%20%20%20%20console.error%28%27Error%3A%27%2C%20error%29%3B%0A%20%20%20%20%20%20self.postMessage%28%7B%20error%3A%20error.message%20%7D%29%3B%0A%20%20%20%20%7D%29%3B%0A%7D%3B"
+    //     "data:text/javascript;charset=US-ASCII,onmessage%20%3D%20function%20%28oEvent%29%20%7B%0A%09postMessage%28%7B%0A%09%09%22id%22%3A%20oEvent.data.id%2C%0A%09%09%22evaluated%22%3A%20eval%28oEvent.data.code%29%0A%09%7D%29%3B%0A%7D"
+    // );
+    private _workerListeners: (Function | null | string)[] = [];
 
     get config() {
         return this._config;
@@ -93,6 +100,74 @@ export class Oauth2Service {
             setStore("initialConfig", this.config);
         }
     }
+
+    setWorker = async (code: string) => {
+        if (typeof Worker === "undefined") {
+            console.error("Web workers are not available");
+            return
+        }
+
+        this._worker = new Worker(code);
+
+        if (!this._worker.terminate) {
+            console.error("Web worker is not running");
+            return;
+        }
+
+        this._worker.onerror = event => {
+            console.error("Web worker error", event)
+        }
+
+        this._workerListeners = [];
+    };
+
+    callWorker = (
+        options: {
+            url: string;
+            headers: payloadType;
+            parameters: payloadType;
+            body: unknown;
+            method: string;
+        },
+        listener: Function | null | string = null
+    ) => {
+        if (!this._worker || !this._worker?.terminate) throw "Web worker is not running";
+
+        const lst = this._workerListeners;
+        const idx = lst.findIndex(v => v === "@@empty");
+        const id = idx < 0 ? lst.length : idx;
+
+        if (id == idx) lst[id] = listener;
+        else lst.push(listener);
+
+        const observable$ = fromEvent<MessageEvent>(
+            this._worker,
+            "message"
+        ).pipe(
+            tap(ev => ev.data.type === 'redirect' && (location.href = ev.data.url)),
+            filter(ev => ev.data.id === id),
+            tap(ev => {
+                const execute = lst[id] !== "@@empty" && typeof lst[id] !== "string" && lst[id] !== null;
+                execute &&
+                    (lst[id] as Function)({
+                        data: ev.data.data,
+                        error: ev.data.error,
+                    });
+                lst[id] = "@@empty";
+                id === lst.length - 1 && lst.pop();
+            }),
+            map(ev => {
+                delete ev.data.id;
+                return { data: ev.data.data, error: ev.data.error };
+            }),
+            catchError(err => {
+                throw err
+            }),
+        );
+
+        this._worker?.postMessage({ id, options });
+        return observable$;
+    };
 
     setConfig = (oauth2Config: IOAuth2Config) => {
         debugFn("mth", "SET_CONFIG", { ...oauth2Config });
@@ -164,14 +239,14 @@ export class Oauth2Service {
      * @param url
      * @returns
      */
-    fetchDiscoveryDoc = async (
+    fetchDiscoveryDoc = (
         customParameters = <customParametersType>{},
         url?: string
     ) => {
         debugFn("mth", "FETCH_DISCOVERY_DOC");
 
         return _fetchDiscoveryDoc(
-            this.http,
+            this._config.configuration?.no_worker ? this.http : this.callWorker,
             this._config, // Parameter passed by reference and updated (config.metadata)
             customParameters,
             url
@@ -198,7 +273,7 @@ export class Oauth2Service {
         debugFn("mth", "AUTHORIZATION");
 
         return _authorization(
-            this.http,
+            this._config.configuration?.no_worker ? this.http : this.callWorker,
             this._config, // Parameter passed by reference and updated (config.parameters)
             customParameters,
             statePayload,
@@ -213,7 +288,7 @@ export class Oauth2Service {
         debugFn("mth", "TOKEN");
 
         return _token(
-            this.http,
+            this._config.configuration?.no_worker ? this.http : this.callWorker,
             this._config, // Parameter passed by reference and updated (config.parameters)
             {
                 grant_type: "authorization_code",
@@ -230,7 +305,7 @@ export class Oauth2Service {
         debugFn("mth", "REFRESH");
 
         return _token(
-            this.http,
+            this._config.configuration?.no_worker ? this.http : this.callWorker,
             this._config, // Parameter passed by reference and updated (config.parameters)
             {
                 grant_type: "refresh_token",
@@ -248,7 +323,7 @@ export class Oauth2Service {
         debugFn("mth", "REVOCATION");
 
         return _revocation(
-            this.http,
+            this._config.configuration?.no_worker ? this.http : this.callWorker,
             this._config, // Parameter passed by reference and could be updated (config.parameters)
             customParameters,
             url
@@ -300,4 +375,3 @@ export class Oauth2Service {
         return _errorArray(err);
     };
 }
-

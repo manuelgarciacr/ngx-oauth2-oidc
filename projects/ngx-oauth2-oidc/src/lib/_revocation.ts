@@ -3,8 +3,9 @@ import {
     IOAuth2Parameters,
     customParametersType,
     parameterType,
+    workerRequest,
 } from "../domain";
-import { request } from "./_request";
+import { request as fnRequest} from "./_request";
 import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
@@ -18,7 +19,7 @@ import { _setParameters } from "./_setParameters";
  *   revokes access token; otherwise, the refresh token. You can indicate the option token,
  *   access_token or update_token.
  *
- * @param http HttpClient object
+ * @param request HttpClient object or worker request
  * @param config Configuration object saved in memory. Passed by reference and
  *      could be updated (configuration.parameters)
  * @param customParameters Custom parameters for the request.
@@ -26,7 +27,7 @@ import { _setParameters } from "./_setParameters";
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _revocation = async (
-    http: HttpClient,
+    request: HttpClient | workerRequest,
     config: IOAuth2Config, // Passed by reference and could be updated (configuration.parameters)
     customParameters = <customParametersType>{},
     url?: string
@@ -102,10 +103,10 @@ export const _revocation = async (
     //
     ///////////////////////////////////////////////////////////////////
 
-    return request<IOAuth2Parameters>(
+    return fnRequest<IOAuth2Parameters>(
         "POST",
         url,
-        http,
+        request,
         config,
         token ? { ...parms, token } : parms,
         "revocation"

@@ -17,6 +17,7 @@ export const setStore = (name: string, value: unknown = null) => {
     if (name == "config" && !!value) {
         delete (val as IOAuth2Config)?.parameters?.code;
         delete (val as IOAuth2Config)?.parameters?.client_secret;
+        delete (val as IOAuth2Config)?.parameters?.code_challenge;
     }
 
     name = `oauth2_${name}`;
