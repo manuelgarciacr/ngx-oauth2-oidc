@@ -1,11 +1,13 @@
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
-import { IOAuth2Config, IOAuth2Parameters, customParametersType, payloadType, workerRequest } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters, customParametersType, optionalStringsObject, workerRequest } from "../domain";
 import { isStrNull, notStrNull, secureRandom } from "../utils";
 import { request as fnRequest} from "./_request";
 import { HttpClient } from "@angular/common/http";
 import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
 import { _setParameters } from "./_setParameters";
+
+type parmsObject = optionalStringsObject;
 
 /**
  * Request to then OAuth2 authorization endpoint. Redirects to the endpoint.
@@ -128,7 +130,7 @@ export const _authorization = async (
 
     // PKCE
 
-    for (const prop in pkce) delete (pkce as payloadType)[prop];
+    for (const prop in pkce) delete (pkce as parmsObject)[prop];
 
     if (no_pkce || grant != "code") {
         delete parms["code_challenge"];
@@ -140,7 +142,7 @@ export const _authorization = async (
 
     // STATE
 
-    for (const prop in state) delete (state as payloadType)[prop];
+    for (const prop in state) delete (state as parmsObject)[prop];
 
     if (no_state) {
         delete parms["state"];
@@ -154,7 +156,7 @@ export const _authorization = async (
 
     const idTokenIdx = response_type.indexOf("id_token");
 
-    for (const prop in nonce) delete (nonce as payloadType)[prop];
+    for (const prop in nonce) delete (nonce as parmsObject)[prop];
 
     if (grant == "code" || (grant == "implicit" && idTokenIdx >= 0)) {
         // TODO: Hashed nonce

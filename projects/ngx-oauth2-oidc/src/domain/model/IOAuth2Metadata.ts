@@ -1,4 +1,4 @@
-import { urlType } from "../index";
+import { urlType } from "..";
 
 /** Metadata object */
 const metadata = {

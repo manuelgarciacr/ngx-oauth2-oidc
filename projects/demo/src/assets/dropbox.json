@@ -1,5 +1,6 @@
 {
     "configuration": {
+        "tag": "dropbox",
         "revocation_header": true,
         "content_type": "application/json"
     },

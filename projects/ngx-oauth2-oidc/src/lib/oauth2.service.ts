@@ -14,7 +14,10 @@ import {
     IOAuth2Config,
     IOAuth2Parameters,
     customParametersType,
+    jsonObject,
+    methodType,
     payloadType,
+    stringsObject,
 } from "../domain";
 import { _oauth2ConfigFactory } from "./_oauth2ConfigFactory";
 import { _interceptor } from "./_interceptor";
@@ -26,6 +29,7 @@ import { _revocation } from "./_revocation";
 import { _errorArray } from "./_errorArray";
 import { _setParameters } from "./_setParameters";
 import { catchError, filter, fromEvent, map, tap } from "rxjs";
+import { _api_request } from "./_apiReguest";
 
 export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     "OAuth2 Config"
@@ -41,7 +45,7 @@ export class Oauth2Service {
     private _config: IOAuth2Config = {};
     private _initialConfig: IOAuth2Config = {};
     // private _jwks: IJwk[] | null = null;
-    private _idToken: payloadType | null = null; // Api user id_token claims
+    private _idToken: jsonObject | null = null; // Api user id_token claims
     private _isIdTokenIntercepted = false;
     private _isAccessTokenIntercepted = false;
     private _isCodeIntercepted = false;
@@ -86,7 +90,7 @@ export class Oauth2Service {
 
         this._config = _oauth2ConfigFactory(config);
         this._initialConfig = initialConfig as IOAuth2Config;
-        this._idToken = idToken as payloadType;
+        this._idToken = idToken as jsonObject;
 
         if (storedConfig) {
             debugFn("int", "STORED CONFIGURATION", storedConfig);
@@ -101,37 +105,18 @@ export class Oauth2Service {
         }
     }
 
-    setWorker = async (code: string) => {
-        if (typeof Worker === "undefined") {
-            console.error("Web workers are not available");
-            return
-        }
-
-        this._worker = new Worker(code);
-
-        if (!this._worker.terminate) {
-            console.error("Web worker is not running");
-            return;
-        }
-
-        this._worker.onerror = event => {
-            console.error("Web worker error", event)
-        }
-
-        this._workerListeners = [];
-    };
-
-    callWorker = (
+    private callWorker = (
         options: {
             url: string;
-            headers: payloadType;
-            parameters: payloadType;
-            body: unknown;
+            headers: jsonObject;
+            parameters: stringsObject;
+            body: payloadType;
             method: string;
         },
         listener: Function | null | string = null
     ) => {
-        if (!this._worker || !this._worker?.terminate) throw "Web worker is not running";
+        if (!this._worker || !this._worker?.terminate)
+            throw "Web worker is not running";
 
         const lst = this._workerListeners;
         const idx = lst.findIndex(v => v === "@@empty");
@@ -144,10 +129,16 @@ export class Oauth2Service {
             this._worker,
             "message"
         ).pipe(
-            tap(ev => ev.data.type === 'redirect' && (location.href = ev.data.url)),
+            tap(
+                ev =>
+                    ev.data.type === "redirect" && (location.href = ev.data.url)
+            ),
             filter(ev => ev.data.id === id),
             tap(ev => {
-                const execute = lst[id] !== "@@empty" && typeof lst[id] !== "string" && lst[id] !== null;
+                const execute =
+                    lst[id] !== "@@empty" &&
+                    typeof lst[id] !== "string" &&
+                    lst[id] !== null;
                 execute &&
                     (lst[id] as Function)({
                         data: ev.data.data,
@@ -161,12 +152,32 @@ export class Oauth2Service {
                 return { data: ev.data.data, error: ev.data.error };
             }),
             catchError(err => {
-                throw err
-            }),
+                throw err;
+            })
         );
 
         this._worker?.postMessage({ id, options });
         return observable$;
+    };
+
+    setWorker = async (code: string) => {
+        if (typeof Worker === "undefined") {
+            console.error("Web workers are not available");
+            return;
+        }
+
+        this._worker = new Worker(code);
+
+        if (!this._worker.terminate) {
+            console.error("Web worker is not running");
+            return;
+        }
+
+        this._worker.onerror = event => {
+            console.error("Web worker error", event);
+        };
+
+        this._workerListeners = [];
     };
 
     setConfig = (oauth2Config: IOAuth2Config) => {
@@ -298,6 +309,26 @@ export class Oauth2Service {
         );
     };
 
+    apiRequest = async (
+        customParameters = <customParametersType>{},
+        url?: string,
+        method: methodType = "GET",
+        headers: jsonObject = {},
+        body: payloadType = {}
+    ) => {
+        debugFn("mth", "API_REQUEST");
+
+        return _api_request(
+            this._config.configuration?.no_worker ? this.http : this.callWorker,
+            this.config,
+            customParameters,
+            url,
+            method,
+            headers,
+            body
+        );
+    };
+
     refresh = async (
         customParameters = <customParametersType>{},
         url?: string
@@ -347,9 +378,9 @@ export class Oauth2Service {
             issuer,
             jwks_uri
         ).then(idToken => {
-            this._idToken = (idToken as payloadType) ?? null;
+            this._idToken = (idToken as jsonObject) ?? null;
             // TODO: no-storage configuration option
-            setStore("idToken", idToken);
+            setStore("idToken", this.idToken);
         });
 
         return res;

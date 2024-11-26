@@ -1,5 +1,6 @@
 import { customParametersType, getType, IOAuth2Parameters, parameterNames } from "../domain";
 import { toLowerCaseProperties } from "../utils";
+import { isJSON } from "../utils/isJason";
 
 export const _setParameters = (ioauth2Parameters = <customParametersType>{}, functionName = "") => {
 
@@ -74,11 +75,3 @@ export const _setParameters = (ioauth2Parameters = <customParametersType>{}, fun
 
     return parameters
 }
-
-const isJSON = (v: unknown) => {
-    try {
-        return !!v && typeof v == "string" && !!JSON.parse(v);
-    } catch {
-        return false;
-    }
-};

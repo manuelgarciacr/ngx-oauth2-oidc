@@ -1,5 +1,5 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from "@angular/common/http";
-import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, customParametersType, payloadType, workerRequest } from "../domain";
+import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, customParametersType, jsonObjectType, payloadType, stringsObject, workerRequest } from "../domain";
 import { debugFn } from "../utils";
 import { httpRequest } from "./_httpRequest";
 import { setStore } from "./_store";
@@ -59,7 +59,7 @@ export const request = async <T>(
 
     if (revocation_header) delete customParameters["token"];
 
-    const payload = {} as payloadType;
+    const payload = {} as stringsObject;
 
     // options to params
     for (const key in customParameters) {
@@ -82,7 +82,7 @@ export const request = async <T>(
 
     let req:
         | Observable<payloadType>
-        | Observable<{ data: payloadType; error: payloadType }>;
+        | Observable<{ data: payloadType; error: jsonObjectType }>;
 
     if (request instanceof HttpClient){
         if (method == "HREF") {
@@ -112,7 +112,7 @@ export const request = async <T>(
             url,
             headers: headersInit,
             parameters: payload,
-            body: undefined,
+            body: null,
             method,
         }, endpoint)
     }

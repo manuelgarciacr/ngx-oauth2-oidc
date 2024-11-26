@@ -1,3 +1,5 @@
+import { authorizationGrantType } from "..";
+
 /** Configuration object */
 const configuration = {
     /** File tag */
@@ -75,6 +77,3 @@ export const configurationOptions = Object.keys(configuration);
 export const authorizationGrantValues = [
     "code", "implicit", "hybrid", "free"
 ] as const;
-
-/** Authorization */
-export type authorizationGrantType = typeof authorizationGrantValues[number];

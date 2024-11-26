@@ -1,3 +1,4 @@
+import { customParametersType } from "..";
 import { IOAuth2VerifyTokenJoseOptions, IOAuth2VerifyTokenParameters } from "./IOAuth2Parameters";
 
 /** Methods object */
@@ -39,12 +40,3 @@ export interface IOAuth2Methods extends Partial<typeof methods> {}
 
 /** Method names */
 export const methodNames = Object.keys(methods);
-
-/** Oauth2 parameter type */
-export type parameterType = boolean | string | number | bigint | string[] | null;
-
-/** Oauth2 custom parameters type */
-export type customParametersType = {
-    [key: string]: parameterType;
-};
-

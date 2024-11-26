@@ -1,4 +1,4 @@
-import {  urlType } from "../index";
+import {  urlType } from "..";
 
 /** Discovery endpoint parameter names */
 const discoveryParameters = [] as string[];
@@ -194,16 +194,6 @@ export interface IOAuth2VerifyTokenJoseOptions
 export interface IOAuth2RevocationParameters
     extends Partial<typeof revocationParameters> {};
 
-/** Get endpoint custom parameter type */
-export const getType = (name: keyof IOAuth2Parameters) => {
-    const value = parameters[name];
-    return Array.isArray(value)
-        ? "array"
-        : value == "{}"
-        ? "json"
-        : typeof value;
-};
-
 /** Parameter names */
 export const parameterNames = {
     discovery: discoveryParameters,
@@ -213,4 +203,14 @@ export const parameterNames = {
     revocation: revocationParameters,
     verify_token: verifyTokenParameters,
     all: Object.keys(parameters),
+};
+
+/** Get endpoint custom parameter type */
+export const getType = (name: keyof IOAuth2Parameters) => {
+    const value = parameters[name];
+    return Array.isArray(value)
+        ? "array"
+        : value == "{}"
+        ? "json"
+        : typeof value;
 };

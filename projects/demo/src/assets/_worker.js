@@ -23,11 +23,14 @@ self.onmessage = event => {
             body = JSON.stringify(body ?? null)
         }
 
-        const options = {
-            headers,
-            body,
-            method,
-        };
+        const options =
+            method === "POST"
+                ? {
+                      headers,
+                      body,
+                      method,
+                  }
+                : { headers, method };
 
         const request = new Request(url, options);
 

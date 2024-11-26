@@ -1,4 +1,17 @@
-export { urlType, workerRequest, payloadType } from "./model/types";
+export {
+    urlType,
+    stringsObject,
+    optionalStringsObject,
+    jsonObject,
+    jsonObjectType,
+    payloadType,
+    workerRequest,
+    parameterType,
+    customParametersType,
+    authorizationGrantType,
+    methodType,
+} from "./model/types";
+
 export { IJwk } from "./model/IJwk";
 
 export {
@@ -8,21 +21,18 @@ export {
     IOAuth2VerifyTokenParameters,
     IOAuth2VerifyTokenJoseOptions,
     IOAuth2RevocationParameters,
-    getType,
     parameterNames,
+    getType,
 } from "./model/IOAuth2Parameters";
 
 export {
     IOAuth2Configuration,
     configurationOptions,
-    authorizationGrantType,
     authorizationGrantValues
 } from "./model/IOAuth2Configuration";
 
 export {
     IOAuth2Methods,
-    customParametersType,
-    parameterType,
     methodNames
 } from "./model/IOAuth2Methods";
 

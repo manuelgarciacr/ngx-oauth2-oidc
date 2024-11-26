@@ -2,8 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
-import { Oauth2Service, payloadType } from "ngx-oauth2-oidc";
-import { catchError, firstValueFrom, lastValueFrom, Observable, tap } from 'rxjs';
+import { jsonObjectType, methodType, Oauth2Service, payloadType } from "ngx-oauth2-oidc";
 import { openErrorDialog } from '../dialog/dialog.component';
 import { Pause } from '../utils/pause';
 
@@ -68,8 +67,6 @@ export class HomeComponent implements OnInit {
     };
 
     getApiData = () => {
-        if (!this.oauth2.callWorker) return;
-
         const noWorker = !!this.oauth2.config.configuration?.no_worker;
         const iss = this.oauth2.idToken?.["iss"] ?? "";
         const request =
@@ -90,7 +87,7 @@ export class HomeComponent implements OnInit {
             return;
         }
 
-        const method = request[0] as string;
+        const method = request[0] as methodType;
         const url = request[1] as string;
         const headers = {
                     Authorization: `Bearer ${this.accessToken()}`,
@@ -98,50 +95,23 @@ export class HomeComponent implements OnInit {
                     "Content-Type": "application/json",
                 };
         const body = request[2] as payloadType;
-        let req:
-            | Observable<
-                  payloadType | { data: payloadType; error: payloadType }
-              >
 
-        if (noWorker){
-           // Http request
-            req =
-                method == "POST"
-                    ? this.http.post<payloadType>(url, body, {
-                        headers,
-                        observe: "body",
-                    })
-                    : this.http.get<payloadType>(url, {
-                        headers,
-                        observe: "body",
-                    });
-        } else {
-            req = this.oauth2.callWorker({
-                url,
-                headers,
-                parameters: {},
-                body,
-                method,
-            }, (data: any) =>
-                console.log("GET_API_DATA", data)
-            )
-        }
-
-        firstValueFrom(
-            req
-                .pipe(
-                    tap(res => {
-                        const isWorker = Object.keys(res).sort().join("") == "dataerror";
-                        if (isWorker && res.error) throw res.error;
-                        const data = isWorker ? res.data : res
-                        this.apiData.set(JSON.stringify(data, null, 4))
-                    }),
-                    catchError(error => {
-                        openErrorDialog.bind(this)(error)
-                        throw error;
-                    })
-                )
-        );
+        this.oauth2.apiRequest({}, url, method, headers, body)
+            .then(res => {
+                const isWorker = Object.keys(res ?? {}).sort().join("") == "dataerror";
+                if (isWorker) {
+                    const response = res as {data: payloadType, error: jsonObjectType};
+                    if (response.error) throw response.error;
+                    this.apiData.set(JSON.stringify(response.data, null, 4))
+                } else {
+                    const response = res as payloadType
+                    this.apiData.set(JSON.stringify(response, null, 4))
+                }
+            })
+            .catch(err => {
+                openErrorDialog.bind(this)(err);
+                throw err;
+            });
     };
 
     refresh = async () => {
@@ -154,7 +124,7 @@ export class HomeComponent implements OnInit {
 
     implicitRefresh = async () => {
         try {
-            const sub = this.oauth2.idToken?.["sub"] ?? "";
+            const sub = (this.oauth2.idToken?.["sub"] as string) ?? "";
 
             await this.oauth2.authorization({
                 prompt: "none",
@@ -192,10 +162,10 @@ export class HomeComponent implements OnInit {
         const name =
             it?.["name"] ?? [it?.["given_name"], it?.["family_name"]].join(" ");
 
-        this.issuer.set(it?.["iss"] ?? "");
-        this.userName.set(name);
-        this.userEmail.set(it?.["email"] ?? "");
-        this.exp.set(it?.["exp"] ?? "");
+        this.issuer.set((it?.["iss"] as string) ?? "");
+        this.userName.set(name as string);
+        this.userEmail.set((it?.["email"] as string) ?? "");
+        this.exp.set((it?.["exp"] as string) ?? "");
         this.expires_in.set(parms?.["expires_in"] ?? 0);
         this.idToken.set(parms?.["id_token"] ?? "");
         this.accessToken.set(parms?.["access_token"] ?? "");

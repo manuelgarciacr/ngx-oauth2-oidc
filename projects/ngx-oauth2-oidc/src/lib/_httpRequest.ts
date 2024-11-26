@@ -1,6 +1,6 @@
 import { Observable, catchError, firstValueFrom, lastValueFrom, map, tap} from "rxjs";
 import { debugFn } from "../utils";
-import { IOAuth2Config, IOAuth2Metadata, IOAuth2Parameters, payloadType } from "../domain";
+import { IOAuth2Config, IOAuth2Metadata, IOAuth2Parameters, jsonObjectType, payloadType, stringsObject } from "../domain";
 import { updateParameters } from "./_updateParameters";
 import { updateMetadata } from "./_updateMetadata";
 
@@ -18,7 +18,7 @@ import { updateMetadata } from "./_updateMetadata";
  * @returns Promise with the request response (or error).
  */
 export const httpRequest = (
-    request: Observable<payloadType> | Observable<{data: payloadType, error: payloadType}>,
+    request: Observable<payloadType> | Observable<{data: payloadType, error: jsonObjectType}>,
     isHttpClient: boolean,
     config: IOAuth2Config, // Passed by reference and updated
     areParameters = true
@@ -28,9 +28,10 @@ export const httpRequest = (
     if (isHttpClient) {
         return lastValueFrom(
             (request as Observable<payloadType>).pipe(
-                map(res => areParameters ?
-                    updateParameters(res, config) :
-                    updateMetadata(res, config)
+                map(res =>
+                    areParameters
+                        ? updateParameters(res as stringsObject, config)
+                        : updateMetadata(res as stringsObject, config)
                 ),
                 catchError(err => {
                     throw err;
@@ -40,15 +41,17 @@ export const httpRequest = (
     }
 
     return firstValueFrom(
-        (request as Observable<{data: payloadType, error: payloadType}>).pipe(
+        (
+            request as Observable<{ data: payloadType; error: jsonObjectType }>
+        ).pipe(
             tap(res => {
-                if (res.error) throw res.error
+                if (res.error) throw res.error;
             }),
             map(res => res.data as payloadType),
             map(res =>
                 areParameters
-                    ? updateParameters(res, config)
-                    : updateMetadata(res, config)
+                    ? updateParameters(res as stringsObject, config)
+                    : updateMetadata(res as stringsObject, config)
             ),
             catchError(err => {
                 throw err;
