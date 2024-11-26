@@ -2,7 +2,6 @@ import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
 import { customParametersType, IOAuth2Config, jsonObject, jsonObjectType, methodType, payloadType, stringsObject, workerRequest } from "../domain";
 import { catchError, firstValueFrom, lastValueFrom, map, Observable, tap } from "rxjs";
 import { setStore } from "./_store";
-import { debugFn } from "../utils";
 
 export const _api_request = async <T>(
     request: HttpClient | workerRequest,
@@ -13,8 +12,6 @@ export const _api_request = async <T>(
     jsonHeaders  = <jsonObject>{},
     body = <payloadType>{}
 ): Promise<T> => {
-    debugFn("prv", "API_REQUEST", config, customParameters);
-
     const test = config.configuration?.test;
     const content_type =
         config.configuration?.content_type ??

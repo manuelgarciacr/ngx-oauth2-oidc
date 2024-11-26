@@ -5,7 +5,6 @@ import {
     customParametersType,
     metadataNames,
 } from "../domain";
-import { debugFn } from "../utils/debugFn";
 import { isObject, toLowerCaseProperties } from "../utils";
 import { _setParameters } from "./_setParameters";
 
@@ -20,8 +19,6 @@ import { _setParameters } from "./_setParameters";
  * @returns The internal configuration object
  */
 export const _oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
-    debugFn("mth", "OAUTH2_CONFIG_FACTORY", ioauth2Config);
-
     if (!ioauth2Config || Object.entries(ioauth2Config).length == 0)
         return {};
 

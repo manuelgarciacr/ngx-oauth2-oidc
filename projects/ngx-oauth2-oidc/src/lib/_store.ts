@@ -1,5 +1,4 @@
 import { IOAuth2Config } from "../domain";
-import { debugFn } from "../utils";
 
 /**
  * Sets/removes an oauth2 session storage item
@@ -8,8 +7,6 @@ import { debugFn } from "../utils";
  * @param val New value. If null or empty string, the item is removed.
  */
 export const setStore = (name: string, value: unknown = null) => {
-    debugFn("prv", "SET_STORE", name);
-
     const sto = sessionStorage;
 
     const val = JSON.parse(JSON.stringify(value));
@@ -32,8 +29,6 @@ export const setStore = (name: string, value: unknown = null) => {
  * @returns The stored value
  */
 export const getStore = (name: string): string | null => {
-    debugFn("prv", "GET_STORE", name);
-
     const sto = sessionStorage;
 
     name = `oauth2_${name}`;

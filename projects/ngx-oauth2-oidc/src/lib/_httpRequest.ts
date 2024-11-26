@@ -1,5 +1,4 @@
 import { Observable, catchError, firstValueFrom, lastValueFrom, map, tap} from "rxjs";
-import { debugFn } from "../utils";
 import { IOAuth2Config, IOAuth2Metadata, IOAuth2Parameters, jsonObjectType, payloadType, stringsObject } from "../domain";
 import { updateParameters } from "./_updateParameters";
 import { updateMetadata } from "./_updateMetadata";
@@ -23,8 +22,6 @@ export const httpRequest = (
     config: IOAuth2Config, // Passed by reference and updated
     areParameters = true
 ): Promise<IOAuth2Parameters | IOAuth2Metadata> => {
-    debugFn("prv", "HTTP_REQUEST", request);
-
     if (isHttpClient) {
         return lastValueFrom(
             (request as Observable<payloadType>).pipe(

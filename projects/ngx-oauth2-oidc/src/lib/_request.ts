@@ -1,6 +1,5 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from "@angular/common/http";
 import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, customParametersType, jsonObjectType, payloadType, stringsObject, workerRequest } from "../domain";
-import { debugFn } from "../utils";
 import { httpRequest } from "./_httpRequest";
 import { setStore } from "./_store";
 import { Observable } from "rxjs";
@@ -27,8 +26,6 @@ export const request = async <T>(
     customParameters = <customParametersType>{},
     endpoint: keyof IOAuth2Methods
 ): Promise<IOAuth2Parameters | IOAuth2Metadata> => {
-    debugFn("prv", "REQUEST", config, customParameters);
-
     const test = config.configuration?.test;
     const content_type =
         config.configuration?.content_type ??

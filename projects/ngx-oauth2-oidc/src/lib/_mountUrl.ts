@@ -1,5 +1,3 @@
-import { debugFn } from "../utils";
-
 /**
  * Returns a new URL form a base URL.
  *   Replaces the protocol if provided. Adds sufix if provided.
@@ -17,8 +15,6 @@ export const mountUrl = (
     sufix?: string,
     removeTrailingSlash?: boolean
 ) => {
-    debugFn("prv", "MOUNT_URL");
-
     let url = base;
 
     if (protocol) {

@@ -8,6 +8,7 @@ import {
 } from "@angular/common/http/testing";
 import { provideOAuth2 } from "../lib/provide-oauth2";
 import { IOAuth2Config } from "../domain";
+import { IOAuth2Parameters } from "ngx-oauth2-oidc";
 
 describe("Oauth2Service authorization", () => {
     const issuer = "issuerName";
@@ -132,7 +133,7 @@ describe("Oauth2Service authorization with test", () => {
                 const stored_payload = sessionStorage.getItem("oauth2_test");
 
                 expect(window.location.href).toBe(endpoint);
-                expect(v).toEqual([{}, payload]);
+                expect(v).toEqual(payload);
                 expect(JSON.parse(stored_payload ?? "")).toEqual(payload);
                 done();
             })
@@ -177,8 +178,8 @@ const getPayload = (cfg: IOAuth2Config) => {
     const nonce = cfg.parameters?.nonce ?? "";
     const code_challenge_method = cfg.parameters?.code_challenge_method ?? "";
     const code_challenge = cfg.parameters?.code_challenge ?? "";
-    const scope = "openid";
-    const response_type = "code";
+    const scope = ["openid"];
+    const response_type = ["code"];
 
     const payload = {
         state,
@@ -189,7 +190,7 @@ const getPayload = (cfg: IOAuth2Config) => {
         response_type,
     };
 
-    return payload
+    return payload as IOAuth2Parameters
 }
 
 const getEndPoint = (authorization_endpoint: any, payload: any) => {

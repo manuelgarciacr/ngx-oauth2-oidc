@@ -1,5 +1,4 @@
 import { getStoreObject, setStore } from "./_store";
-import { debugEnum, debugFn } from "../utils";
 import {
     HttpClient,
 } from "@angular/common/http";
@@ -39,7 +38,6 @@ export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     providedIn: "root",
 })
 export class Oauth2Service {
-    static debug = debugEnum.none;
     private readonly http = inject(HttpClient);
 
     private _config: IOAuth2Config = {};
@@ -55,6 +53,19 @@ export class Oauth2Service {
     //     "data:text/javascript;charset=US-ASCII,onmessage%20%3D%20function%20%28oEvent%29%20%7B%0A%09postMessage%28%7B%0A%09%09%22id%22%3A%20oEvent.data.id%2C%0A%09%09%22evaluated%22%3A%20eval%28oEvent.data.code%29%0A%09%7D%29%3B%0A%7D"
     // );
     private _workerListeners: (Function | null | string)[] = [];
+    private isWorkerAvailable = () => !!this._worker && !!this._worker?.terminate;
+    private useWebWorked = () => {
+        const isWorkerAvailable = this.isWorkerAvailable();
+        const no_worker = !!this._config.configuration?.no_worker;
+
+        if (!no_worker && !isWorkerAvailable) {
+            console.error(
+                "Web workers are not available. HttpClient will be used."
+            )
+        }
+
+        return !no_worker && isWorkerAvailable;
+    }
 
     get config() {
         return this._config;
@@ -81,8 +92,6 @@ export class Oauth2Service {
     constructor(
         @Inject(OAUTH2_CONFIG_TOKEN) protected oauth2Config?: IOAuth2Config
     ) {
-        debugFn("mth", "CONSTRUCTOR", oauth2Config);
-
         const storedConfig = getStoreObject("config");
         const initialConfig = getStoreObject("initialConfig");
         const idToken = getStoreObject("idToken");
@@ -91,14 +100,6 @@ export class Oauth2Service {
         this._config = _oauth2ConfigFactory(config);
         this._initialConfig = initialConfig as IOAuth2Config;
         this._idToken = idToken as jsonObject;
-
-        if (storedConfig) {
-            debugFn("int", "STORED CONFIGURATION", storedConfig);
-        }
-
-        if (oauth2Config) {
-            debugFn("int", "CONSTRUCTOR CONFIGURATION", oauth2Config);
-        }
 
         if (oauth2Config && !storedConfig) {
             setStore("initialConfig", this.config);
@@ -181,16 +182,7 @@ export class Oauth2Service {
     };
 
     setConfig = (oauth2Config: IOAuth2Config) => {
-        debugFn("mth", "SET_CONFIG", { ...oauth2Config });
-
         const config = _oauth2ConfigFactory(oauth2Config);
-
-        debugFn(
-            "int",
-            "SET_CONFIG INTERNAL",
-            JSON.stringify(oauth2Config, null, 4),
-            JSON.stringify(config, null, 4)
-        );
 
         this._config = config;
         this._initialConfig = config;
@@ -207,8 +199,6 @@ export class Oauth2Service {
     };
 
     setParameters = (parameters: IOAuth2Parameters) => {
-        debugFn("mth", "SET_PARAMETERS", { ...parameters });
-
         const parms = { ...parameters };
         const configParms = { ...this._config.parameters };
 
@@ -233,8 +223,6 @@ export class Oauth2Service {
     };
 
     removeIdToken = () => {
-        debugFn("mth", "REMOVE_ID_TOKEN");
-
         this._idToken = null;
         setStore("idToken");
     };
@@ -254,10 +242,8 @@ export class Oauth2Service {
         customParameters = <customParametersType>{},
         url?: string
     ) => {
-        debugFn("mth", "FETCH_DISCOVERY_DOC");
-
         return _fetchDiscoveryDoc(
-            this._config.configuration?.no_worker ? this.http : this.callWorker,
+            this.useWebWorked() ? this.callWorker : this.http,
             this._config, // Parameter passed by reference and updated (config.metadata)
             customParameters,
             url
@@ -281,10 +267,8 @@ export class Oauth2Service {
         statePayload?: string,
         url?: string
     ) => {
-        debugFn("mth", "AUTHORIZATION");
-
         return _authorization(
-            this._config.configuration?.no_worker ? this.http : this.callWorker,
+            this.useWebWorked() ? this.callWorker : this.http,
             this._config, // Parameter passed by reference and updated (config.parameters)
             customParameters,
             statePayload,
@@ -296,10 +280,8 @@ export class Oauth2Service {
         customParameters = <customParametersType>{},
         url?: string
     ) => {
-        debugFn("mth", "TOKEN");
-
         return _token(
-            this._config.configuration?.no_worker ? this.http : this.callWorker,
+            this.useWebWorked() ? this.callWorker : this.http,
             this._config, // Parameter passed by reference and updated (config.parameters)
             {
                 grant_type: "authorization_code",
@@ -316,10 +298,8 @@ export class Oauth2Service {
         headers: jsonObject = {},
         body: payloadType = {}
     ) => {
-        debugFn("mth", "API_REQUEST");
-
         return _api_request(
-            this._config.configuration?.no_worker ? this.http : this.callWorker,
+            this.useWebWorked() ? this.callWorker : this.http,
             this.config,
             customParameters,
             url,
@@ -333,10 +313,8 @@ export class Oauth2Service {
         customParameters = <customParametersType>{},
         url?: string
     ) => {
-        debugFn("mth", "REFRESH");
-
         return _token(
-            this._config.configuration?.no_worker ? this.http : this.callWorker,
+            this.useWebWorked() ? this.callWorker : this.http,
             this._config, // Parameter passed by reference and updated (config.parameters)
             {
                 grant_type: "refresh_token",
@@ -351,10 +329,8 @@ export class Oauth2Service {
         customParameters = <customParametersType>{},
         url?: string
     ) => {
-        debugFn("mth", "REVOCATION");
-
         return _revocation(
-            this._config.configuration?.no_worker ? this.http : this.callWorker,
+            this.useWebWorked() ? this.callWorker : this.http,
             this._config, // Parameter passed by reference and could be updated (config.parameters)
             customParameters,
             url
@@ -366,8 +342,6 @@ export class Oauth2Service {
         issuer?: string,
         jwks_uri?: string
     ) => {
-        debugFn("mth", "VERIFY_TOKEN");
-
         this._idToken = null;
         // TODO: no-storage configuration option
         setStore("idToken");
@@ -387,8 +361,6 @@ export class Oauth2Service {
     };
 
     interceptor = async () => {
-        debugFn("mth", "INTERCEPTOR");
-
         const int = _interceptor(
             this._config // Parameter passed by reference and updated (config.parameters)
         );
