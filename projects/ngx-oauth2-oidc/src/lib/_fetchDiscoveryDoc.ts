@@ -6,8 +6,6 @@ import { request as fnRequest } from "./_request";
 import { _setParameters } from "./_setParameters";
 import { getParameters } from "./_getParameters";
 
-// TODO: no-storage configuration option
-
 /**
  * Request to the discovery endpoint. Returns the discovery document and saves
  *   the metadata in the configuration object (in memory and storage). HttpClient
@@ -29,6 +27,7 @@ export const _fetchDiscoveryDoc = async (
 ): Promise<IOAuth2Metadata> => {
     // Configuration options
     const test = config.configuration?.test;
+    const storage = config.configuration?.storage;
     const discovery_endpoint = config.configuration?.discovery_endpoint;
     const sufix =
         config.configuration?.well_known_sufix ??
@@ -43,8 +42,7 @@ export const _fetchDiscoveryDoc = async (
         ...customParameters,
     });
 
-    // TODO: no-storage configuration option
-    setStore("test", test ? {} : null);
+    setStore("test", storage && test ? {} : null);
 
     if (!url)
         throw new Error(

@@ -4,14 +4,20 @@ import { IOAuth2Config } from "../domain";
  * Sets/removes an oauth2 session storage item
  *
  * @param name Name of the session storage key. Internally is prefixed by "oauth2_"
- * @param val New value. If null or empty string, the item is removed.
+ * @param value New value. If null or empty string, the item is removed.
  */
-export const setStore = (name: string, value: unknown = null) => {
+export const setStore = (
+    name: string,
+    value: unknown = null
+) => {
     const sto = sessionStorage;
 
     const val = JSON.parse(JSON.stringify(value));
 
     if (name == "config" && !!value) {
+        delete (val as IOAuth2Config)?.parameters?.id_token;
+        delete (val as IOAuth2Config)?.parameters?.access_token;
+        delete (val as IOAuth2Config)?.parameters?.refresh_token;
         delete (val as IOAuth2Config)?.parameters?.code;
         delete (val as IOAuth2Config)?.parameters?.client_secret;
         delete (val as IOAuth2Config)?.parameters?.code_challenge;
@@ -28,7 +34,9 @@ export const setStore = (name: string, value: unknown = null) => {
  * @param name Name of the session storage key. Internally is prefixed by "oauth2_"
  * @returns The stored value
  */
-export const getStore = (name: string): string | null => {
+export const getStore = (
+    name: string
+): string | null => {
     const sto = sessionStorage;
 
     name = `oauth2_${name}`;
@@ -41,8 +49,10 @@ export const getStore = (name: string): string | null => {
  * @param name Name of the session storage key. Internally is prefixed by "oauth2_"
  * @returns The stored value
  */
-export const getStoreObject = (name: string): object | null => {
+export const getStoreObject = (
+    name: string
+): object | null => {
     const str = getStore(name);
 
     return str ? (JSON.parse(str) as object) : null;
-}
+};

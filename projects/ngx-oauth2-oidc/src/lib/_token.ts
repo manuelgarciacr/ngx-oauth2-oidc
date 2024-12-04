@@ -31,6 +31,7 @@ export const _token = async (
 ) => {
     // Configuration options
     const test = config.configuration?.test;
+    const storage = config.configuration?.storage;
     const no_pkce = !!config.configuration?.no_pkce;
     // Metadata fields
     const token_endpoint = config?.metadata?.token_endpoint;
@@ -43,8 +44,7 @@ export const _token = async (
     });
     const grant_type = parms["grant_type"];
 
-    // TODO: no-storage configuration option
-    setStore("test", test ? {} : null);
+    setStore("test", storage && test ? {} : null);
 
     ///////////////////////////////////////////////////////////////////
     //
@@ -84,8 +84,15 @@ export const _token = async (
             delete config.token?.["code_verifier"];
             delete config.parameters?.code_verifier;
 
-            // TODO: no-storage configuration option
-            setStore("config", config);
+            const id_token = config.parameters?.id_token;
+
+            setStore(
+                "config",
+                storage
+                    ? config
+                    : null
+            );
+
         }
     }
 

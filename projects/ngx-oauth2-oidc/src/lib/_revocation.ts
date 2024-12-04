@@ -11,8 +11,6 @@ import { getParameters } from "./_getParameters";
 import { setStore } from "./_store";
 import { _setParameters } from "./_setParameters";
 
-// TODO: no-storage configuration option
-
 /**
  * Access token revocation within configuration. If the parameter token_type_hint
  *   is equal to 'refresh_token' and the refresh_token exists, it is revoked. Default
@@ -34,6 +32,7 @@ export const _revocation = async (
 ) => {
     // Configuration options
     const test = config.configuration?.test;
+    const storage = config.configuration?.storage;
     // Metadata fields
     const revocation_endpoint = config.metadata?.revocation_endpoint;
     // url
@@ -48,8 +47,7 @@ export const _revocation = async (
     const refresh_token = parms["refresh_token"];
     let token = parms["token"] as parameterType | undefined;
 
-    // TODO: no-storage configuration option
-    setStore("test", test ? {} : null);
+    setStore("test", storage && test ? {} : null);
 
     ///////////////////////////////////////////////////////////////////
     //

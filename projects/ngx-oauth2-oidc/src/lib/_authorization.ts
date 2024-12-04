@@ -27,11 +27,12 @@ export const _authorization = async (
     request: HttpClient | workerRequest,
     config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
     customParameters = <customParametersType>{},
-    statePayload?: string,
+    statePayload: string = "",
     url?: string
 ): Promise<IOAuth2Parameters> => {
     // Configuration options
     const test = config.configuration?.test;
+    const storage = config.configuration?.storage;
     const no_pkce = !!config.configuration?.no_pkce;
     const no_state = !!config.configuration?.no_state;
     // TODO: authorization_grant 'hybrid' and 'free'
@@ -60,14 +61,9 @@ export const _authorization = async (
         | undefined;
     const code_challenge = parms["code_challenge"] as string | undefined;
     const pkce = { code_challenge, code_challenge_method, code_verifier };
-    const readState = parms["state"] as string | undefined;
-    const state = {
-        state: statePayload ? readState + statePayload : readState,
-    };
-    const nonce = { nonce: parms["nonce"] as string | undefined };
+    let stateString, state, nonce;
 
-    // TODO: no-storage configuration option
-    setStore("test", test ? {} : null);
+    setStore("test", storage && test ? {} : null);
 
     ///////////////////////////////////////////////////////////////////
     //
@@ -142,27 +138,22 @@ export const _authorization = async (
 
     // STATE
 
-    for (const prop in state) delete (state as parmsObject)[prop];
-
-    if (no_state) {
+    if (no_state && storage) {
         delete parms["state"];
     } else {
-        Object.assign(state, {
-            state: notStrNull(parms["state"], secureRandom(2)) + statePayload,
-        });
+        stateString = notStrNull(parms["state"], secureRandom(2));
+        state = { state: stateString + statePayload }
     }
 
     // NONCE
 
     const idTokenIdx = response_type.indexOf("id_token");
 
-    for (const prop in nonce) delete (nonce as parmsObject)[prop];
-
     if (grant == "code" || (grant == "implicit" && idTokenIdx >= 0)) {
         // TODO: Hashed nonce
         const str_nonce = notStrNull(parms["nonce"], secureRandom(2));
 
-        Object.assign(nonce, { nonce: str_nonce });
+        nonce = { nonce: str_nonce }
     } else {
         delete parms["nonce"];
     }
@@ -196,8 +187,12 @@ export const _authorization = async (
         ...newParameters,
     };
 
-    // TODO: no-storage configuration option
-    setStore("config", config);
+    setStore(
+        "config",
+        storage
+            ? config
+            : null
+    );
 
     return fnRequest<IOAuth2Parameters>(
         "HREF",

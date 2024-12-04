@@ -1,20 +1,27 @@
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, HostListener, inject, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { jsonObjectType, methodType, Oauth2Service, payloadType } from "ngx-oauth2-oidc";
 import { openErrorDialog } from '../dialog/dialog.component';
 import { Pause } from '../utils/pause';
+import { NgIf } from '@angular/common';
 
 @Component({
     selector: "app-home",
     standalone: true,
-    imports: [],
+    imports: [NgIf],
     templateUrl: "./home.component.html",
     styleUrl: "./home.component.scss",
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent implements OnInit {
+    @HostListener("window:unload")
+    onBeforeUnload(): boolean {
+        debugger
+        this.oauth2.saveState();
+        return true;
+    }
     private router = inject(Router);
     private http = inject(HttpClient);
     private readonly oauth2 = inject(Oauth2Service);
@@ -35,29 +42,36 @@ export class HomeComponent implements OnInit {
             : new Date("");
     });
     protected readonly refreshToken = signal("");
+    protected readonly refreshExpiration = signal("unknown");
     protected readonly apiData = signal("");
 
     async ngOnInit() {
-        const head = "data:text/javascript;charset=UTF-8,";
+        const no_worker = this.oauth2.config.configuration?.no_worker;
 
-        this.http
-            .get("assets/_worker.js", { responseType: "text" })
-            .subscribe(data => {
-                this.oauth2.setWorker(head + encodeURIComponent(data));
-            });
+        if (!no_worker) {
+            const head = "data:text/javascript;charset=UTF-8,";
 
-        const pause = Pause(100);
-        await pause.start();
+            this.http
+                .get("assets/_worker.js", { responseType: "text" })
+                .subscribe(data => {
+                    this.oauth2.setWorker(head + encodeURIComponent(data));
+                });
+
+            const pause = Pause(100);
+            await pause.start();
+        }
 
         // Prevent storage tampering
         window.addEventListener("storage", () => this.logout());
 
+        this.getTokensData();
+
         try {
             await this.oauth2.interceptor();
-            this.getTokensData();
             this.getApiData();
+            this.getTokensData();
         } catch (err) {
-            openErrorDialog.bind(this)(err)
+            openErrorDialog.bind(this)(err);
         }
     }
 
@@ -78,7 +92,7 @@ export class HomeComponent implements OnInit {
                 ? [
                       "POST",
                       "https://api.dropboxapi.com/2/files/list_folder",
-                      {"path": ""} // '{"path": ""}',
+                      { path: "" }, // '{"path": ""}',
                   ]
                 : "";
 
@@ -90,34 +104,41 @@ export class HomeComponent implements OnInit {
         const method = request[0] as methodType;
         const url = request[1] as string;
         const headers = {
-                    Authorization: `Bearer ${this.accessToken()}`,
-                    accept: "application/json",
-                    "Content-Type": "application/json",
-                };
+            Authorization: `Bearer ${this.oauth2.config.parameters?.access_token ?? ""}`,
+            accept: "application/json",
+            "Content-Type": "application/json",
+        };
         const body = request[2] as payloadType;
 
-        this.oauth2.apiRequest({}, url, method, headers, body)
+        this.oauth2
+            .apiRequest({}, url, method, headers, body)
             .then(res => {
-                const isWorker = Object.keys(res ?? {}).sort().join("") == "dataerror";
+                const isWorker =
+                    Object.keys(res ?? {})
+                        .sort()
+                        .join("") == "dataerror";
                 if (isWorker) {
-                    const response = res as {data: payloadType, error: jsonObjectType};
+                    const response = res as {
+                        data: payloadType;
+                        error: jsonObjectType;
+                    };
                     if (response.error) throw response.error;
-                    this.apiData.set(JSON.stringify(response.data, null, 4))
+                    this.apiData.set(JSON.stringify(response.data, null, 4));
                 } else {
-                    const response = res as payloadType
-                    this.apiData.set(JSON.stringify(response, null, 4))
+                    const response = res as payloadType;
+                    this.apiData.set(JSON.stringify(response, null, 4));
                 }
             })
             .catch(err => {
                 openErrorDialog.bind(this)(err);
-                throw err;
+                // throw err;
             });
     };
 
     refresh = async () => {
         const issuer = this.oauth2.config?.metadata?.["issuer"] ?? "";
         const implicit = issuer == "https://accounts.google.com";
-
+        this.oauth2.setParameters({access_token: undefined})
         if (implicit) this.implicitRefresh();
         else this.tokenRefresh();
     };
@@ -131,28 +152,27 @@ export class HomeComponent implements OnInit {
                 login_hint: sub,
                 redirect_uri: window.location.href.split("#")[0].split("?")[0],
                 // I only want a new access_token.
-                response_type: "token"
+                response_type: "token",
             });
         } catch (err) {
-            console.error(err);
-            this.logout();
+            openErrorDialog.bind(this)(err);
         }
     };
 
     tokenRefresh = async () => {
         try {
             await this.oauth2.refresh();
-            this.getTokensData();
         } catch (err) {
-            openErrorDialog.bind(this)(err)
+            openErrorDialog.bind(this)(err);
         }
+        this.getTokensData();
     };
 
     revocation = async () => {
         try {
             await this.oauth2.revocation();
         } catch (err) {
-            openErrorDialog.bind(this)(err)
+            openErrorDialog.bind(this)(err);
         }
     };
 

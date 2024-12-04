@@ -1,7 +1,4 @@
 {
-    "configuration": {
-        "tag": "gitlab"
-    },
     "metadata": {
         "issuer": "https://gitlab.com/"
     },

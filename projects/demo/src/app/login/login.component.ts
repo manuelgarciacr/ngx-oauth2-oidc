@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatCard, MatCardActions, MatCardTitle } from '@angular/material/card';
@@ -14,7 +14,13 @@ import { firstValueFrom, tap } from 'rxjs';
 
 @Component({
     standalone: true,
-    imports: [CommonModule, MatCard, MatCardTitle, MatCardActions, MatButton],
+    imports: [
+        NgOptimizedImage,
+        MatCard,
+        MatCardTitle,
+        MatCardActions,
+        MatButton,
+    ],
     templateUrl: `login.component.html`,
     styleUrl: "./login.component.scss",
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,14 +34,16 @@ export class LoginComponent {
     readonly dialog = inject(MatDialog);
 
     async ngOnInit() {
-        const head = "data:text/javascript;charset=UTF-8,";
-        await firstValueFrom(
-            this.http
-                .get("assets/_worker.js", { responseType: "text" })
-                .pipe(
-                    tap(res => this.oauth2.setWorker(head + res))
-                )
-        )
+        const no_worker = this.oauth2.config.configuration?.no_worker;
+
+        if (!no_worker) {
+            const head = "data:text/javascript;charset=UTF-8,";
+            await firstValueFrom(
+                this.http
+                    .get("assets/_worker.js", { responseType: "text" })
+                    .pipe(tap(res => this.oauth2.setWorker(head + res)))
+            );
+        }
 
         try {
             await this.oauth2.interceptor();
@@ -67,12 +75,11 @@ export class LoginComponent {
         try {
             this.oauth2.setConfig(cfg);
             await this.oauth2.fetchDiscoveryDoc();
-            await this.oauth2.authorization();
+            await this.oauth2.authorization({}, "Perico De Los Palotes");
         } catch (err) {
             openErrorDialog.bind(this)(err);
         } finally {
             this._working.set(false);
         }
     };
-
 }

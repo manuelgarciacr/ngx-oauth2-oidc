@@ -3,14 +3,15 @@
 <label><b class="mx-4">User email:</b> {{ userEmail() }}</label><br>
 <label>
     <b class="mx-4">Id token:</b> {{ idToken() ? "received" : "missing"}}
-    <b class="mx-4">expiration:</b> {{ idExpiration() }}
+    <ng-container *ngIf="idToken()"><b class="mx-4">expiration:</b> {{ idExpiration() }}</ng-container>
 </label><br>
 <label>
     <b class="mx-4">Access token:</b> {{ accessToken() ? "received" : "missing"}}
-    <b class="mx-4">expiration:</b> {{ accessExpiration() }}
+    <ng-container *ngIf="accessToken()"><b class="mx-4">expiration:</b> {{ accessExpiration() }}</ng-container>
 </label><br>
 <label>
     <b class="mx-4">Refresh token:</b> {{ refreshToken() ? "received" : "missing"}}
+    <ng-container *ngIf="refreshToken()"><b class="mx-4">expiration:</b> {{ refreshExpiration() }}</ng-container>
 </label><br>
 <label class="d-flex">
     <b class="mx-4 align-top">API data:</b>

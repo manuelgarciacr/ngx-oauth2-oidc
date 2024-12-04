@@ -27,6 +27,7 @@ export const request = async <T>(
     endpoint: keyof IOAuth2Methods
 ): Promise<IOAuth2Parameters | IOAuth2Metadata> => {
     const test = config.configuration?.test;
+    const storage = config.configuration?.storage;
     const content_type =
         config.configuration?.content_type ??
         "application/x-www-form-urlencoded";
@@ -44,8 +45,7 @@ export const request = async <T>(
     };
     const headers = new HttpHeaders(headersInit);
 
-    // TODO: no-storage configuration option
-    setStore("test", test ? {} : null);
+    setStore("test", storage && test ? {} : null);
 
     if (!url) {
         const err = new Error(`missing endpoint.`, {
@@ -73,24 +73,33 @@ export const request = async <T>(
             ? payload
             : { "@URL": url };
 
-        // TODO: no-storage configuration option
-        setStore("test", data);
+        setStore("test", storage ? data : null);
     }
 
     let req:
         | Observable<payloadType>
         | Observable<{ data: payloadType; error: jsonObjectType }>;
 
+    if (method == "HREF") {
+        document.cookie =
+            "ngx_oauth2_oidc=luis; secure; samesite=strict";
+
+        sessionStorage.setItem(
+            "oauth2_unload",
+            JSON.stringify({
+                config,
+             })
+        );
+
+        // Redirection
+        const req = new HttpRequest<string>(method, url, null, {
+            params,
+        });
+        location.href = req.urlWithParams;
+        return {};
+    }
+
     if (request instanceof HttpClient){
-        if (method == "HREF") {
-            // Redirection
-            const req = new HttpRequest<string>(method, url, null, {
-                //headers,
-                params
-            });
-            location.href = req.urlWithParams;
-            return {};
-        }
         // Http request
         req =
             method == "POST"

@@ -1,4 +1,3 @@
-// Listen for messages from the main script
 self.onmessage = event => {
     try {
         const { headers, parameters, method } = event.data.options;
@@ -20,7 +19,7 @@ self.onmessage = event => {
         }
 
         if (method === "POST" && !isUrlencoded) {
-            body = JSON.stringify(body ?? null)
+            body = JSON.stringify(body ?? null);
         }
 
         const options =
@@ -34,26 +33,29 @@ self.onmessage = event => {
 
         const request = new Request(url, options);
 
-        return fetch(request)
-            .then(async res => {
-                const clone = res.clone();
-                const text = clone.text();
+        return (
+            fetch(request)
+                .then(async res => {
+                    const clone = res.clone();
+                    const text = clone.text();
 
-                try {
-                    return [res.ok, await res.json()]
-                } catch (_) {
-                    return [res.ok, await text]
-                }
-            })
-            .then(res => {
-                // Process the response data
-                if (res[0]) self.postMessage({ id: event.data.id, data: res[1] });
-                else throw res[1];
-            })
-            // TODO: remove catch
-            .catch(error => {
-                self.postMessage({ id: event.data.id, error });
-            });
+                    try {
+                        return [res.ok, await res.json()];
+                    } catch (_) {
+                        return [res.ok, await text];
+                    }
+                })
+                .then(res => {
+                    // Process the response data
+                    if (res[0])
+                        self.postMessage({ id: event.data.id, data: res[1] });
+                    else throw res[1];
+                })
+                // TODO: remove catch
+                .catch(error => {
+                    self.postMessage({ id: event.data.id, error });
+                })
+        );
     } catch (error) {
         self.postMessage({ id: event.data.id, error });
     }

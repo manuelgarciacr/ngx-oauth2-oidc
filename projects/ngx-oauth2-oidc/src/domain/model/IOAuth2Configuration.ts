@@ -38,15 +38,20 @@ const configuration = {
     no_worker: false,
 
     /**
-     * If true, the revocation endpoint includes the the token in the authorization
-     *  header. Default is false.
+     * If true, the service will have access to the storage. Default is false.
      */
-    revocation_header: false,
+    storage: false,
 
     /**
      * If true, the methods return the request parameters along with the response.
      */
     test: false,
+
+    /**
+     * If true, the revocation endpoint includes the the token in the authorization
+     *  header. Default is false.
+     */
+    revocation_header: false,
 
     /**
      * Predefined discovery document URI.

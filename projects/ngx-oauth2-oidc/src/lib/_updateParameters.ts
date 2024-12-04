@@ -15,6 +15,7 @@ export const updateParameters = (
     obj: { [key: string]: string },
     config: IOAuth2Config // Passed by reference and updated (configuration.parameters)
 ) => {
+    const storage = config.configuration?.storage;
     const newObj = <customParametersType>{}; //<IOAuth2Parameters>{};
 
     // TODO: test number and boolean conversion
@@ -44,8 +45,12 @@ export const updateParameters = (
         ...newObj,
     };
 
-    // TODO: no-storage configuration option
-    setStore("config", config);
+    setStore(
+        "config",
+        storage
+            ? config
+            : null
+    );
 
     return newObj as IOAuth2Parameters;
 };

@@ -29,6 +29,7 @@ import { _errorArray } from "./_errorArray";
 import { _setParameters } from "./_setParameters";
 import { catchError, filter, fromEvent, map, tap } from "rxjs";
 import { _api_request } from "./_apiReguest";
+import { Router } from "@angular/router";
 
 export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     "OAuth2 Config"
@@ -39,10 +40,9 @@ export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
 })
 export class Oauth2Service {
     private readonly http = inject(HttpClient);
+    private readonly router = inject(Router);
 
     private _config: IOAuth2Config = {};
-    private _initialConfig: IOAuth2Config = {};
-    // private _jwks: IJwk[] | null = null;
     private _idToken: jsonObject | null = null; // Api user id_token claims
     private _isIdTokenIntercepted = false;
     private _isAccessTokenIntercepted = false;
@@ -53,7 +53,8 @@ export class Oauth2Service {
     //     "data:text/javascript;charset=US-ASCII,onmessage%20%3D%20function%20%28oEvent%29%20%7B%0A%09postMessage%28%7B%0A%09%09%22id%22%3A%20oEvent.data.id%2C%0A%09%09%22evaluated%22%3A%20eval%28oEvent.data.code%29%0A%09%7D%29%3B%0A%7D"
     // );
     private _workerListeners: (Function | null | string)[] = [];
-    private isWorkerAvailable = () => !!this._worker && !!this._worker?.terminate;
+    private isWorkerAvailable = () =>
+        !!this._worker && !!this._worker?.terminate;
     private useWebWorked = () => {
         const isWorkerAvailable = this.isWorkerAvailable();
         const no_worker = !!this._config.configuration?.no_worker;
@@ -61,17 +62,14 @@ export class Oauth2Service {
         if (!no_worker && !isWorkerAvailable) {
             console.error(
                 "Web workers are not available. HttpClient will be used."
-            )
+            );
         }
 
         return !no_worker && isWorkerAvailable;
-    }
+    };
 
     get config() {
         return this._config;
-    }
-    get initialConfig() {
-        return this._initialConfig;
     }
     get idToken() {
         return this._idToken;
@@ -92,18 +90,32 @@ export class Oauth2Service {
     constructor(
         @Inject(OAUTH2_CONFIG_TOKEN) protected oauth2Config?: IOAuth2Config
     ) {
-        const storedConfig = getStoreObject("config");
-        const initialConfig = getStoreObject("initialConfig");
-        const idToken = getStoreObject("idToken");
-        const config = storedConfig ?? oauth2Config ?? {};
+        const unload = JSON.parse(
+            sessionStorage.getItem("oauth2_unload") ?? "{}"
+        );
+        const storedConfig = getStoreObject("config") as IOAuth2Config;
+        const idToken = getStoreObject("idToken") as jsonObject;
+        const newConfig = unload.config ?? storedConfig ?? oauth2Config ?? {};
+        const config = _oauth2ConfigFactory(newConfig);
+        const storage = config.configuration?.storage;
 
-        this._config = _oauth2ConfigFactory(config);
-        this._initialConfig = initialConfig as IOAuth2Config;
-        this._idToken = idToken as jsonObject;
+        this._config = config;
+        this._idToken = unload.idToken ?? idToken;
 
-        if (oauth2Config && !storedConfig) {
-            setStore("initialConfig", this.config);
-        }
+        sessionStorage.removeItem("oauth2_unload");
+        document.cookie = "ngx_oauth2_oidc=; max-age=0";
+
+        setStore(
+            "config",
+            storage
+                ? config
+                // : !!id_token
+                // ? { parameters: { id_token } }
+                : null
+        );
+        setStore("idToken", storage ? this.idToken : null);
+        setStore("test");
+
     }
 
     private callWorker = (
@@ -131,10 +143,11 @@ export class Oauth2Service {
             "message"
         ).pipe(
             tap(
-                ev =>
-                    ev.data.type === "redirect" && (location.href = ev.data.url)
+                ev => ev.data.type === "redirect" && (location.href = ev.data.url)
             ),
-            filter(ev => ev.data.id === id),
+            filter(ev =>
+                ev.data.id === id
+            ),
             tap(ev => {
                 const execute =
                     lst[id] !== "@@empty" &&
@@ -169,7 +182,7 @@ export class Oauth2Service {
 
         this._worker = new Worker(code);
 
-        if (!this._worker.terminate) {
+        if (!this._worker?.terminate) {
             console.error("Web worker is not running");
             return;
         }
@@ -183,15 +196,19 @@ export class Oauth2Service {
 
     setConfig = (oauth2Config: IOAuth2Config) => {
         const config = _oauth2ConfigFactory(oauth2Config);
+        const storage = config.configuration?.storage;
 
         this._config = config;
-        this._initialConfig = config;
         this._idToken = null;
 
-        // TODO: no-storage configuration option
+        if (!storage) return;
 
-        setStore("config", config);
-        setStore("initialConfig", config);
+        setStore(
+            "config",
+            storage
+                ? config
+                : null
+        );
         setStore("idToken");
         setStore("test");
 
@@ -200,7 +217,8 @@ export class Oauth2Service {
 
     setParameters = (parameters: IOAuth2Parameters) => {
         const parms = { ...parameters };
-        const configParms = { ...this._config.parameters };
+        const configParms = { ...this.config.parameters };
+        const storage = this.config.configuration?.storage;
 
         for (const parm in parameters) {
             const key = parm as keyof IOAuth2Parameters;
@@ -218,13 +236,12 @@ export class Oauth2Service {
 
         this._config.parameters = { ...configParms, ...parameters };
 
-        // TODO: no-storage configuration option
-        setStore("config", this.config);
-    };
-
-    removeIdToken = () => {
-        this._idToken = null;
-        setStore("idToken");
+        setStore(
+            "config",
+            storage
+                ? this.config
+                : null
+        );
     };
 
     /**
@@ -342,8 +359,10 @@ export class Oauth2Service {
         issuer?: string,
         jwks_uri?: string
     ) => {
+        const storage = this.config.configuration?.storage;
+
         this._idToken = null;
-        // TODO: no-storage configuration option
+
         setStore("idToken");
 
         const res = _verify_token(
@@ -353,8 +372,7 @@ export class Oauth2Service {
             jwks_uri
         ).then(idToken => {
             this._idToken = (idToken as jsonObject) ?? null;
-            // TODO: no-storage configuration option
-            setStore("idToken", this.idToken);
+            setStore("idToken", storage ? this.idToken : null);
         });
 
         return res;
@@ -373,6 +391,19 @@ export class Oauth2Service {
 
         return int;
     };
+
+    saveState = () => {
+        debugger
+        console.log(this.router)
+        document.cookie = "ngx_oauth2_oidc=luis; secure; samesite=strict";
+        sessionStorage.setItem(
+            "oauth2_unload",
+            JSON.stringify({
+                config: this.config,
+                idToken: this.idToken,
+            })
+        );
+    }
 
     errorArray = (err: unknown) => {
         return _errorArray(err);

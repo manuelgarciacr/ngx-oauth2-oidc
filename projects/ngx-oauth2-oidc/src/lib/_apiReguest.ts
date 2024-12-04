@@ -38,7 +38,6 @@ export const _api_request = async <T>(
     };
     const headers = new HttpHeaders(headersInit);
 
-    // TODO: no-storage configuration option
     setStore("test", test ? {} : null);
 
     if (!url) {
@@ -65,7 +64,6 @@ export const _api_request = async <T>(
             ? payload
             : { "@URL": url };
 
-        // TODO: no-storage configuration option
         setStore("test", data);
     }
 

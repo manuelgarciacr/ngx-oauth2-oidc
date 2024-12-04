@@ -69,9 +69,6 @@ export const _oauth2ConfigFactory = (ioauth2Config = <IOAuth2Config>{}) => {
         .split("#")[0]
         .split("?")[0];
 
-    // TODO: _setMetadata function
-    // Metadata names are not unexpected (are warnings)
-
     cfg.metadata ??= {};
 
     const metaKeys = Object.keys(cfg.metadata);

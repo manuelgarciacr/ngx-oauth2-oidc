@@ -27,6 +27,7 @@ export const _verify_token = async (
 ) => {
     // Configuration options
     const test = config.configuration?.test;
+    const storage = config.configuration?.storage;
     // Metadata fields
     const issuer = _issuer ?? config.metadata?.issuer ?? "";
     const jwks_uri = _jwks_uri ?? config.metadata?.jwks_uri ?? "";
@@ -40,8 +41,7 @@ export const _verify_token = async (
     const id_token = str("id_token");
     const nonce = str("nonce");
 
-    // TODO: no-storage configuration option
-    setStore("test", test ? {} : null);
+    setStore("test", storage && test ? {} : null);
 
     if (!id_token) return;
 
@@ -123,8 +123,7 @@ export const _verify_token = async (
     ///////////////////////////////////////////////////////////////////
 
     if (test) {
-        // TODO: no-storage configuration option
-        setStore("test", parms);
+        setStore("test", storage ? parms : null);
     }
 
     return Promise.resolve(payload);
