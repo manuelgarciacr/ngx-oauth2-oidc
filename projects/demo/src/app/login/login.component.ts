@@ -9,8 +9,6 @@ import { openErrorDialog } from '../dialog/dialog.component';
 import googleJson from "../../assets/google.json";
 import gitlabJson from "../../assets/gitlab.json";
 import dropboxJson from "../../assets/dropbox.json";
-import {HttpClient} from '@angular/common/http'
-import { firstValueFrom, tap } from 'rxjs';
 
 @Component({
     standalone: true,
@@ -26,7 +24,6 @@ import { firstValueFrom, tap } from 'rxjs';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
-    private http = inject(HttpClient);
     private readonly router = inject(Router);
     private readonly oauth2 = inject(Oauth2Service);
     private readonly _working = signal(false);
@@ -34,17 +31,6 @@ export class LoginComponent {
     readonly dialog = inject(MatDialog);
 
     async ngOnInit() {
-        const no_worker = this.oauth2.config.configuration?.no_worker;
-
-        if (!no_worker) {
-            const head = "data:text/javascript;charset=UTF-8,";
-            await firstValueFrom(
-                this.http
-                    .get("assets/_worker.js", { responseType: "text" })
-                    .pipe(tap(res => this.oauth2.setWorker(head + res)))
-            );
-        }
-
         try {
             await this.oauth2.interceptor();
             this.oauth2.isCodeIntercepted && (await this.oauth2.token());

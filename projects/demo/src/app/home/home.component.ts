@@ -1,9 +1,7 @@
-import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, HostListener, inject, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { jsonObjectType, methodType, Oauth2Service, payloadType } from "ngx-oauth2-oidc";
+import { methodType, Oauth2Service, payloadType } from "ngx-oauth2-oidc";
 import { openErrorDialog } from '../dialog/dialog.component';
-import { Pause } from '../utils/pause';
 import { NgIf } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -27,7 +25,6 @@ export class HomeComponent implements OnInit {
         await this.oauth2.saveState();
     }
     private router = inject(Router);
-    private http = inject(HttpClient);
     private readonly oauth2 = inject(Oauth2Service);
     readonly dialog = inject(MatDialog);
     private readonly exp = signal("");
@@ -50,20 +47,6 @@ export class HomeComponent implements OnInit {
     protected readonly apiData = signal("");
 
     async ngOnInit() {
-        const no_worker = this.oauth2.config.configuration?.no_worker;
-
-        if (!no_worker) {
-            const head = "data:text/javascript;charset=UTF-8,";
-
-            this.http
-                .get("assets/_worker.js", { responseType: "text" })
-                .subscribe(data => {
-                    this.oauth2.setWorker(head + encodeURIComponent(data));
-                });
-
-            const pause = Pause(100);
-            await pause.start();
-        }
 
         // Prevent storage tampering
         window.addEventListener("storage", () => this.logout());
@@ -85,7 +68,6 @@ export class HomeComponent implements OnInit {
     };
 
     getApiData = () => {
-        const noWorker = !!this.oauth2.config.configuration?.no_worker;
         const iss = this.oauth2.idToken?.["iss"] ?? "";
         const request =
             iss == "https://accounts.google.com"
@@ -119,21 +101,8 @@ export class HomeComponent implements OnInit {
         this.oauth2
             .apiRequest({}, url, method, headers, body)
             .then(res => {
-                const isWorker =
-                    Object.keys(res ?? {})
-                        .sort()
-                        .join("") == "dataerror";
-                if (isWorker) {
-                    const response = res as {
-                        data: payloadType;
-                        error: jsonObjectType;
-                    };
-                    if (response.error) throw response.error;
-                    this.apiData.set(JSON.stringify(response.data, null, 4));
-                } else {
-                    const response = res as payloadType;
-                    this.apiData.set(JSON.stringify(response, null, 4));
-                }
+                const response = res as payloadType;
+                this.apiData.set(JSON.stringify(response, null, 4));
             })
             .catch(err => {
                 openErrorDialog.bind(this)(err);

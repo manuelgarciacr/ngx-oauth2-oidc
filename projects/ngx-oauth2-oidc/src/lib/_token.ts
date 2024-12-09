@@ -2,7 +2,6 @@ import {
     IOAuth2Config,
     IOAuth2Parameters,
     customParametersType,
-    workerRequest,
 } from "../domain";
 import { request as fnRequest} from "./_request";
 import { HttpClient } from "@angular/common/http";
@@ -24,7 +23,7 @@ import { _setParameters } from "./_setParameters";
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _token = async (
-    request: HttpClient | workerRequest,
+    request: HttpClient,
     config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
     customParameters = <customParametersType>{},
     url?: string

@@ -1,5 +1,5 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpRequest } from "@angular/common/http";
-import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, customParametersType, jsonObjectType, payloadType, stringsObject, workerRequest } from "../domain";
+import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, customParametersType, payloadType, stringsObject } from "../domain";
 import { httpRequest } from "./_httpRequest";
 import { setStore } from "./_store";
 import { Observable } from "rxjs";
@@ -11,7 +11,7 @@ import { _save_state } from "./_saveState";
  *
  * @param method Request method ("""HREF" for redirection)
  * @param url Endpoint URL
- * @param {HttpClient | workerRequest} request- HttpClient object or worker request
+ * @param {HttpClient} request- HttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated
  * @param customParameters OAuth2 parameters (standard and custom) for the request. (payload)
@@ -22,7 +22,7 @@ import { _save_state } from "./_saveState";
 export const request = async <T>(
     method: "HREF" | "GET" | "POST",
     url: string,
-    request: HttpClient | workerRequest,
+    request: HttpClient,
     config: IOAuth2Config, // Passed by reference and updated
     customParameters = <customParametersType>{},
     endpoint: keyof IOAuth2Methods
@@ -77,10 +77,6 @@ export const request = async <T>(
         setStore("test", storage ? data : null);
     }
 
-    let req:
-        | Observable<payloadType>
-        | Observable<{ data: payloadType; error: jsonObjectType }>;
-
     if (method == "HREF") {
         _save_state(config, {})
 
@@ -92,33 +88,21 @@ export const request = async <T>(
         return {};
     }
 
-    if (request instanceof HttpClient){
-        // Http request
-        req =
-            method == "POST"
-                ? request.post<payloadType>(url, "null", {
-                    headers,
-                    params,
-                    observe: "body",
-                })
-                : request.get<payloadType>(url, {
-                    headers,
-                    params,
-                    observe: "body",
-                });
-    } else {
-        req = (request as workerRequest)({
-            url,
-            headers: headersInit,
-            parameters: payload,
-            body: null,
-            method,
-        }, endpoint)
-    }
+    const req: Observable<payloadType> =
+        method == "POST"
+            ? request.post<payloadType>(url, "null", {
+                  headers,
+                  params,
+                  observe: "body",
+              })
+            : request.get<payloadType>(url, {
+                  headers,
+                  params,
+                  observe: "body",
+              });
 
     return httpRequest(
         req,
-        request instanceof HttpClient,
         config!,
         endpoint !== "discovery"
     );

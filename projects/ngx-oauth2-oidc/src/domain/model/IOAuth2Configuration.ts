@@ -33,11 +33,6 @@ const configuration = {
     no_state: false,
 
     /**
-     * If true, the service will not use the web worker, only uses HttpClient. Default is false.
-     */
-    no_worker: false,
-
-    /**
      * If true, the service will have access to the storage. Default is false.
      */
     storage: false,

@@ -22,17 +22,6 @@ export type jsonObjectType =
 
 export type payloadType = jsonObjectType | Blob;
 
-export type workerRequest = (
-    options: {
-        url: string;
-        headers: jsonObject;
-        parameters: stringsObject;
-        body: payloadType;
-        method: string;
-    },
-    listener?: Function | null | string
-) => Observable<{ data: any; error: any }>;
-
 /** Oauth2 parameter type */
 export type parameterType = boolean | string | number | bigint | string[] | null;
 

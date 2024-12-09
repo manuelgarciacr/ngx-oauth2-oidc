@@ -5,7 +5,6 @@ export {
     jsonObject,
     jsonObjectType,
     payloadType,
-    workerRequest,
     parameterType,
     customParametersType,
     authorizationGrantType,

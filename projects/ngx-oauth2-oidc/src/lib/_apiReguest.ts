@@ -1,10 +1,10 @@
 import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
-import { customParametersType, IOAuth2Config, jsonObject, jsonObjectType, methodType, payloadType, stringsObject, workerRequest } from "../domain";
-import { catchError, firstValueFrom, lastValueFrom, map, Observable, tap } from "rxjs";
+import { customParametersType, IOAuth2Config, jsonObject, methodType, payloadType, stringsObject } from "../domain";
+import { catchError, lastValueFrom } from "rxjs";
 import { setStore } from "./_store";
 
 export const _api_request = async <T>(
-    request: HttpClient | workerRequest,
+    request: HttpClient,
     config: IOAuth2Config,
     customParameters = <customParametersType>{},
     url?: string,
@@ -67,54 +67,21 @@ export const _api_request = async <T>(
         setStore("test", data);
     }
 
-    const isHttpClient = request instanceof HttpClient;
-    let req:
-    | Observable<T>
-    | Observable<{ data: T; error: jsonObjectType }>;
+    const req =
+        method == "POST"
+            ? request.post<T>(url, body, {
+                  headers,
+                  params,
+                  observe: "body",
+              })
+            : request.get<T>(url, {
+                  headers,
+                  params,
+                  observe: "body",
+              });
 
-    if (isHttpClient) {
-        // Http request
-        req =
-            method == "POST"
-                ? request.post<T>(url, body, {
-                      headers,
-                      params,
-                      observe: "body",
-                  })
-                : request.get<T>(url, {
-                      headers,
-                      params,
-                      observe: "body",
-                  });
-    } else {
-        req = (request as workerRequest)(
-            {
-                url,
-                headers: headersInit,
-                parameters: payload,
-                body,
-                method,
-            },
-            "api"
-        );
-    }
-
-    if (isHttpClient) {
-        return lastValueFrom(
-            (req as Observable<T>).pipe(
-                catchError(err => {
-                    throw err;
-                })
-            )
-        );
-    }
-
-    return firstValueFrom(
-        (req as Observable<{ data: T; error: jsonObjectType }>).pipe(
-            tap(res => {
-                if (res.error) throw res.error;
-            }),
-            map(res => res.data),
+    return lastValueFrom(
+        req.pipe(
             catchError(err => {
                 throw err;
             })

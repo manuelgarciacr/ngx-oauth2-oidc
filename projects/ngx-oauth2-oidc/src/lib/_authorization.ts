@@ -1,5 +1,5 @@
 import pkceChallenge, { generateChallenge } from "pkce-challenge";
-import { IOAuth2Config, IOAuth2Parameters, customParametersType, optionalStringsObject, workerRequest } from "../domain";
+import { IOAuth2Config, IOAuth2Parameters, customParametersType, optionalStringsObject } from "../domain";
 import { isStrNull, notStrNull, secureRandom } from "../utils";
 import { request as fnRequest} from "./_request";
 import { HttpClient } from "@angular/common/http";
@@ -15,7 +15,7 @@ type parmsObject = optionalStringsObject;
  *   the config.parameters. In test mode, the request payload is also stored within
  *   sessionStorage.
  *
- * @param request HttpClient object or worker request
+ * @param request HttpClient object
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated (configuration.parameters)
  * @param customParameters Custom parameters for the request.
@@ -24,7 +24,7 @@ type parmsObject = optionalStringsObject;
  * @returns Promise with the request response (IOAuth2Parameters or error)
  */
 export const _authorization = async (
-    request: HttpClient | workerRequest,
+    request: HttpClient,
     config: IOAuth2Config, // Passed by reference and updated (configuration.parameters)
     customParameters = <customParametersType>{},
     statePayload: string = "",

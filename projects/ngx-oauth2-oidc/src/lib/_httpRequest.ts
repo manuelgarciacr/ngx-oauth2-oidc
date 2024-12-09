@@ -1,5 +1,5 @@
-import { Observable, catchError, firstValueFrom, lastValueFrom, map, tap} from "rxjs";
-import { IOAuth2Config, IOAuth2Metadata, IOAuth2Parameters, jsonObjectType, payloadType, stringsObject } from "../domain";
+import { Observable, catchError, lastValueFrom, map} from "rxjs";
+import { IOAuth2Config, IOAuth2Metadata, IOAuth2Parameters, payloadType, stringsObject } from "../domain";
 import { updateParameters } from "./_updateParameters";
 import { updateMetadata } from "./_updateMetadata";
 
@@ -8,8 +8,7 @@ import { updateMetadata } from "./_updateMetadata";
  *   the response is converted to IOAuth2Parameters and actualizes config.parameters.
  *   Otherwise, the response actualizes config.metadata.
  *
- * @param request HttpClient get or post method response or worker response. (Observable)
- * @param isHttpClient OTrueif request is an HttpClient response.
+ * @param request HttpClient get or post method response. (Observable)
  * @param config Configuration object saved in memory. Passed by reference and
  *      updated
  * @param areParameters If true (default), the response is converted to IOAuth2Parameters
@@ -17,34 +16,12 @@ import { updateMetadata } from "./_updateMetadata";
  * @returns Promise with the request response (or error).
  */
 export const httpRequest = (
-    request: Observable<payloadType> | Observable<{data: payloadType, error: jsonObjectType}>,
-    isHttpClient: boolean,
+    request: Observable<payloadType>,
     config: IOAuth2Config, // Passed by reference and updated
     areParameters = true
-): Promise<IOAuth2Parameters | IOAuth2Metadata> => {
-    if (isHttpClient) {
-        return lastValueFrom(
-            (request as Observable<payloadType>).pipe(
-                map(res =>
-                    areParameters
-                        ? updateParameters(res as stringsObject, config)
-                        : updateMetadata(res as stringsObject, config)
-                ),
-                catchError(err => {
-                    throw err;
-                })
-            )
-        );
-    }
-
-    return firstValueFrom(
-        (
-            request as Observable<{ data: payloadType; error: jsonObjectType }>
-        ).pipe(
-            tap(res => {
-                if (res.error) throw res.error;
-            }),
-            map(res => res.data as payloadType),
+): Promise<IOAuth2Parameters | IOAuth2Metadata> =>
+    lastValueFrom(
+        (request as Observable<payloadType>).pipe(
             map(res =>
                 areParameters
                     ? updateParameters(res as stringsObject, config)
@@ -55,4 +32,3 @@ export const httpRequest = (
             })
         )
     );
-};

@@ -4,14 +4,12 @@ import { provideRouter } from "@angular/router";
 import { routes } from "./app.routes";
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideOAuth2 } from "ngx-oauth2-oidc";
-import { provideHttpClient, withInterceptors } from "@angular/common/http";
-import { fragmentInterceptor } from "./fragmentInterceptor";
+import { provideHttpClient } from "@angular/common/http";
 
 export const appConfig: ApplicationConfig = {
     providers: [
-        // Neede for ngx-oauth2-oidc
+        // Needed for ngx-oauth2-oidc
         provideHttpClient(
-            withInterceptors([fragmentInterceptor])
         ),
         provideOAuth2(),
         //
