@@ -4,8 +4,13 @@ import { Oauth2Service } from "./oauth2.service";
 
 export const idTokenGuard =
     (path: string = ""): CanActivateFn =>
-    () => {
-        const idToken = inject(Oauth2Service).config.parameters?.id_token;
+    async () => {
+        const oauth2 = inject(Oauth2Service);
+        const router = inject(Router);
 
-        return idToken ? true : inject(Router).createUrlTree([path]);
+        await oauth2.recoverState();
+
+        const sub = oauth2.idToken["sub"];
+
+        return sub ? true : router.createUrlTree([path]);
     };

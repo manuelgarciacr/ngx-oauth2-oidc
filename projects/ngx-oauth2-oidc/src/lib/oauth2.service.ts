@@ -1,4 +1,4 @@
-import { getStoreObject, setStore } from "./_store";
+import { setStore } from "./_store";
 import {
     HttpClient,
 } from "@angular/common/http";
@@ -6,7 +6,6 @@ import {
     Inject,
     Injectable,
     InjectionToken,
-    computed,
     inject
 } from "@angular/core";
 import {
@@ -29,7 +28,8 @@ import { _errorArray } from "./_errorArray";
 import { _setParameters } from "./_setParameters";
 import { catchError, filter, fromEvent, map, tap } from "rxjs";
 import { _api_request } from "./_apiReguest";
-import { Router } from "@angular/router";
+import { _save_state } from "./_saveState";
+import { _recover_state } from "./_recoverState";
 
 export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     "OAuth2 Config"
@@ -40,10 +40,9 @@ export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
 })
 export class Oauth2Service {
     private readonly http = inject(HttpClient);
-    private readonly router = inject(Router);
 
     private _config: IOAuth2Config = {};
-    private _idToken: jsonObject | null = null; // Api user id_token claims
+    private _idToken: jsonObject = {}; // Api user id_token claims
     private _isIdTokenIntercepted = false;
     private _isAccessTokenIntercepted = false;
     private _isCodeIntercepted = false;
@@ -85,37 +84,19 @@ export class Oauth2Service {
     get isCodeIntercepted() {
         return this._isCodeIntercepted;
     }
-    readonly isAuthenticated = computed(() => this.idToken != null);
 
     constructor(
         @Inject(OAUTH2_CONFIG_TOKEN) protected oauth2Config?: IOAuth2Config
     ) {
-        const unload = JSON.parse(
-            sessionStorage.getItem("oauth2_unload") ?? "{}"
-        );
-        const storedConfig = getStoreObject("config") as IOAuth2Config;
-        const idToken = getStoreObject("idToken") as jsonObject;
-        const newConfig = unload.config ?? storedConfig ?? oauth2Config ?? {};
+        const newConfig = oauth2Config ?? {};
         const config = _oauth2ConfigFactory(newConfig);
         const storage = config.configuration?.storage;
 
         this._config = config;
-        this._idToken = unload.idToken ?? idToken;
 
-        sessionStorage.removeItem("oauth2_unload");
-        document.cookie = "ngx_oauth2_oidc=; max-age=0";
-
-        setStore(
-            "config",
-            storage
-                ? config
-                // : !!id_token
-                // ? { parameters: { id_token } }
-                : null
-        );
-        setStore("idToken", storage ? this.idToken : null);
+        setStore("config", storage ? config : null);
+        setStore("idToken");
         setStore("test");
-
     }
 
     private callWorker = (
@@ -143,11 +124,10 @@ export class Oauth2Service {
             "message"
         ).pipe(
             tap(
-                ev => ev.data.type === "redirect" && (location.href = ev.data.url)
+                ev =>
+                    ev.data.type === "redirect" && (location.href = ev.data.url)
             ),
-            filter(ev =>
-                ev.data.id === id
-            ),
+            filter(ev => ev.data.id === id),
             tap(ev => {
                 const execute =
                     lst[id] !== "@@empty" &&
@@ -199,16 +179,11 @@ export class Oauth2Service {
         const storage = config.configuration?.storage;
 
         this._config = config;
-        this._idToken = null;
+        this._idToken = {};
 
         if (!storage) return;
 
-        setStore(
-            "config",
-            storage
-                ? config
-                : null
-        );
+        setStore("config", storage ? config : null);
         setStore("idToken");
         setStore("test");
 
@@ -236,12 +211,7 @@ export class Oauth2Service {
 
         this._config.parameters = { ...configParms, ...parameters };
 
-        setStore(
-            "config",
-            storage
-                ? this.config
-                : null
-        );
+        setStore("config", storage ? this.config : null);
     };
 
     /**
@@ -361,26 +331,25 @@ export class Oauth2Service {
     ) => {
         const storage = this.config.configuration?.storage;
 
-        this._idToken = null;
+        this._idToken = {};
 
         setStore("idToken");
 
-        const res = _verify_token(
+        await _verify_token(
             this.config,
             customParameters,
             issuer,
             jwks_uri
         ).then(idToken => {
-            this._idToken = (idToken as jsonObject) ?? null;
+            this._idToken = (idToken as jsonObject) ?? {};
             setStore("idToken", storage ? this.idToken : null);
         });
-
-        return res;
     };
 
     interceptor = async () => {
         const int = _interceptor(
-            this._config // Parameter passed by reference and updated (config.parameters)
+            this._config, // Parameter passed by reference and updated (oauth2Service.config.parameters)
+            this._idToken // Parameter passed by reference and updated (oauth2Service.idToken)
         );
 
         await int.then(v => {
@@ -392,18 +361,12 @@ export class Oauth2Service {
         return int;
     };
 
-    saveState = () => {
-        debugger
-        console.log(this.router)
-        document.cookie = "ngx_oauth2_oidc=luis; secure; samesite=strict";
-        sessionStorage.setItem(
-            "oauth2_unload",
-            JSON.stringify({
-                config: this.config,
-                idToken: this.idToken,
-            })
-        );
-    }
+    saveState = async () =>
+        await _save_state(this._config, this._idToken);
+
+    recoverState = async () => {
+        await _recover_state(this._config, this._idToken);
+    };
 
     errorArray = (err: unknown) => {
         return _errorArray(err);

@@ -3,6 +3,7 @@ import { IOAuth2Config, IOAuth2Metadata, IOAuth2Methods, IOAuth2Parameters, cust
 import { httpRequest } from "./_httpRequest";
 import { setStore } from "./_store";
 import { Observable } from "rxjs";
+import { _save_state } from "./_saveState";
 
 /**
  * Request to an OAuth2 endpoint. Redirects to the endpoint or makes a HttpClient
@@ -81,15 +82,7 @@ export const request = async <T>(
         | Observable<{ data: payloadType; error: jsonObjectType }>;
 
     if (method == "HREF") {
-        document.cookie =
-            "ngx_oauth2_oidc=luis; secure; samesite=strict";
-
-        sessionStorage.setItem(
-            "oauth2_unload",
-            JSON.stringify({
-                config,
-             })
-        );
+        _save_state(config, {})
 
         // Redirection
         const req = new HttpRequest<string>(method, url, null, {

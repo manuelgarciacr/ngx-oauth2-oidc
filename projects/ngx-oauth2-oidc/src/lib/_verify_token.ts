@@ -12,7 +12,6 @@ import { _setParameters } from "./_setParameters";
  *   memory. In test mode, the request payload is also stored inside sessionStorage.
  *
  * @param config Configuration object saved in memory.
- * @param idToken id_token payload saved in memory. Passed by reference and updated
  * @param customParameters Custom parameters for the request. May include values ​​to override 'jwks_uri'
  *      and 'issuer' metadata.
  * @param issuer Authorization server's issuer identifier URL

@@ -1,11 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, HostListener, inject, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Router } from '@angular/router';
 import { jsonObjectType, methodType, Oauth2Service, payloadType } from "ngx-oauth2-oidc";
 import { openErrorDialog } from '../dialog/dialog.component';
 import { Pause } from '../utils/pause';
 import { NgIf } from '@angular/common';
+import { Router } from '@angular/router';
 
 @Component({
     selector: "app-home",
@@ -16,11 +16,15 @@ import { NgIf } from '@angular/common';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent implements OnInit {
-    @HostListener("window:unload")
-    onBeforeUnload(): boolean {
-        debugger
-        this.oauth2.saveState();
-        return true;
+    @HostListener("window:beforeunload")
+    async onBeforeUnload() {
+        //  Save encrypted configuration within session storage, with a secure cookie
+        //      carrying the decryption data.
+        //  The 'idTokenGuard' and 'interceptor' restore the configuration and delete
+        //      the previously encrypted data.
+        //  The "authorization" request and the "apiRequest" with the "HREF" method setted
+        //      automatically save the configuration,
+        await this.oauth2.saveState();
     }
     private router = inject(Router);
     private http = inject(HttpClient);
@@ -104,7 +108,9 @@ export class HomeComponent implements OnInit {
         const method = request[0] as methodType;
         const url = request[1] as string;
         const headers = {
-            Authorization: `Bearer ${this.oauth2.config.parameters?.access_token ?? ""}`,
+            Authorization: `Bearer ${
+                this.oauth2.config.parameters?.access_token ?? ""
+            }`,
             accept: "application/json",
             "Content-Type": "application/json",
         };
@@ -131,14 +137,13 @@ export class HomeComponent implements OnInit {
             })
             .catch(err => {
                 openErrorDialog.bind(this)(err);
-                // throw err;
             });
     };
 
     refresh = async () => {
         const issuer = this.oauth2.config?.metadata?.["issuer"] ?? "";
         const implicit = issuer == "https://accounts.google.com";
-        this.oauth2.setParameters({access_token: undefined})
+        this.oauth2.setParameters({ access_token: undefined });
         if (implicit) this.implicitRefresh();
         else this.tokenRefresh();
     };
