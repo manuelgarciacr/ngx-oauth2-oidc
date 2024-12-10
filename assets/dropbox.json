@@ -1,0 +1,17 @@
+{
+    "configuration": {
+        "revocation_header": true,
+        "content_type": "application/json"
+    },
+    "metadata": {
+        "issuer": "https://www.dropbox.com",
+        "revocation_endpoint": "https://api.dropbox.com/2/auth/token/revoke"
+    },
+    "parameters": {
+        "client_id": "fsf5i6eu3knqmlm",
+        "scope": ["openid", "profile", "email", "files.metadata.read"]
+    },
+    "authorization": {
+        "token_access_type": "offline"
+    }
+}

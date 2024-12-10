@@ -1,0 +1,17 @@
+{
+    "google": {
+        "url": "https://www.googleapis.com/drive/:version/files",
+        "ids": {"version": "v3"}
+    },
+    "gitlab": {
+        "url": "https://gitlab.com/api/:version/projects",
+        "ids": {"version": "v4"},
+        "query": {"owned": true}
+    },
+    "dropbox": {
+        "url": "https://api.dropboxapi.com/2/files/list_folder",
+        "method": "POST",
+        "payload": {"path": ""},
+        "headers": {"Content-Type": "application/json"}
+    }
+}

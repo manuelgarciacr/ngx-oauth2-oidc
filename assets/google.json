@@ -1,0 +1,16 @@
+{
+    "configuration": {
+        "authorization_grant": "implicit"
+    },
+    "metadata": {
+        "issuer": "https://accounts.google.com"
+    },
+    "parameters": {
+        "client_id": "115940404174-2re8nu673gkn13jclq25spmgo9sdh1t2.apps.googleusercontent.com",
+        "scope": [
+            "email",
+            "profile",
+            "https://www.googleapis.com/auth/drive.readonly"
+        ]
+    }
+}
