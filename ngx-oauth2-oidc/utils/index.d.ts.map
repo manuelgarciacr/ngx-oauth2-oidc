@@ -1,1 +1,0 @@
-{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../projects/ngx-oauth2-oidc/src/utils/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,YAAY,CAAC;AACtC,OAAO,EAAE,MAAM,EAAE,MAAM,cAAc,CAAC;AACtC,OAAO,EAAE,MAAM,EAAE,OAAO,EAAE,SAAS,EAAE,UAAU,EAAC,MAAM,WAAW,CAAC;AAClE,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,qBAAqB,EAAE,MAAM,yBAAyB,CAAC"}

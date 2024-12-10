@@ -1,1 +1,0 @@
-{"version":3,"file":"_authorization.d.ts","sourceRoot":"","sources":["../../../projects/ngx-oauth2-oidc/src/lib/_authorization.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,aAAa,EAAE,iBAAiB,EAAE,oBAAoB,EAAyB,MAAM,WAAW,CAAC;AAG1G,OAAO,EAAE,UAAU,EAAE,MAAM,sBAAsB,CAAC;AAOlD;;;;;;;;;;;;;GAaG;AACH,eAAO,MAAM,cAAc,YACd,UAAU,UACX,aAAa,0DAEP,MAAM,QACd,MAAM,KACb,QAAQ,iBAAiB,CA6K3B,CAAC"}

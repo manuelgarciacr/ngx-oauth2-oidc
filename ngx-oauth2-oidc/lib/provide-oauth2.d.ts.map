@@ -1,1 +1,0 @@
-{"version":3,"file":"provide-oauth2.d.ts","sourceRoot":"","sources":["../../../projects/ngx-oauth2-oidc/src/lib/provide-oauth2.ts"],"names":[],"mappings":"AAAA,OAAO,EAA4B,oBAAoB,EAAE,MAAM,eAAe,CAAC;AAC/E,OAAO,EAAE,aAAa,EAAE,MAAM,WAAW,CAAC;AAG1C,eAAO,MAAM,aAAa,YACd,aAAa,GAAG,IAAI,KAC7B,oBAIG,CAAC"}
