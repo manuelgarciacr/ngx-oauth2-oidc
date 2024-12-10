@@ -1,0 +1,8 @@
+/*
+ * Public API Surface of ngx-oauth2-oidc
+ */
+export * from './lib/oauth2.service';
+export * from './lib/provide-oauth2';
+export * from './lib/idTokenGuard';
+export * from './domain';
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoicHVibGljLWFwaS5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uLy4uL3Byb2plY3RzL25neC1vYXV0aDItb2lkYy9zcmMvcHVibGljLWFwaS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTs7R0FFRztBQUVILGNBQWMsc0JBQXNCLENBQUM7QUFDckMsY0FBYyxzQkFBc0IsQ0FBQztBQUNyQyxjQUFjLG9CQUFvQixDQUFDO0FBQ25DLGNBQWMsVUFBVSxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiLypcbiAqIFB1YmxpYyBBUEkgU3VyZmFjZSBvZiBuZ3gtb2F1dGgyLW9pZGNcbiAqL1xuXG5leHBvcnQgKiBmcm9tICcuL2xpYi9vYXV0aDIuc2VydmljZSc7XG5leHBvcnQgKiBmcm9tICcuL2xpYi9wcm92aWRlLW9hdXRoMic7XG5leHBvcnQgKiBmcm9tICcuL2xpYi9pZFRva2VuR3VhcmQnO1xuZXhwb3J0ICogZnJvbSAnLi9kb21haW4nO1xuIl19

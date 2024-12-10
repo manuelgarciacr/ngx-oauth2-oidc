@@ -1,0 +1,1 @@
+{"version":3,"file":"_httpRequest.d.ts","sourceRoot":"","sources":["../../../projects/ngx-oauth2-oidc/src/lib/_httpRequest.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,UAAU,EAAiC,MAAM,MAAM,CAAC;AACjE,OAAO,EAAE,aAAa,EAAE,eAAe,EAAE,iBAAiB,EAAE,WAAW,EAAiB,MAAM,WAAW,CAAC;AAI1G;;;;;;;;;;;GAWG;AACH,eAAO,MAAM,WAAW,YACX,WAAW,WAAW,CAAC,UACxB,aAAa,8BAEtB,QAAQ,iBAAiB,GAAG,eAAe,CAYzC,CAAC"}
