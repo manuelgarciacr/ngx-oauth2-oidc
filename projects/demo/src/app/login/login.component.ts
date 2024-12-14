@@ -34,7 +34,7 @@ export class LoginComponent {
         try {
             await this.oauth2.interceptor();
             this.oauth2.isCodeIntercepted && (await this.oauth2.token());
-            await this.oauth2.verify_token();
+            await this.oauth2.verifyToken();
             this.oauth2.idToken?.["sub"] && this.router.navigate(["/home"]);
         } catch (err) {
             (err as Error).name != "JWTExpired" &&
@@ -60,7 +60,7 @@ export class LoginComponent {
 
         try {
             this.oauth2.setConfig(cfg);
-            await this.oauth2.fetchDiscoveryDoc();
+            await this.oauth2.discovery();
             await this.oauth2.authorization({}, "Perico De Los Palotes");
         } catch (err) {
             openErrorDialog.bind(this)(err);

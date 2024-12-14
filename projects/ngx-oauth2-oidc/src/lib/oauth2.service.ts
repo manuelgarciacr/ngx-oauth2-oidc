@@ -19,7 +19,7 @@ import {
 import { _oauth2ConfigFactory } from "./_oauth2ConfigFactory";
 import { _interceptor } from "./_interceptor";
 import { _verify_token } from "./_verify_token";
-import { _fetchDiscoveryDoc } from "./_fetchDiscoveryDoc";
+import { _discovery } from "./_discovery";
 import { _authorization } from "./_authorization";
 import { _token } from "./_token";
 import { _revocation } from "./_revocation";
@@ -32,6 +32,9 @@ import { _recover_state } from "./_recoverState";
 export const OAUTH2_CONFIG_TOKEN = new InjectionToken<IOAuth2Config>(
     "OAuth2 Config"
 );
+
+// TODO: introspection endpoint
+// TODO: add path to the issuer (multiple issuers)
 
 @Injectable({
     providedIn: "root",
@@ -128,11 +131,8 @@ export class Oauth2Service {
      * @param url
      * @returns
      */
-    fetchDiscoveryDoc = (
-        customParameters = <customParametersType>{},
-        url?: string
-    ) => {
-        return _fetchDiscoveryDoc(
+    discovery = (customParameters = <customParametersType>{}, url?: string) => {
+        return _discovery(
             this.http,
             this._config, // Parameter passed by reference and updated (config.metadata)
             customParameters,
@@ -147,9 +147,10 @@ export class Oauth2Service {
      *      can override the configured parameters (standard or custom). An inline parameter with a
      *      null value removes the configured parameter ( oauth2Service.endpoint({parm: null}, ...) ).
      *
-     * @param customParameters
-     * @param statePayload
-     * @param url
+     * {@link https://github.com/manuelgarciacr/ngx-oauth2-oidc/blob/main/docs/getting_started.md#rocket-getting-started | ngx-oauth2-oidc documentation}
+     *
+     * @param customParameters {@link customParametersType} BLAAAA B
+     * @param {string} url
      * @returns
      */
     authorization = async (
@@ -227,7 +228,7 @@ export class Oauth2Service {
         );
     };
 
-    verify_token = async (
+    verifyToken = async (
         customParameters = <customParametersType>{},
         issuer?: string,
         jwks_uri?: string
@@ -264,8 +265,7 @@ export class Oauth2Service {
         return int;
     };
 
-    saveState = async () =>
-        await _save_state(this._config, this._idToken);
+    saveState = async () => await _save_state(this._config, this._idToken);
 
     recoverState = async () => {
         await _recover_state(this._config, this._idToken);

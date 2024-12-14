@@ -1,23 +1,25 @@
-<label class="mt-4"><b class="mx-4">Issuer:</b> {{ issuer() }}</label><br>
-<label><b class="mx-4">User name:</b> {{ userName() }}</label><br>
-<label><b class="mx-4">User email:</b> {{ userEmail() }}</label><br>
-<label>
-    <b class="mx-4">Id token:</b> {{ idToken() ? "received" : "missing"}}
-    <ng-container *ngIf="idToken()"><b class="mx-4">expiration:</b> {{ idExpiration() }}</ng-container>
-</label><br>
-<label>
-    <b class="mx-4">Access token:</b> {{ accessToken() ? "received" : "missing"}}
-    <ng-container *ngIf="accessToken()"><b class="mx-4">expiration:</b> {{ accessExpiration() }}</ng-container>
-</label><br>
-<label>
-    <b class="mx-4">Refresh token:</b> {{ refreshToken() ? "received" : "missing"}}
-    <ng-container *ngIf="refreshToken()"><b class="mx-4">expiration:</b> {{ refreshExpiration() }}</ng-container>
-</label><br>
-<label class="d-flex">
-    <b class="mx-4 align-top">API data:</b>
-    <textarea rows="10" class="flex-grow-1 me-3"readonly spellcheck="false">{{ apiData() }}</textarea>
-</label><br>
+<div class="col-12 col-md-11 col-lg-10 col-xl-6 mx-auto">
+    <label class="mt-4"><b class="mx-4">Issuer:</b> {{ issuer() }}</label><br>
+    <label><b class="mx-4">User name:</b> {{ userName() }}</label><br>
+    <label><b class="mx-4">User email:</b> {{ userEmail() }}</label><br>
+    <label>
+        <b class="mx-4">Id token:</b> {{ idToken() ? "received" : "missing"}}
+        <ng-container *ngIf="idToken()"><b class="mx-4">expiration:</b> {{ idExpiration() }}</ng-container>
+    </label><br>
+    <label>
+        <b class="mx-4">Access token:</b> {{ accessToken() ? "received" : "missing"}}
+        <ng-container *ngIf="accessToken()"><b class="mx-4">expiration:</b> {{ accessExpiration() }}</ng-container>
+    </label><br>
+    <label>
+        <b class="mx-4">Refresh token:</b> {{ refreshToken() ? "received" : "missing"}}
+        <ng-container *ngIf="refreshToken()"><b class="mx-4">expiration:</b> {{ refreshExpiration() }}</ng-container>
+    </label><br>
+    <label class="d-flex">
+        <b class="mx-4 align-top">API data:</b>
+        <textarea rows="15" class="flex-grow-1 me-3" readonly spellcheck="false">{{ apiData() }}</textarea>
+    </label><br>
 
-<button class="m-4" (click)="refresh()">Refresh token</button>
-<button class="m-4" (click)="revocation()">Revoke token</button>
-<button class="m-4" (click)="logout()">Logout</button>
+    <button class="m-4" (click)="refresh()">Refresh token</button>
+    <button class="m-4" (click)="revocation()">Revoke token</button>
+    <button class="m-4" (click)="logout()">Logout</button>
+</div>

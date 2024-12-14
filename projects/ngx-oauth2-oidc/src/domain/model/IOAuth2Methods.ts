@@ -19,12 +19,12 @@ export const methods = {
     token: {} as customParametersType,
 
     /**
-     * Custom parameters for the refresh endpoint
+     * Custom parameters for the refresh method when calling the token endpoint
      */
     refresh: {} as customParametersType,
 
     /**
-     * JOSE token verification options
+     * JOSE token verification options and custom parameters for the verifyToken method
      */
     verify_token: {} as IOAuth2VerifyTokenParameters &
         IOAuth2VerifyTokenJoseOptions,

@@ -1,8 +1,11 @@
 <div id="getting-started">
 
-| <label id="getting-started" style="float: right">[![Static Badge](https://img.shields.io/badge/Back_to_README-37a779?style=for-the-badge)](../README.md#table-of-contents)</label>![](cell-1.png) |
+| <label id="getting-started" style="float: right">[![Static Badge](https://img.shields.io/badge/Back_to_README-37a779?style=for-the-badge)](../README.md)</label>![](cell-1.png) |
 |  --: |
-## :rocket: Getting started
+## :arrow_forward: authorization endpoint
+
+Each endpoint uses the parameters defined within the 'parameters' section (config.parameters)
+     that are applicable to it. Custom endpoint parameters (config.endpoint_name} can override standard parameters. Inline custom parameters (o auth2Service.endpoint(customParameters, ...) ) can override the configured parameters (standard or custom). An inline parameter with a null value removes the configured parameter ( oauth2Service.endpoint({parm: null}, ...) ).
 
 Installation using npm from your project folder:
 
@@ -24,6 +27,7 @@ export class LoginComponent implements OnInit {
     ...
 }
 ````
+## authorization
 
 Creating a very basic configuration object:
 

@@ -19,7 +19,7 @@ import { getParameters } from "./_getParameters";
  * @param url Custom endpoint URL.
  * @returns Promise with the request response (IOAuth2Metadata or error)
  */
-export const _fetchDiscoveryDoc = async (
+export const _discovery = async (
     request: HttpClient,
     config: IOAuth2Config, // Passed by reference and updated (configuration.metadata)
     customParameters = <customParametersType>{},
