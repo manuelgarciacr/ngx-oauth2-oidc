@@ -212,6 +212,197 @@
                   "builder": "angular-cli-ghpages:deploy"
                 }
             }
+        },
+        "sandbox": {
+          "projectType": "application",
+          "schematics": {
+            "@schematics/angular:component": {
+              "style": "scss"
+            }
+          },
+          "root": "projects/sandbox",
+          "sourceRoot": "projects/sandbox/src",
+          "prefix": "app",
+          "architect": {
+            "build": {
+              "builder": "@angular-devkit/build-angular:application",
+              "options": {
+                "outputPath": "dist/sandbox",
+                "index": "projects/sandbox/src/index.html",
+                "browser": "projects/sandbox/src/main.ts",
+                "polyfills": [
+                  "zone.js",
+                  "@angular/localize/init"
+                ],
+                "tsConfig": "projects/sandbox/tsconfig.app.json",
+                "inlineStyleLanguage": "scss",
+                "assets": [
+                  {
+                    "glob": "**/*",
+                    "input": "projects/sandbox/public"
+                  }
+                ],
+                "styles": [
+                  "projects/sandbox/src/styles.scss"
+                ],
+                "scripts": []
+              },
+              "configurations": {
+                "production": {
+                  "budgets": [
+                    {
+                      "type": "initial",
+                      "maximumWarning": "500kB",
+                      "maximumError": "1MB"
+                    },
+                    {
+                      "type": "anyComponentStyle",
+                      "maximumWarning": "2kB",
+                      "maximumError": "4kB"
+                    }
+                  ],
+                  "outputHashing": "all"
+                },
+                "development": {
+                  "optimization": false,
+                  "extractLicenses": false,
+                  "sourceMap": true
+                }
+              },
+              "defaultConfiguration": "production"
+            },
+            "serve": {
+              "builder": "@angular-devkit/build-angular:dev-server",
+              "configurations": {
+                "production": {
+                  "buildTarget": "sandbox:build:production"
+                },
+                "development": {
+                  "buildTarget": "sandbox:build:development"
+                }
+              },
+              "defaultConfiguration": "development"
+            },
+            "extract-i18n": {
+              "builder": "@angular-devkit/build-angular:extract-i18n"
+            },
+            "test": {
+              "builder": "@angular-devkit/build-angular:karma",
+              "options": {
+                "polyfills": [
+                  "zone.js",
+                  "zone.js/testing"
+                ],
+                "tsConfig": "projects/sandbox/tsconfig.spec.json",
+                "inlineStyleLanguage": "scss",
+                "assets": [
+                  {
+                    "glob": "**/*",
+                    "input": "projects/sandbox/public"
+                  }
+                ],
+                "styles": [
+                  "projects/sandbox/src/styles.scss"
+                ],
+                "scripts": []
+              }
+            }
+          }
+        },
+        "pepe22": {
+          "projectType": "application",
+          "schematics": {
+            "@schematics/angular:component": {
+              "style": "scss"
+            }
+          },
+          "root": "projects/pepe22",
+          "sourceRoot": "projects/pepe22/src",
+          "prefix": "app",
+          "architect": {
+            "build": {
+              "builder": "@angular-devkit/build-angular:application",
+              "options": {
+                "outputPath": "dist/pepe22",
+                "index": "projects/pepe22/src/index.html",
+                "browser": "projects/pepe22/src/main.ts",
+                "polyfills": [
+                  "zone.js"
+                ],
+                "tsConfig": "projects/pepe22/tsconfig.app.json",
+                "inlineStyleLanguage": "scss",
+                "assets": [
+                  {
+                    "glob": "**/*",
+                    "input": "projects/pepe22/public"
+                  }
+                ],
+                "styles": [
+                  "projects/pepe22/src/styles.scss"
+                ],
+                "scripts": []
+              },
+              "configurations": {
+                "production": {
+                  "budgets": [
+                    {
+                      "type": "initial",
+                      "maximumWarning": "500kB",
+                      "maximumError": "1MB"
+                    },
+                    {
+                      "type": "anyComponentStyle",
+                      "maximumWarning": "2kB",
+                      "maximumError": "4kB"
+                    }
+                  ],
+                  "outputHashing": "all"
+                },
+                "development": {
+                  "optimization": false,
+                  "extractLicenses": false,
+                  "sourceMap": true
+                }
+              },
+              "defaultConfiguration": "production"
+            },
+            "serve": {
+              "builder": "@angular-devkit/build-angular:dev-server",
+              "configurations": {
+                "production": {
+                  "buildTarget": "pepe22:build:production"
+                },
+                "development": {
+                  "buildTarget": "pepe22:build:development"
+                }
+              },
+              "defaultConfiguration": "development"
+            },
+            "extract-i18n": {
+              "builder": "@angular-devkit/build-angular:extract-i18n"
+            },
+            "test": {
+              "builder": "@angular-devkit/build-angular:karma",
+              "options": {
+                "polyfills": [
+                  "zone.js",
+                  "zone.js/testing"
+                ],
+                "tsConfig": "projects/pepe22/tsconfig.spec.json",
+                "inlineStyleLanguage": "scss",
+                "assets": [
+                  {
+                    "glob": "**/*",
+                    "input": "projects/pepe22/public"
+                  }
+                ],
+                "styles": [
+                  "projects/pepe22/src/styles.scss"
+                ],
+                "scripts": []
+              }
+            }
+          }
         }
     },
     "cli": {

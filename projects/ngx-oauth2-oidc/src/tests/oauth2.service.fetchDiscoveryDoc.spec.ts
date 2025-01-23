@@ -44,7 +44,7 @@ describe("Oauth2Service fetchDiscoveryDoc", () => {
 
     it("#fetchDiscoveryDoc should return error", (done: DoneFn) => {
         service
-            .fetchDiscoveryDoc()
+            .discovery()
             .then(v => {
                 const err = JSON.stringify(v, null, 4);
                 done.fail(err);
@@ -63,7 +63,7 @@ describe("Oauth2Service fetchDiscoveryDoc", () => {
         const config = {...service.config};
 
         service
-            .fetchDiscoveryDoc()
+            .discovery()
             .then(v => {
                 expect(v).toEqual(discovery_document as IOAuth2Metadata);
                 done();

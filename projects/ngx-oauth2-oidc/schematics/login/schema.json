@@ -1,0 +1,33 @@
+{
+    "$schema": "http://json-schema.org/schema",
+    "$id": "SchematicsLogin",
+    "title": "Login Schema",
+    "type": "object",
+    "properties": {
+        "component": {
+            "description": "The name of the login component.",
+            "type": "string",
+            "default": "login"
+        },
+        "path": {
+            "type": "string",
+            "description": "The path to create the service.",
+            "$default": {
+                "$source": "workingDirectory"
+            }
+        },
+        "components": {
+            "type": "string",
+            "description": "The path to create the service.",
+            "default": "aaa"
+        },
+        "project": {
+            "type": "string",
+            "description": "The name of the project.",
+            "$default": {
+                "$source": "projectName"
+            }
+        }
+    },
+    "required": ["path", "project"]
+}

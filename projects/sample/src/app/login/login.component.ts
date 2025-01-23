@@ -360,7 +360,7 @@ export class LoginComponent implements OnInit {
         // Some flows respond to the redirect with an id_token
         if (id_token) {
             const res = await this.endPoint(
-                this.oauth2.verify_token,
+                this.oauth2.verifyToken,
                 "verify_token",
                 this.verification_call,
                 this.verification_response,
@@ -436,7 +436,7 @@ export class LoginComponent implements OnInit {
         if (!resCfg) return;
 
         const resDisc = await this.endPoint(
-            this.oauth2.fetchDiscoveryDoc,
+            this.oauth2.discovery,
             // TODO: One object for all five values
             "fetchDiscoveryDoc",
             this.discovery_call,
@@ -496,7 +496,7 @@ export class LoginComponent implements OnInit {
 
         if (res?.id_token) {
             await this.endPoint(
-                this.oauth2.verify_token,
+                this.oauth2.verifyToken,
                 "verify_token",
                 this.verification_call,
                 this.verification_response,
@@ -531,7 +531,7 @@ export class LoginComponent implements OnInit {
 
         if (res?.id_token) {
             await this.endPoint(
-                this.oauth2.verify_token,
+                this.oauth2.verifyToken,
                 "verify_token",
                 this.verification_call,
                 this.verification_response,
