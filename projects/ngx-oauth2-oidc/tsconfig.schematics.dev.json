@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "lib": [
+            "es2022",
+            "dom"
+        ],
+        "declaration": true,
+        "esModuleInterop": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "noEmitOnError": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "noUnusedParameters": false,
+        "noUnusedLocals": false,
+        "rootDir": "schematics",
+        "outDir": "../../dist/ngx-oauth2-oidc/schematics",
+        "skipDefaultLibCheck": true,
+        "skipLibCheck": true,
+        "sourceMap": true,
+        "strictNullChecks": true,
+        "target": "es6",
+        "types": [
+            "jasmine",
+            "node"
+        ]
+    },
+    "include": [
+        "schematics/**/*"
+    ],
+    "exclude": [
+        "schematics/*/files/**/*"
+    ]
+}

@@ -1,17 +1,68 @@
-import _ts, { SyntaxKind } from "@schematics/angular/third_party/github.com/Microsoft/TypeScript/lib/typescript";
-import { Tree } from "@angular-devkit/schematics";
+import { strings } from "@angular-devkit/core";
+import {
+    SchematicContext,
+    SchematicsException,
+    Tree,
+    apply,
+    applyTemplates,
+    url
+} from "@angular-devkit/schematics";
+import _ts, {
+    SyntaxKind,
+    NodeArray as _NodeArray
+} from "@schematics/angular/third_party/github.com/Microsoft/TypeScript/lib/typescript";
 
+export type GlobalData = Record<string, any>;
+export const setData = (target: GlobalData, value: any, ...keys: string[]) => {
+    const len = keys.length;
+    let i = 0;
+    let last = target,
+        next = target;
+
+    while (i < len && next[keys[i]] !== undefined) {
+        last = next;
+        next = next[keys[i++]];
+    }
+    while (i < len) {
+        last = next;
+        next = next[keys[i++]] = {};
+    }
+    if (value === null || value === undefined) {
+        if (len) delete last[keys[len - 1]];
+        else Object.keys(last).forEach(key => delete last[key]);
+    } else if (isPlainObject(value)) Object.assign(next, { ...next, ...value });
+    else last[keys[len - 1]] = value;
+};
+export const getData = (target: GlobalData, ...keys: string[]) => {
+    let i = 0;
+    let t = target;
+    while (i < keys.length && t !== undefined) t = t[keys[i++]];
+
+    return t === undefined ? t : JSON.parse(JSON.stringify(t));
+};
 export const __$$undefined = Symbol.for("__$$undefined");
 export const __$$anonymous = Symbol.for("__$$anonymous");
-export interface Node extends ts.Node {};
-export import ts = _ts
-export enum NodeTypeExtension {single, extended, onlyExtension};
+export interface Node extends ts.Node {}
+export type NodeArray<T extends ts.Node> = _NodeArray<T> & {
+    pos: number;
+    end: number;
+};
+export import ts = _ts;
+import { Observable, firstValueFrom } from "rxjs";
+export enum NodeTypeExtension {
+    single,
+    extended,
+    onlyExtension,
+}
 export const getEnumIdentifier = (enumeration: any, value: number) => {
     const key = value.toString() as keyof typeof enumeration;
 
     return enumeration[key];
-}
-
+};
+export const isPlainObject = (v: any) =>
+    !!v &&
+    typeof v === "object" &&
+    (v.__proto__ === null || v.__proto__ === Object.prototype);
 const _nodeIdentifier = (node: ts.Node) =>
     //(node as { name?: { escapedText?: string } }).name?.escapedText;
     (node as { name?: { escapedText?: string } }).name?.escapedText ??
@@ -21,10 +72,11 @@ export const nodeFlags = (node: ts.Node | undefined) => {
     if (node === undefined) return [];
 
     const values = (
-        Object.values(ts.NodeFlags)
-        .filter(v => typeof v === "number") as number[]
-    ).sort((a, b ) => b - a);
-    const flagsArray  = []
+        Object.values(ts.NodeFlags).filter(
+            v => typeof v === "number"
+        ) as number[]
+    ).sort((a, b) => b - a);
+    const flagsArray = [];
     let flags = node.flags;
 
     do {
@@ -32,10 +84,93 @@ export const nodeFlags = (node: ts.Node | undefined) => {
         const key = val.toString() as keyof typeof ts.NodeFlags;
 
         flagsArray.unshift(ts.NodeFlags[key]); // as unknown as string);
-        flags -= val
-    } while (flags > 0 );
+        flags -= val;
+    } while (flags > 0);
 
-    return flagsArray as unknown as string[]
+    return flagsArray as unknown as string[];
+};
+export const log = (obj: Record<string, any>, depth: number | null, omit: string[], filter: string[]):void => {
+    const clone = (obj: Object, cnt: number) => {
+        const newObj = {}
+        if (cnt < 0) return newObj;
+        for (var property in obj) {
+            if (obj.hasOwnProperty(property) && (filter.includes(property) || !isNaN(property as unknown as number))) {
+                if (Array.isArray(obj[property as keyof typeof obj])) {
+                    Object.assign(newObj, {[property]: []});
+                    Object.entries(obj[property as keyof typeof obj])
+                        .filter(
+                            p =>
+                                filter.includes(p[0]) ||
+                                !isNaN(p[0] as unknown as number)
+                        )
+                        .forEach(
+
+                            p => {
+                                if (typeof p[1] === "object") {
+                                    // @ts-ignore
+                                    newObj[property as keyof typeof newObj][
+                                        p[0]
+                                    ] = clone(p[1], cnt - 1);
+                                    Object.setPrototypeOf(
+                                        newObj[property as keyof typeof newObj][
+                                            p[0]
+                                        ],
+                                        p[1]
+                                    );
+                                } else {
+                                    // @ts-ignore
+                                    newObj[property as keyof typeof newObj][
+                                        p[0]
+                                    ] = p[1];
+                                }
+
+                            }
+                        );
+                } else if (typeof obj[property as keyof typeof obj] == "object") {
+                    Object.assign(newObj, {
+                        [property]: clone(
+                            obj[property as keyof typeof obj],
+                            cnt - 1
+                        ) ,
+                    });
+                    Object.setPrototypeOf(
+                        newObj[property as keyof typeof obj],
+                        obj[property as keyof typeof obj]
+                    );
+                } else {
+                    Object.assign(newObj, {
+                        [property]: obj[property as keyof typeof obj],
+                    });
+                }
+            }
+        }
+        return newObj
+    }
+    const iterate = (out: Record<string, any>, cnt: number, key: string) => {
+        if (cnt < 0) return out;
+        for (let key in out) {
+            if (omit.includes(key)) out[key] = "__omited__";
+            else if (filter.length > 0 && !filter.includes(key)) delete out[key];
+            else if (Array.isArray(out[key])) out[key] = out[key].map((n: Record<string, any>) => iterate(n, cnt - 1, key));
+            else if (typeof out[key] === "object") out[key] = iterate(out[key], cnt - 1, key)
+        }
+        return out
+    }
+
+    depth ??= 5;
+    depth = depth < 0 ? 0 : depth > 5 ? 5 : depth;
+    if (Array.isArray(obj)) {
+        const newObj = {name: obj};
+        const out = clone(newObj, depth)
+        console.dir(out["name" as keyof typeof out], { depth: 2 });
+        // iterate(out["name" as keyof typeof out], depth, "");
+        // console.dir(out["name" as keyof typeof out], { depth: 2 });
+        return
+    }
+    const out = clone(obj, depth);
+    console.dir(out, {depth})
+    // iterate(out, depth, "");
+    // console.dir(out, {depth})
 }
 
 const _defaultExtendedText = (node: ts.Node) => {
@@ -47,22 +182,33 @@ const _defaultExtendedText = (node: ts.Node) => {
     const dec = (ts.getDecorators(node as ts.HasDecorators) ?? [])
         .map(d => nodeType(d, 2))
         .join("");
-    const flags = !!node.flags
-        ? "flags: " + nodeFlags(node).join(", ")
-        : "";
+    const flags = !!node.flags ? "flags: " + nodeFlags(node).join(", ") : "";
     return id + dec + (id + dec ? " " : "") + (flags ? flags : "");
-}
+};
 
-
-const _nodeType = (extension: NodeTypeExtension, singleText: string, extendedText: string, data?: Object) =>
+const _nodeType = (
+    extension: NodeTypeExtension,
+    singleText: string,
+    extendedText: string,
+    data?: Object
+) =>
     `${extension < 2 ? singleText : ""}${
-        extension === 1 && extendedText !== "" ? ", " : ""}${
-        extension > 0 ? extendedText : ""
-    }${data ? " " + JSON.stringify(data ?? "", (_key, value)=> {
-        if (value === __$$undefined) return "Symbol(__$$undefined)"; return value
-    }) : ""}`;
+        extension === 1 && extendedText !== "" ? ", " : ""
+    }${extension > 0 ? extendedText : ""}${
+        data
+            ? " " +
+              JSON.stringify(data ?? "", (_key, value) => {
+                  if (value === __$$undefined) return "Symbol(__$$undefined)";
+                  return value;
+              })
+            : ""
+    }`;
 
-export const nodeType = (node: Node, extension: NodeTypeExtension = 1, data?: Object): string => {
+export const nodeType = (
+    node: Node,
+    extension: NodeTypeExtension = 1,
+    data?: Object
+): string => {
     //const flags = _nodeFlags(node);
 
     // return node.kind === 1 // 1
@@ -72,7 +218,16 @@ export const nodeType = (node: Node, extension: NodeTypeExtension = 1, data?: Ob
     //           node.flags ? "flags: " + _nodeFlags(node).join(", ") : "",
     //           data
     //       )
-    return ts.isStringLiteral(node) // 11
+
+    if  (!node.kind && !isNodeArray(node)) {
+        throw new SchematicsException(
+            `❌  nodeType: it is not a node`
+        );
+    }
+
+    return isNodeArray(node)
+        ? _nodeType(extension, "NodeArray", `length: ${node.length}`, data)
+        : ts.isStringLiteral(node) // 11
         ? _nodeType(extension, "StringLiteral", '"' + node.text + '"', data)
         : ts.isIdentifier(node) // 80
         ? _nodeType(extension, "Identifier", node.escapedText as string, data)
@@ -139,12 +294,7 @@ export const nodeType = (node: Node, extension: NodeTypeExtension = 1, data?: Ob
               data
           )
         : ts.isNamedImports(node) // 275
-        ? _nodeType(
-              extension,
-              "NamedImports",
-              node.getText(),
-              data
-          )
+        ? _nodeType(extension, "NamedImports", node.getText(), data)
         : ts.isSourceFile(node) // 307
         ? _nodeType(extension, "SourceFile", node.fileName, data)
         : _nodeType(
@@ -153,12 +303,12 @@ export const nodeType = (node: Node, extension: NodeTypeExtension = 1, data?: Ob
               _defaultExtendedText(node),
               data
           );
-}
+};
 
 export type callExpressionType = {
-    identifier?: string,
-    arguments: EvaluatedExpression[]
-}
+    identifier?: string;
+    arguments: EvaluatedExpression[];
+};
 
 export type modifiersType = {
     isAbstract?: boolean;
@@ -179,9 +329,11 @@ export type modifiersType = {
     decorators?: callExpressionType[];
 };
 
-export type classDeclarationType =  modifiersType | {
-    name?: string,
-}
+export type classDeclarationType =
+    | modifiersType
+    | {
+          name?: string;
+      };
 
 // SyntaxKind.StringLiteral: 11
 
@@ -199,11 +351,9 @@ export const getIdentifier = (node?: ts.Identifier) => node?.text;
 
 export const isDecorator = ts.isDecorator;
 
-export function getDecorator(
-    node: ts.Decorator
-) {
+export function getDecorator(node: ts.Decorator) {
     const callExpression = node.expression as ts.CallExpression;
-    return getCallExpression(callExpression)
+    return getCallExpression(callExpression);
 }
 
 // SyntaxKind.ObjectLiteralExpression: 210
@@ -214,25 +364,23 @@ export const getObjectLiteralExpression = (
     node: ts.ObjectLiteralExpression
 ) => {
     const properties = node.properties as ts.NodeArray<ts.PropertyAssignment>;
-    const entries = properties.map(prop => getPropertyAssignment(prop) ?? [])
+    const entries = properties.map(prop => getPropertyAssignment(prop) ?? []);
 
-    return Object.fromEntries(entries)
-}
+    return Object.fromEntries(entries);
+};
 
 // SyntaxKind.CallExpression: 213
 
 export const isCallExpression = ts.isCallExpression;
 
-export function getCallExpression(
-    node: ts.CallExpression
-): callExpressionType {
+export function getCallExpression(node: ts.CallExpression): callExpressionType {
     const identifier = node.expression as ts.Identifier; // Decorator identifier
     const decoratorArguments = // 'arguments' is a reserved word
         node.arguments as ts.NodeArray<ts.Expression>;
 
     return {
         identifier: getIdentifier(identifier), // undefined if anonim function
-        arguments: decoratorArguments.map(arg => getEvaluatedExpression(arg))
+        arguments: decoratorArguments.map(arg => getEvaluatedExpression(arg)),
     };
 }
 
@@ -240,16 +388,14 @@ export function getCallExpression(
 
 export const isClassDeclaration = ts.isClassDeclaration;
 
-export function getClassDeclaration(
-    node: ts.ClassDeclaration
-) {
+export function getClassDeclaration(node: ts.ClassDeclaration) {
     // node.members.forEach(member => console.log("MEMBER", member.kind, member.getText()));
     const name = getIdentifier(
         node.name
     ); /** May be undefined in `export default class { ... }`. */
     const modifiers = getModifiers(node.modifiers);
 
-    return { name, ...modifiers} as classDeclarationType;
+    return { name, ...modifiers } as classDeclarationType;
 }
 
 // SyntaxKind.ImportDeclaration: 272
@@ -266,20 +412,22 @@ export const getPropertyAssignment = (node: ts.PropertyAssignment) => {
     const name = getPropertyName(node.name);
     const expression = getEvaluatedExpression(node.initializer);
 
-    return [name, expression]
-}
+    return [name, expression];
+};
 
 // SyntaxKind.SourceFile: 307
 
-export interface SourceFile extends ts.SourceFile {};
+export interface SourceFile extends ts.SourceFile {}
 
 // Expression
 
 export const isExpression = ts.isExpression;
 
-export interface EvaluatedExpression extends ts.Node {};
+export interface EvaluatedExpression extends ts.Node {}
 
-export const isEvaluatedExpression = (node: ts.Node): node is EvaluatedExpression =>
+export const isEvaluatedExpression = (
+    node: ts.Node
+): node is EvaluatedExpression =>
     // Literal
     ts.isNumericLiteral(node) ||
     ts.isBigIntLiteral(node) ||
@@ -294,11 +442,9 @@ export const isEvaluatedExpression = (node: ts.Node): node is EvaluatedExpressio
     node.kind === SyntaxKind.TrueKeyword ||
     node.kind === SyntaxKind.UndefinedKeyword ||
     // Identifier
-    ts.isIdentifier(node)
+    ts.isIdentifier(node);
 
-export const getEvaluatedExpression = (
-    node: ts.Expression
-): any => {
+export const getEvaluatedExpression = (node: ts.Expression): any => {
     //if (!node) return __$$undefined
 
     const kind = node.kind;
@@ -390,11 +536,19 @@ export const getPropertyName = (node?: ts.PropertyName): any => {
     }
 
     return expression;
+};
+
+// NodeArray
+
+export const isNodeArray = <T extends ts.Node>(obj: any): obj is NodeArray<T> =>{
+    return Array.isArray(obj) && "pos" in obj && "end" in obj && "hasTrailingComma" in obj
 }
 
 // Modifiers
 
-export const getModifiers = (modifiers?: ts.NodeArray<ts.ModifierLike>): modifiersType => {
+export const getModifiers = (
+    modifiers?: ts.NodeArray<ts.ModifierLike>
+): modifiersType => {
     if (!modifiers) return {};
 
     return modifiers.reduce<modifiersType>(
@@ -430,7 +584,13 @@ export const getModifiers = (modifiers?: ts.NodeArray<ts.ModifierLike>): modifie
                 : cur.kind === SyntaxKind.StaticKeyword
                 ? { ...prev, isStatic: true }
                 : cur.kind === SyntaxKind.Decorator
-                ? { ...prev, decorators: [...(prev.decorators ?? []), getDecorator(cur)] }
+                ? {
+                      ...prev,
+                      decorators: [
+                          ...(prev.decorators ?? []),
+                          getDecorator(cur),
+                      ],
+                  }
                 : (() => {
                       console.error(
                           `getExpression: no literal expression node kind: ${
@@ -441,21 +601,39 @@ export const getModifiers = (modifiers?: ts.NodeArray<ts.ModifierLike>): modifie
                   })(),
         {}
     );
-
 };
 
-export const getIndentation = (text: string) => {
-    const allIndentation: string[] = text.match(/^[ \t]+/gm) || [];
-    const duplicatedIndentations = allIndentation.reduce(
-        (prev, curr) => ({ ...prev, [curr]: (prev[curr] || 0) + 1 }),
-        <Record<string, number>>{}
-    );
-    const indentation = Object.entries(duplicatedIndentations).reduce(
-        (prev, curr) => (curr[1] > prev[1] ? curr : prev),
-        ["", 0]
-    )[0];
+export const getIndentation = (
+    nodes: ts.NodeArray<ts.Node> | ts.Node[] | readonly ts.Node[],
+    order: number | "last",
+    eol: string
+) => {
+    if (!nodes.length) return "    ";
 
-    return indentation;
+    const pos =
+        order === "last"
+            ? nodes.length
+            : order > nodes.length
+            ? nodes.length
+            : order < 0
+            ? 0
+            : order;
+    let previousLine, nextLine, i;
+
+    i = pos - 1;
+    if (i >= 0) {
+        previousLine = nodes[i--].getFullText();
+    }
+
+    i = pos;
+    if (i < nodes.length) {
+        nextLine = nodes[i++].getFullText();
+    }
+
+    const prev = previousLine?.match(/^[ \t]+/gm)?.[0] ?? "";
+    const next = nextLine?.match(/^[ \t]+/gm)?.[0] ?? "";
+
+    return prev.length > 1 ? prev : next.length > 1 ? next : "    ";
 };
 
 /**

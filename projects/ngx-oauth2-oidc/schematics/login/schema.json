@@ -4,30 +4,18 @@
     "title": "Login Schema",
     "type": "object",
     "properties": {
-        "component": {
-            "description": "The name of the login component.",
-            "type": "string",
-            "default": "login"
-        },
-        "path": {
-            "type": "string",
-            "description": "The path to create the service.",
-            "$default": {
-                "$source": "workingDirectory"
-            }
-        },
-        "components": {
-            "type": "string",
-            "description": "The path to create the service.",
-            "default": "aaa"
-        },
         "project": {
             "type": "string",
-            "description": "The name of the project.",
+            "description": "Name of the project.",
             "$default": {
                 "$source": "projectName"
             }
+        },
+        "component": {
+            "description": "Name of the login component class name.",
+            "type": "string",
+            "default": "LoginComponent"
         }
     },
-    "required": ["path", "project"]
+    "required": ["project", "component"]
 }

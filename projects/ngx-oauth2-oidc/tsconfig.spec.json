@@ -10,5 +10,9 @@
   "include": [
     "**/*.spec.ts",
     "**/*.d.ts"
+  ],
+  "exclude": [
+    "**/imports.spec.ts",
+    "**/injections.spec.ts"
   ]
 }

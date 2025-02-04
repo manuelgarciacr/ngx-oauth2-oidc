@@ -1,5 +1,5 @@
 import { Rule, SchematicContext, Tree, SchematicsException } from "@angular-devkit/schematics";
-import { ts, getSourceFile, nodeFlags } from "./util";
+import { ts, getSourceFile, nodeFlags, GlobalData, setData, getData } from "./utils";
 import { findNodes } from "./find";
 import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
 import { InsertChange } from "@schematics/angular/utility/change";
@@ -8,78 +8,87 @@ import { InsertChange } from "@schematics/angular/utility/change";
  * Function that returns the rules necessary to import a specific symbol from the indicated
  * module. If the item has already been imported, a warning message is logged; otherwise,
  * the new rules will be added to the set of rules to be dealt with.
- * @param {string} fileName File we want to add import to. It is assumed to be an existing
+ * @param {string} file File we want to add import to. It is assumed to be an existing
  *      editable file.
- * @param {string} symbolName Symbol to import
  * @param {string} module Module from which to import
- * @param {Record<string, Record<string, any>>} data Global object that allows sharing
+ * @param {string} symbol Symbol to import
+ * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @param {Rule[]} rules Set of rules to be dealt with.
  * @returns {Rule[]} Set of rules to be dealt with.
  */
 export const insertImport = (
-    fileName: string,
-    symbolName: string,
+    file: string,
     module: string,
-    data: Record<string, Record<string, any>>,
+    symbol: string,
+    data: GlobalData,
     rules: Rule[]
 ): Rule[] => {
-    rules.push(importedDataRuleFactory(fileName, symbolName, module, data));
-    rules.push(insertImportRuleFactory(fileName, symbolName, module, data));
+    rules.push(importedDataRuleFactory(file, module, symbol, data));
+    rules.push(insertImportRuleFactory(file, module, symbol, data));
 
     return rules;
 };
 
 /**
  * Determine if the item has already been imported. Even within another import or namespace
- * @param {string} fileName File we want to add import to. It is assumed to be an existing
+ * @param {string} file File we want to add import to. It is assumed to be an existing
  *      editable file.
- * @param {string} symbolName Symbol to import
  * @param {string} module Module from which to import
- * @param {Record<string, Record<string, any>>} data Global object that allows sharing
+ * @param {string} symbol Symbol to import
+ * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @returns {Rule} The rule that adds the imported identifier, if any, into the global
  *      'data' object.
  */
 export function importedDataRuleFactory(
-    fileName: string,
-    symbolName: string,
+    file: string,
     module: string,
-    data: Record<string, Record<string, any>>
+    symbol: string,
+    data: GlobalData
 ): Rule {
     return (tree: Tree, context: SchematicContext) => {
-        const source = getSourceFile(tree, fileName);
-        const [token, tokens] = getImportedIdentifier(source, symbolName, module, context);
+        const source = getSourceFile(tree, file);
+        const [value, allValues] = getImportedIdentifier(
+            source,
+            module,
+            symbol,
+            context
+        );
 
-        data["importedData"] = {value: token, allValues: tokens};
+        setData(
+            data,
+            { value, allValues },
+            ...["importedData", file, module, symbol]
+        );
 
         return tree;
     };
 }
 
 export const insertImportRuleFactory = (
-    fileName: string,
-    symbolName: string,
+    file: string,
     module: string,
-    data: Record<string, Record<string, any>>
+    symbol: string,
+    data: GlobalData
 ): Rule => {
     return (tree: Tree, context: SchematicContext): Tree => {
-        const source = getSourceFile(tree, fileName);
-        const updateRecorder = tree.beginUpdate(fileName);
-        const change = _insertImport(source, fileName, symbolName, module);
-        const importedData = data["importedData"]
+        const source = getSourceFile(tree, file);
+        const updateRecorder = tree.beginUpdate(file);
+        const change = _insertImport(source, file, symbol, module);
+        const importedData = getData(data, "importedData", file, module, symbol)
 
         if (importedData === undefined) {
             throw new SchematicsException(
-                `❌  Unable to verify import declaration: '${symbolName}'`
+                `❌  Unable to verify import declaration: '${symbol}'`
             );
         }
 
-        if (importedData["value"] !== undefined){
+        if (importedData["value"] !== undefined) {
             context.logger.warn(
-                `Import already added: '${importedData["value"]}'  👁️`
+                `👁️  Import already added: '${importedData["value"]}'`
             );
-            return tree
+            return tree;
         }
 
         if (change instanceof InsertChange) {
@@ -88,12 +97,12 @@ export const insertImportRuleFactory = (
 
         tree.commitUpdate(updateRecorder);
 
-        //data["importedData"] = { ...data["importedData"], value: symbolName };
-        importedData["value"] = symbolName;
-        importedData["allValues"] = [symbolName];
+        setData(data, {value: symbol, allValues: [symbol]}, "importedData", file, module, symbol);
 
         context.logger.info(
-            `\x1b[92mImport added successfully: "${symbolName}"\x1b[0m  ✅`
+            `\x1b[92m✅  Import added successfully: ${file
+                .split("/")
+                .pop()} => ${module} => ${symbol}"\x1b[0m`
         );
 
         return tree;
@@ -104,45 +113,50 @@ export const insertImportRuleFactory = (
  * Gets an identifier or property access expression from those imported
  * into the given source file, for a given symbol and module.
  * @param {ts.SourceFile} source Given source file.
- * @param {string} symbolName Given symbol name.
  * @param {string} module Given module path name.
+ * @param {string} symbol Given symbol name.
  * @param {SchematicContext} context Schematic context (needed for the logger)
  * @return The identifier or property access expressions
  */
 export const getImportedIdentifier = (
     source: ts.SourceFile,
-    symbolName: string,
     module: string,
+    symbol: string,
     context: SchematicContext
 ) => {
-    const tokens = getAllImportedIdentifiers(source, symbolName, module, context);
+    const tokens = getAllImportedIdentifiers(
+        source,
+        module,
+        symbol,
+        context
+    );
 
     if (tokens.length === 0) {
-        return [undefined, []]
+        return [undefined, []];
     }
 
-    if (tokens.includes(symbolName)) {
-        return [symbolName, tokens]
+    if (tokens.includes(symbol)) {
+        return [symbol, tokens];
     }
 
-    const token = tokens.find(t => !t.endsWith("." + symbolName)) || tokens[0];
+    const token = tokens.find(t => !t.endsWith("." + symbol)) || tokens[0];
 
-    return [token, tokens]
-}
+    return [token, tokens];
+};
 
 /**
  * Gets all identifiers and property access expressions that have been
  * imported into a given source file, for a given symbol and module.
  * @param {ts.SourceFile} source Given source file.
- * @param {string} symbolName Given symbol name.
  * @param {string} module Given module path name.
+ * @param {string} symbol Given symbol name.
  * @param {SchematicContext} context Schematic context (needed for the logger)
  * @return The identifiers and property access expressions
  */
 export const getAllImportedIdentifiers = (
     source: ts.SourceFile,
-    symbolName: string,
     module: string,
+    symbol: string,
     context: SchematicContext
 ) => {
     const rootNode = source;
@@ -160,7 +174,7 @@ export const getAllImportedIdentifiers = (
 
         if (nodeFlags(curr).includes("ThisNodeHasError")) {
             context.logger.warn(
-                `Import statement with errors: '${curr.getText()}'  👁️`
+                `👁️  Import statement with errors: '${curr.getText()}'`
             );
             return prev;
         }
@@ -188,24 +202,30 @@ export const getAllImportedIdentifiers = (
     }, <(ts.ImportSpecifier | ts.NamespaceImport | ts.ImportClause)[]>[]);
     const relevantTokens = relevantSpecifiers.reduce((prev, curr) => {
         const name = curr.name?.escapedText.toString();
-        const propertyName = (curr as ts.ImportSpecifier).propertyName?.escapedText.toString();
+        const propertyName = (
+            curr as ts.ImportSpecifier
+        ).propertyName?.escapedText.toString();
 
         if (curr.name && nodeFlags(curr.name).includes("ThisNodeHasError")) {
-            context.logger.warn(`Import clause with errors: '${curr.getText()}'  👁️`);
+            context.logger.warn(
+                `👁️  Import clause with errors: '${curr.getText()}'`
+            );
             return prev;
         }
 
         ts.isImportSpecifier(curr) &&
             propertyName === "default" &&
-            prev.push(name + "." + symbolName);
+            prev.push(name + "." + symbol);
         ts.isImportSpecifier(curr) &&
             propertyName === undefined &&
-            name === symbolName && prev.push(name );
+            name === symbol &&
+            prev.push(name);
         ts.isImportSpecifier(curr) &&
-            propertyName === symbolName &&
-            name && prev.push(name);
-        ts.isNamespaceImport(curr) && prev.push(name + "." + symbolName);
-        ts.isImportClause(curr) && prev.push(name + "." + symbolName);
+            propertyName === symbol &&
+            name &&
+            prev.push(name);
+        ts.isNamespaceImport(curr) && prev.push(name + "." + symbol);
+        ts.isImportClause(curr) && prev.push(name + "." + symbol);
 
         return prev;
     }, <string[]>[]);

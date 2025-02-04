@@ -3,21 +3,20 @@ import {
     Tree,
 } from "@angular-devkit/schematics";
 import { JsonValue, normalize, workspaces } from "@angular-devkit/core";
-import { ts, nodeType, /*getModifiers*/ } from './util';
+import { ts, nodeType, /*getModifiers*/ } from './utils';
 
-export const showData = (
-    _tree: Tree,
+export const showData = (options: {
     options?: Object,
-    sources?: (string | ts.Node)[],
-    indented: number = 0,
-    _modifiers: boolean = false,
+    nodes?: (string | ts.Node)[] | readonly ts.Node[] | ts.NodeArray<ts.Node> ,
+    indented?: number,
     dirEntry?: DirEntry,
     projectWorkspace?: workspaces.ProjectDefinition,
     buildOptions?: Record<string, JsonValue | undefined>
-) => {
-    !!options && console.log("OPTIONS", options);
+}) => {
+    const {options: schematicsOptions, nodes, indented = 0, dirEntry, projectWorkspace, buildOptions} = options;
+    !!schematicsOptions && console.log("OPTIONS", schematicsOptions);
 
-    sources?.forEach(src => {
+    nodes?.forEach(src => {
         if (typeof src === "string") {
             const extension = src.split(".").pop() ?? "";
 

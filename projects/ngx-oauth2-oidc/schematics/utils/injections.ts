@@ -1,8 +1,8 @@
 import { Rule, SchematicContext, Tree, SchematicsException } from "@angular-devkit/schematics";
-import { getIndentation, getSourceFile, ts } from "./util";
-import { getAllImportedIdentifiers, insertImport } from "./imports";
+import { GlobalData, getData, getIndentation, getSourceFile, setData, ts } from "./utils";
+import { insertImport } from "./imports";
 import { findNodes } from "./find";
-import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
+//import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
 import { InsertChange, Change } from "@schematics/angular/utility/change";
 import { getEOL } from "@schematics/angular/utility/eol";
 
@@ -12,34 +12,53 @@ import { getEOL } from "@schematics/angular/utility/eol";
  * this import, an error message is logged. If the item has already been injected,
  * a warning message is logged; otherwise, the new rules will be added to the set
  * of rules to be dealt with.
- * @param {string} fileName File we want to add inject to. It is assumed to be an existing
+ * @param {string} file File we want to add inject to. It is assumed to be an existing
  *      editable file.
  * @param {string} className Name of the class we want to add inject to.
- * @param {string | undefined} decorator Optional name of one of the decorators in the class.
- * @param {string} symbolName Symbol to import
  * @param {string} module Module from which to import
- * @param {string} propertyName Property where to inject the symbol
+ * @param {string} symbol Symbol to import
+ * @param {string} property Property where to inject the symbol
  * @param {string} modifiers Modifiers for the property
- * @param {Record<string, Record<string, any>>} data Global object that allows sharing
+ * @param {string | undefined} decorator Optional name of one of the decorators in the class.
+ * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @param {Rule[]} rules Set of rules to be dealt with.
  * @returns {Rule[]} Set of rules to be dealt with.
  */
 export const insertInject = (
-    fileName: string,
+    file: string,
     className: string,
-    decorator: string | undefined,
-    symbolName: string,
     module: string,
-    propertyName: string,
+    symbol: string,
+    property: string,
     modifiers: string,
-    data: Record<string, Record<string, any>>,
+    decorator: string | undefined,
+    data: GlobalData,
     rules: Rule[] = []
 ): Rule[] => {
-
-    insertImport(fileName, symbolName, module, data, rules);
-    rules.push(injectedDataRuleFactory(fileName, className, decorator, symbolName, module, data));
-    rules.push(insertInjectRuleFactory(fileName, className, decorator, symbolName, propertyName, modifiers, data));
+    //insertImport(file, module, symbol, data, rules);
+    rules.push(
+        injectedDataRuleFactory(
+            file,
+            className,
+            module,
+            symbol,
+            decorator,
+            data
+        )
+    );
+    rules.push(
+        insertInjectRuleFactory(
+            file,
+            className,
+            module,
+            symbol,
+            property,
+            modifiers,
+            decorator,
+            data
+        )
+    );
 
     return rules;
 };
@@ -48,19 +67,24 @@ export const insertInject = (
  * Determine if an inject statement already exists. Even inside a constructor
  */
 export function injectedDataRuleFactory(
-    fileName: string,
+    file: string,
     className: string,
-    decorator: string | undefined,
-    symbolName: string,
     module: string,
-    data: Record<string, Record<string, any>>
+    symbol: string,
+    decorator: string | undefined,
+    data: GlobalData
 ): Rule {
-    return (tree, context) => {
-        const source = getSourceFile(tree, fileName);
-        const tokens = getAllImportedIdentifiers(source, symbolName, module, context);
-        const classDeclaration = <ts.ClassDeclaration>(
-            findNodes(source, 1, { kindOrGuard: ts.isClassDeclaration, name: className, decorator })[0]
-        );
+    // TODO: Optimize and clean the code
+    return (tree, _context) => {
+        const importedData = getData(data, "importedData", file, module, symbol);
+        validateImportedData(importedData, symbol);
+        const imported = importedData.allValues;
+        const source = getSourceFile(tree, file);
+        const classDeclaration = <ts.ClassDeclaration>findNodes(source, 1, {
+            kindOrGuard: ts.isClassDeclaration,
+            names: [className],
+            decorator,
+        })[0];
         const getData01 = (st: ts.PropertyDeclaration) => {
             const modifiers = st.modifiers; // [private, readonly]
             const prop = st as ts.PropertyDeclaration;
@@ -166,74 +190,64 @@ export function injectedDataRuleFactory(
             .filter(st => getData03(st).condition)
             .map(st => getData03(st).mapOutput);
         const injections = [...injections01, ...injections02, ...injections03];
-        const injection = injections.find(
-            curr => curr[1] && tokens.includes(curr[1])
+        const allValues = injections.filter(
+            inj => inj[1] && imported.includes(inj[1])
         );
+        const value = allValues[0];
 
-        data["injectedData"] = { value: injection, allValues: injections };
+        setData(
+            data,
+            { value, allValues },
+            ...["injectedData", file, className, module, symbol]
+        );
 
         return tree;
     };
 }
 
 export const insertInjectRuleFactory = (
-    fileName: string,
+    file: string,
     className: string,
-    decorator: string | undefined,
-    symbolName: string,
-    propertyName: string,
+    module: string,
+    symbol: string,
+    property: string,
     modifiers: string,
-    data: Record<string, Record<string, any>>
+    decorator: string | undefined,
+    data: GlobalData
 ): Rule => {
+
     return (tree: Tree, context: SchematicContext) => {
-        const source = getSourceFile(tree, fileName);
-        const classDeclaration = <ts.ClassDeclaration>(
-            findNodes(source, 1, {
-                kindOrGuard: ts.isClassDeclaration,
-                name: className,
-                decorator,
-            })[0]
-        );
-        const pos = classDeclaration.members.pos;
-        const updateRecorder = tree.beginUpdate(fileName);
-        const importedData = data["importedData"];
-        const injectedData = data["injectedData"];
 
-        if (importedData === undefined) {
-            throw new SchematicsException(
-                `❌  Unable to verify import declaration : '${symbolName}'`
-            );
-        }
-
-        if (injectedData === undefined) {
-            throw new SchematicsException(
-                `❌  Unable to verify inject declaration: '${symbolName}'`
-            );
-        }
-
-        const imported = importedData["value"];
-        const injected = injectedData["value"];
-
-        if (imported === undefined) {
-            throw new SchematicsException(
-                `❌  Import not added: '${symbolName}'`
-            );
-        }
+        const importedData = getData(data, "importedData", file, module, symbol);
+        const injectedData = getData(data, "injectedData", file, className, module, symbol);
+        validateImportedData(importedData, symbol);
+        validateInjectedData(injectedData, symbol);
+        const imported = importedData.value;
+        const injected = injectedData.value;
 
         if (injected !== undefined) {
-            const text = `property: ${injected[0]}, symbol: ${injected[1]}`
+            const text = `property: ${injected[0]}, symbol: ${injected[1]}`;
 
             context.logger.warn(
-                `Inject statement already added: '${text}'  👁️`
+                `👁️  Inject statement already added: '${text}'`
             );
             return tree;
         }
 
+        const source = getSourceFile(tree, file);
+        const classDeclaration = <ts.ClassDeclaration>findNodes(source, 1, {
+            kindOrGuard: ts.isClassDeclaration,
+            names: [className],
+            decorator,
+        })[0];
+        const pos = classDeclaration.members.pos;
+        const updateRecorder = tree.beginUpdate(file);
+
         const change = _insertInject(
             source,
+            classDeclaration,
             imported,
-            propertyName,
-            pos,
+            property,
             modifiers
         );
 
@@ -243,13 +257,19 @@ export const insertInjectRuleFactory = (
 
         tree.commitUpdate(updateRecorder);
 
-        const injection = [propertyName, symbolName];
+        const value = [property, imported];
 
-        data["injectedData"] = { value: injection, allValues: [injection]};
+        setData(
+            data,
+            { value, allValues: [value] },
+            ...["injectedData", file, className, module, symbol]
+        );
 
         context.logger.info(
-            `\x1b[92mProperty injected successfully: "${propertyName}"\x1b[0m  ✅`
-        )
+            `\x1b[92m✅  Property injected successfully: ${file
+                .split("/")
+                .pop()} => ${className} => ${module} => ${symbol}"\x1b[0m`
+        );
 
         return tree;
     };
@@ -259,29 +279,49 @@ export const insertInjectRuleFactory = (
  * Add inject `modifiers propertyName = inject(symbolNameToken);` if the inject doesn't exit
  * already
  * @param source Source file we want to add inject to.
+ * @param classNode Class node we want to add inject to.
  * @param imported Imported identifier name.
- * @param propertyName Property name.
- * @param pos Insertion position.
+ * @param property Property name.
  * @param modifiers Property modifiers.
  * @return Change
  */
 function _insertInject(
     source: ts.SourceFile,
+    classNode: ts.ClassDeclaration,
     imported: string,
-    propertyName: string,
-    pos: number,
+    property: string,
     modifiers: string
 ): Change {
     const fileToEdit = source.fileName;
     const eol = getEOL(source.getText());
-    const indentation = getIndentation(source.getFullText());
+    const pos = classNode.members.pos;
+    const indentation = getIndentation(classNode.members, 0, eol);
 
     modifiers = modifiers ? modifiers + " " : ""
 
     return new InsertChange(
         fileToEdit,
         pos,
-        `${eol}${indentation}${modifiers}${propertyName} = inject(${imported});`
+        `${eol}${indentation}${modifiers}${property} = inject(${imported});\n`
     );
 }
 
+const validateImportedData = (importedData: GlobalData, symbol: string) => {
+    if (importedData === undefined) {
+        throw new SchematicsException(
+            `❌  Unable to verify import declaration : '${symbol}'`
+        );
+    }
+
+    if (importedData["value"] === undefined) {
+        throw new SchematicsException(`❌  Import not added: '${symbol}'`);
+    }
+}
+
+const validateInjectedData = (injectedData: GlobalData, symbol: string) => {
+    if (injectedData === undefined) {
+        throw new SchematicsException(
+            `❌  Unable to verify inject declaration: '${symbol}'`
+        );
+    }
+}

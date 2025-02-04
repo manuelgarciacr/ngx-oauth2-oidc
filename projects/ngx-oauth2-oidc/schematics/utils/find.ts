@@ -1,16 +1,21 @@
 import { DirEntry, Tree } from "@angular-devkit/schematics";
 import { workspaces } from "@angular-devkit/core";
-import { getSourceFile, ts } from "./util"
+import { NodeArray, getSourceFile, isNodeArray, nodeType, ts } from "./utils"
 
 export const findNodes = <T extends ts.Node>(
-    rootNode: ts.Node,
-    //kindOrGuard: ts.SyntaxKind | ((node: ts.Node) => node is T),
+    rootNode: ts.Node | NodeArray<ts.Node>,
     depth: number = Infinity,
-    options?: { kindOrGuard?: ts.SyntaxKind | ((node: ts.Node) => node is any), decorator?: string, name?: string }
+    options?: {
+        kindOrGuard?: ts.SyntaxKind | ((node: ts.Node) => node is any);
+        decorator?: string;
+        names?: string[];
+        caseSensitive?: boolean;
+    }
 ): T[] => {
     if (!rootNode) return [];
+    if (isNodeArray(rootNode) && rootNode.length === 0) return [];
 
-    const { kindOrGuard, decorator, name } = options ?? {};
+    const { kindOrGuard, decorator, names, caseSensitive = true } = options ?? {};
     const nodes: T[] = [];
     const test =
         typeof kindOrGuard === "function"
@@ -18,23 +23,24 @@ export const findNodes = <T extends ts.Node>(
             : typeof kindOrGuard === "number"
             ? (node: ts.Node): node is any => node.kind === kindOrGuard
             : undefined;
-    const getDepth = (node:  ts.Node) => {
+    const getDepth = (node: ts.Node) => {
         let depth = 0;
         let parent = node.parent;
 
         while (parent) {
             depth++;
-            parent = parent.parent
+            parent = parent.parent;
         }
 
-        return depth
-    }
-    const rootDepth = getDepth(rootNode);
+        return depth;
+    };
+    const rootDepth = isNodeArray(rootNode) ? getDepth(rootNode[0]) : getDepth(rootNode);
 
     depth = depth < 0 ? 0 : depth;
 
-    function visit( node: ts.Node ): ts.Node {
+    function visit(node: ts.Node): ts.Node {
         let add = true;
+//const b = a instanceof ts.
         // // 1.
         // if (ts.isClassDeclaration(node) && isComponent(node)) {
         //     withinComponent = true;
@@ -77,37 +83,42 @@ export const findNodes = <T extends ts.Node>(
         //     return wrapSubscribe(node, visit, context);
         // }
         if (add && test) {
-            add &&= test(node)
+            add &&= test(node);
         }
 
         if (add && decorator) {
             const idx = ts.canHaveDecorators(node)
                 ? ts
                       .getDecorators(node)
-                      ?.findIndex(
-                          v =>
-                              v.expression.getFirstToken()?.getText() ===
+                      ?.findIndex(v =>
+                          match(
+                              v.expression.getFirstToken()?.getText() ?? "",
                               decorator
+                          )
                       ) ?? -1
                 : -1;
 
             add &&= idx >= 0;
         }
 
-        if (add && name) {
-            const nodeName = (node as { name?: {escapedText?: string} }).name?.escapedText ?? "";
-
-            add &&= match(nodeName, name)
+        if (add && names && "name" in node) {
+            const nodeName = (node.name as ts.Identifier)?.escapedText ?? ""
+                // (node as { name?: { escapedText?: string } }).name
+                //     ?.escapedText ?? "";
+            const found =  !!names.find(name => match(nodeName, name, caseSensitive));
+            add &&= found;
         }
 
-        add &&= getDepth(node) - rootDepth <= depth
+        add &&= getDepth(node) - rootDepth <= depth;
 
         if (add) nodes.push(node as T);
 
         return ts.visitEachChild(node, visit, undefined);
     }
 
-    ts.visitNode(rootNode, visit);
+    if (isNodeArray(rootNode)) {
+        rootNode.forEach(n => ts.visitNode(n, visit))
+    } else ts.visitNode(rootNode, visit);
 
     return nodes;
 };

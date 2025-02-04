@@ -1,6 +1,6 @@
 //import ts from "typescript";
 import { Rule, SchematicContext, Tree } from "@angular-devkit/schematics/";
-import { ts } from "./util";
+import { ts } from "./utils";
 import { findNodes } from "./find";
 import { showData } from "./showData";
 //import { insertImport } from "@schematics/angular/utility/ast-utils";
@@ -41,7 +41,7 @@ export function insertTextRuleFactory(node: ts.Node): Rule {
         //const updateRecorder = tree.beginUpdate(filePath);
         const nodes = findNodes(source, 1);
 
-        showData(tree, undefined, nodes, 1, true);
+        //showData(tree, undefined, nodes, 1, true);
         //         const filePath = "some-file.ts";
         //         const fileContent = `import { Foo } from 'foo';
         // const bar = 'bar;

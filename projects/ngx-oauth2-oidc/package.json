@@ -1,6 +1,9 @@
 {
     "name": "ngx-oauth2-oidc",
     "version": "0.0.2",
+    "license": "MIT",
+    "author": "Manuel García Criado mgarcia@manuelgc.eu",
+    "description": "Very easy-to-use service for authentication and authorization via the OAuth 2.0 OIDC protocol.",
     "scripts": {
         "test": "CHROME_BIN=/usr/bin/google-chrome-stable ng test",
         "build": "tsc -p tsconfig.schematics.json",

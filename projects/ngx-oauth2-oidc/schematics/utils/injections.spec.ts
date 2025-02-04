@@ -7,7 +7,7 @@ import {
     callRule,
 } from "@angular-devkit/schematics";
 import { SchematicTestRunner } from "@angular-devkit/schematics/testing";
-import { getFileContent } from "./util";
+import { GlobalData, getData, getFileContent, setData } from "./utils";
 import * as path from "path";
 import { firstValueFrom } from "rxjs";
 import { injectedDataRuleFactory, insertInject, insertInjectRuleFactory } from "./injections";
@@ -21,18 +21,20 @@ describe("injections utils", () => {
     const context = {
         logger: runner.logger,
     } as unknown as SchematicContext;
+    const className = "AppModule";
+    const decorator = "NgModule";
     let logs: logging.LogEntry[];
-    let modulePath: string;
+    let file: string;
     let moduleContent: string;
     let tree: HostTree;
     // let tasks: TaskConfigurationGenerator[];
-    let data: Record<string, Record<string, any>>;
+    let data: GlobalData;
     let rules: Rule[];
 
     beforeEach(async () => {
         tree = new HostTree();
         logs  = [];
-        modulePath = "/src/app/app.module.ts";
+        file = "/src/app/app.module.ts";
         moduleContent = `
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
@@ -67,27 +69,27 @@ export class AppModule {
     }
 }
 `;
-        tree.create(modulePath, moduleContent);
+        tree.create(file, moduleContent);
         data = {};
         rules = [];
     });
 
     it("insertInject function", async () => {
         insertInject(
-            modulePath,
-            "AppModule",
-            "NgModule",
-            "FooService02",
+            file,
+            className,
             "./FooService",
+            "FooService02",
             "serv03",
             "public",
+            decorator,
             data,
             rules
         );
 
         await firstValueFrom(callRule(chain(rules), tree, context));
 
-        const output01 = getFileContent(tree, modulePath);
+        const output01 = getFileContent(tree, file);
 
         expect(output01).toMatch(
             /export class AppModule {\n\s*public serv03 = inject\(fooNamespace.FooService02\);\n/
@@ -96,32 +98,32 @@ export class AppModule {
         rules = [];
 
         insertInject(
-            modulePath,
-            "AppModule",
-            undefined,
-            "FooService04",
+            file,
+            className,
             "./FooService04",
+            "FooService04",
             "serv04",
             "public",
+            undefined,
             data,
             rules
         );
 
         insertInject(
-            modulePath,
-            "AppModule",
-            "NgModule",
-            "FooService05",
+            file,
+            className,
             "./FooService04",
+            "FooService05",
             "serv05",
             "public readoply",
+            decorator,
             data,
             rules
         );
 
         await firstValueFrom(callRule(chain(rules), tree, context));
 
-        const output02 = getFileContent(tree, modulePath);
+        const output02 = getFileContent(tree, file);
 
         expect(output02).toMatch(
             /import { AppComponent } from '.\/app.component';\nimport { FooService04, FooService05 } from '.\/FooService04';\n\n/
@@ -132,36 +134,57 @@ export class AppModule {
     });
 
     it("injectedDataRuleFactory function should return injected data of a property and a symbol", async () => {
+        const module = "./FooService";
+        const symbol = "FooService";
+
+        setData(
+            data,
+            {
+                value: "fooNamespace.FooService",
+                allValues: ["fooNamespace.FooService", "service.FooService"],
+            },
+            "importedData",
+            file,
+            module,
+            symbol
+        );
+
         rules.push(
             injectedDataRuleFactory(
-                modulePath,
-                "AppModule",
-                "NgModule",
-                "FooService",
-                "./FooService",
+                file,
+                className,
+                module,
+                symbol,
+                decorator,
                 data
             )
         );
 
         await firstValueFrom(callRule(chain(rules), tree, context));
 
-        expect(data["injectedData"]?.["value"]).toEqual(["serv02", "fooNamespace.FooService"]);
-        expect(data["injectedData"]?.["allValues"].length).toBe(3);
-        expect(logs.length).toBe(1);
-        expect(logs?.[0]?.message).toBe(
-            "Import clause with errors: '* from'  👁️"
-        );
+        expect(
+            getData(data, "injectedData", file, className, module, symbol, "value")
+        ).toEqual(["serv02", "fooNamespace.FooService"]);
+        expect(
+            getData(data, "injectedData", file, className, module, symbol, "allValues").length
+        ).toBe(1);
+        expect(logs.length).toBe(0);
     });
 
     it("insertInjectRuleFactory function returned rule should throw errors or show a warnings", async () => {
+        const module = "foo";
+        const symbol = "FooComponent";
+        const property = "fooService";
+
         rules.push(
             insertInjectRuleFactory(
-                modulePath,
-                "AppModule",
-                "NgModule",
-                "FooComponent",
-                "foo",
+                file,
+                className,
+                module,
+                symbol,
+                property,
                 "private readonly",
+                decorator,
                 data
             )
         );
@@ -172,7 +195,7 @@ export class AppModule {
             "❌  Unable to verify import declaration : 'FooComponent'"
         );
 
-        data["importedData"] = {};
+        setData(data, {value: "FooComponent"}, ...["importedData", file, module, symbol]);
 
         await expectAsync(
             firstValueFrom(callRule(chain(rules), tree, context))
@@ -180,23 +203,40 @@ export class AppModule {
             "❌  Unable to verify inject declaration: 'FooComponent'"
         );
 
-        data["importedData"] = { value: undefined };
-        data["injectedData"] = {};
+        setData(
+            data,
+            { value: undefined },
+            ...["importedData", file, module, symbol]
+        );
+        setData(
+            data,
+            {},
+            ...["injectedData", file, className, module, symbol]
+        );
 
         await expectAsync(
             firstValueFrom(callRule(chain(rules), tree, context))
         ).toBeRejectedWithError("❌  Import not added: 'FooComponent'");
 
-        data["importedData"]["value"] = "FooComponent";
-        data["injectedData"]["value"] = ["fooService", "FooService"];
+        setData(
+            data,
+            { value: "FooComponent" },
+            ...["importedData", file, module, symbol]
+        );
+        setData(
+            data,
+            { value: ["fooService", "FooService"] },
+            ...["injectedData", file, className, module, symbol]
+        );
 
         await firstValueFrom(
             callRule(chain(rules), tree, context)
         );
 
         const text = `property: fooService, symbol: FooService`;
+
         expect(logs.pop()?.message).toBe(
-            `Inject statement already added: '${text}'  👁️`
+            `👁️  Inject statement already added: '${text}'`
         );
         expect(logs.length).toBe(0);
     });

@@ -1,5 +1,18 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { DialogComponent } from '../../../demo/src/app';
+
+// import { Foo } from './foo';
+// import { Foo as fooAlias} from './foo';
+// import def03 from './foo';
+// import * as def04 from './foo';
+// import Foo from './foo';
+// import {default def05} from './foo.component'; // Compiler Error
+// import * as fooNamespace from './FooService';
+// import {default as service} from './FooService';
+// import * from './FooService'; // Compiler Error
+
+//import def01, {Foo, default as def02} from 'ngx-oauth2-oidc';
 
 const ExampleDecorator = (text: string) => ((constructor: Function) => console.log(text));
 
@@ -30,9 +43,31 @@ export class AppComponent implements OnDestroy {
     fnC(c: { c: string }) {}
 }
 
-class AnotherClass {
-    title = "Another Class"
-}
+@Component({})
+class logincomponent{constructor(){}}
 
 @Component({ template: "<body></body>" })
-export class AppComponent2 {}
+export class LoginCOMPONENT implements OnDestroy extends Component, DialogComponent{
+
+    a = inject(def01);
+
+    constructor(private b: def01){
+        this.pepe()
+    }
+
+    ngOnDestroy(): void {
+        throw new Error('Method not implemented.');
+    }
+    ExampleDecorator = 7;
+    a = 3;
+    login = 4;
+   pepe = () => {}
+    private luis () {}
+
+LoginCOMPONENT = 4
+    [object Promise
+[object  Promise
+
+]
+]
+}

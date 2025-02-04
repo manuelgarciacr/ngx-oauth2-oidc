@@ -1,19 +1,24 @@
 {
-    "$schema": "http://json-schema.org/schema",
+    "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "SchematicsNgAdd",
-    "title": "ng-add rule Schema",
+    "title": "ng-add Schema",
     "type": "object",
     "properties": {
-        "name": {
-            "type": "string",
-            "description": "The name of the file."
-        },
         "project": {
             "type": "string",
-            "description": "The name of the project.",
+            "description": "Name of the project.",
             "$default": {
-                "$source": "default"
+                "$source": "projectName"
             }
+        },
+        "loginComponent": {
+            "type": "string",
+            "description": "Name of the login component class name."
+        },
+        "skipInstall": {
+            "description": "Skip the automatic installation of packages. You will need to manually install the dependencies later.",
+            "type": "boolean",
+            "default": false
         },
         "path": {
             "type": "string",
@@ -21,5 +26,6 @@
             "description": "The path to create the simple schematic within.",
             "visible": false
         }
-    }
+    },
+    "required": ["project"]
 }
