@@ -8,18 +8,14 @@ import {
     GlobalData,
     NodeArray,
     getData,
-    getIndentation,
     getSourceFile,
-    log,
     setData,
     ts,
 } from "./utils";
-import { insertImport } from "./imports";
 import { findNodes } from "./find";
-//import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
-import { InsertChange, Change } from "@schematics/angular/utility/change";
+import { InsertChange } from "@schematics/angular/utility/change";
 import { getEOL } from "@schematics/angular/utility/eol";
-import { getPos, insertTemplate } from "./templates";
+import { getPos } from "./templates";
 
 const implementations = {
     "constructor": `    constructor() {
@@ -58,7 +54,7 @@ const implementations = {
  * @param {string} className Name of the class we want to add implementation to.
  * @param {string} implementation Implementation to include
  * @param {string | undefined} decorator Optional name of one of the decorators in the class.
- * @param {boolean} warnings If it is true, warning messages will be displayed.
+ * @param {boolean} alreadyAddedWarning If it is true, a warning message can be displayed.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @param {Rule[]} rules Set of rules to be dealt with.
@@ -69,11 +65,10 @@ export const insertImplementation = async (
     className: string,
     implementation: string,
     decorator: string | undefined,
-    warnings: boolean,
+    alreadyAddedWarning: boolean,
     data: GlobalData,
     rules: Rule[] = []
 ): Promise<Rule[]> => {
-    //insertImport(file, module, symbol, data, rules);
     rules.push(
         implementedDataRuleFactory(
             file,
@@ -84,12 +79,12 @@ export const insertImplementation = async (
         )
     );
     rules.push(
-        await insertImplementationRuleFactory(
+        insertImplementationRuleFactory(
             file,
             className,
             implementation,
             decorator,
-            warnings,
+            alreadyAddedWarning,
             data
         )
     );
@@ -116,7 +111,7 @@ export function implementedDataRuleFactory(
     decorator: string | undefined,
     data: GlobalData
 ): Rule {
-    return (tree: Tree, context: SchematicContext) => {
+    return (tree: Tree, _context: SchematicContext) => {
         const source = getSourceFile(tree, file);
         const classDeclaration = <ts.ClassDeclaration>findNodes(source, 1, {
             kindOrGuard: ts.isClassDeclaration,
@@ -136,7 +131,7 @@ export function implementedDataRuleFactory(
             n => n.token === ts.SyntaxKind.ImplementsKeyword
         )?.[0];
         const implementClauseItems = implementClause?.types.map(
-            n => (n.expression as ts.Identifier).escapedText.toString()
+            n => (n.expression as ts.Identifier)?.escapedText?.toString()
         );
         const members = classDeclaration.members;
         const inHeritageClause =
@@ -167,7 +162,7 @@ export function implementedDataRuleFactory(
  * @param {string} className Name of the class we want to include implementation to.
  * @param {string} implementation Implementation to include
  * @param {string | undefined} decorator Optional name of one of the decorators in the class.
- * @param {boolean} warnings If it is true, warning messages will be displayed.
+ * @param {boolean} alreadyAddedWarning If it is true, a warning message can be displayed.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @returns {Rule} The rule that adds the implemented data, if any, into the global
@@ -178,7 +173,7 @@ export const insertImplementationRuleFactory = (
     className: string,
     implementation: string,
     decorator: string | undefined,
-    warnings: boolean,
+    alreadyAddedWarning: boolean,
     data: GlobalData
 ): Rule => {
     return (tree: Tree, context: SchematicContext) => {
@@ -192,11 +187,11 @@ export const insertImplementationRuleFactory = (
 
         validateImplementedData(implementedData, implementation, context);
 
-        const { interfaceOrClass, inHeritageClause, implemented } =
-            implementedData;
+        const { interfaceOrClass } = implementedData;
+        let { inHeritageClause, implemented } = implementedData;
 
         if (
-            warnings &&
+            alreadyAddedWarning &&
             implemented &&
             (!interfaceOrClass || inHeritageClause)
         ) {
@@ -204,7 +199,6 @@ export const insertImplementationRuleFactory = (
 
             context.logger.warn(`👁️  Method already added: '${text}'`);
 
-            //return tree;
             return;
         }
 
@@ -224,10 +218,11 @@ export const insertImplementationRuleFactory = (
 
         if (!implemented) {
             const [pos, indentation] = getPos(
+                classDeclaration,
                 _getImplementations(classDeclaration),
+                undefined,
                 "last",
-                eol,
-                []
+                eol
             );
             const change = new InsertChange(
                 file,
@@ -237,8 +232,8 @@ export const insertImplementationRuleFactory = (
 
             if (change instanceof InsertChange) {
                 updateRecorder.insertRight(change.pos, change.toAdd);
+                implemented = true
             }
-console.log("CHANGE", change.order, change.pos)
         }
 
         if (interfaceOrClass && !inHeritageClause && !implementClause) {
@@ -251,29 +246,9 @@ console.log("CHANGE", change.order, change.pos)
 
             if (change instanceof InsertChange) {
                 updateRecorder.insertRight(change.pos, change.toAdd);
+                inHeritageClause = true
             }
-console.log("CHANGE", change.order, change.pos);
         } else if (interfaceOrClass && !inHeritageClause) {
-log(
-    implementClause!,
-    5,
-    [],
-    [
-        "kind",
-        "flags",
-        "pos",
-        "end",
-        "types",
-        "modifiers",
-        "expression",
-        "escapedText",
-        "heritageClauses",
-        "token",
-        "type",
-        "implementClause",
-        "name",
-    ]
-);
             const pos = implementClause!.end
             const change = new InsertChange(
                 file,
@@ -283,47 +258,23 @@ log(
 
             if (change instanceof InsertChange) {
                 updateRecorder.insertRight(change.pos, change.toAdd);
+                inHeritageClause =  true
             }
-            console.log("CHANGE", change.order, change.pos);
         }
-        // if (change instanceof InsertChange) {
-        //     updateRecorder.insertRight(change.pos, change.toAdd);
-        // }
-
-        // const pos = classDeclaration.members.pos;
-
-        // const change = _insertInject(
-        //     source,
-        //     classDeclaration,
-        //     imported,
-        //     property,
-        //     modifiers
-        // );
-
-        // if (change instanceof InsertChange) {
-        //     updateRecorder.insertRight(change.pos, change.toAdd);
-        // }
 
         tree.commitUpdate(updateRecorder);
 
-        // const value = [property, imported];
+        setData(
+            data,
+            { interfaceOrClass, inHeritageClause, implemented },
+            ...["implementedData", file, className, implementation]
+        );
 
-        // setData(
-        //     data,
-        //     { value, allValues: [value] },
-        //     ...["injectedData", file, className, module, symbol]
-        // );
-
-        // context.logger.info(
-        //     `\x1b[92m✅  Property injected successfully: ${file
-        //         .split("/")
-        //         .pop()} => ${className} => ${module} => ${symbol}"\x1b[0m`
-        // );
-
-        // if (className === "LoginCOMPONENT")
-        //     throw new SchematicsException("ERROR");
-
-        //        return tree;
+        context.logger.info(
+            `\x1b[92m✅  Implementation inserted successfully: ${file
+                .split("/")
+                .pop()} => ${className} => ${implementation}"\x1b[0m`
+        );
     };
 };
 

@@ -63,6 +63,10 @@ export class LoginCOMPONENT implements OnDestroy extends Component, DialogCompon
     login = 4;
    pepe = () => {}
     private luis () {}
+    set juan (a: string){
+        const a=3
+        return 3
+    }
 
 LoginCOMPONENT = 4
     [object Promise
@@ -71,3 +75,6 @@ LoginCOMPONENT = 4
 ]
 ]
 }
+
+function pepeluis(){}
+const pepejuan = () => {}

@@ -1,12 +1,6 @@
-import { strings } from "@angular-devkit/core";
 import {
-    SchematicContext,
     SchematicsException,
-    Tree,
-    apply,
-    applyTemplates,
-    url
-} from "@angular-devkit/schematics";
+    Tree} from "@angular-devkit/schematics";
 import _ts, {
     SyntaxKind,
     NodeArray as _NodeArray
@@ -48,7 +42,6 @@ export type NodeArray<T extends ts.Node> = _NodeArray<T> & {
     end: number;
 };
 export import ts = _ts;
-import { Observable, firstValueFrom } from "rxjs";
 export enum NodeTypeExtension {
     single,
     extended,
@@ -59,12 +52,15 @@ export const getEnumIdentifier = (enumeration: any, value: number) => {
 
     return enumeration[key];
 };
+export const getNodeType = (node: ts.Node | number) => {
+    const kind = typeof node === "number" ? node : node.kind
+    return getEnumIdentifier(ts.SyntaxKind, kind) as string;
+}
 export const isPlainObject = (v: any) =>
     !!v &&
     typeof v === "object" &&
     (v.__proto__ === null || v.__proto__ === Object.prototype);
 const _nodeIdentifier = (node: ts.Node) =>
-    //(node as { name?: { escapedText?: string } }).name?.escapedText;
     (node as { name?: { escapedText?: string } }).name?.escapedText ??
     (node as { escapedText?: string }).escapedText;
 
@@ -89,12 +85,14 @@ export const nodeFlags = (node: ts.Node | undefined) => {
 
     return flagsArray as unknown as string[];
 };
-export const log = (obj: Record<string, any>, depth: number | null, omit: string[], filter: string[]):void => {
+
+export const log = (obj: Record<string, any>, depth: number | null, _omit: string[], filter: string[]):void => {
+    const arrayRoot = "__arrayRoot__";
     const clone = (obj: Object, cnt: number) => {
         const newObj = {}
         if (cnt < 0) return newObj;
         for (var property in obj) {
-            if (obj.hasOwnProperty(property) && (filter.includes(property) || !isNaN(property as unknown as number))) {
+            if (obj.hasOwnProperty(property) && ((property  === arrayRoot && cnt === depth) || filter.includes(property) || filter.length === 0 || !isNaN(property as unknown as number))) {
                 if (Array.isArray(obj[property as keyof typeof obj])) {
                     Object.assign(newObj, {[property]: []});
                     Object.entries(obj[property as keyof typeof obj])
@@ -121,7 +119,7 @@ export const log = (obj: Record<string, any>, depth: number | null, omit: string
                                     // @ts-ignore
                                     newObj[property as keyof typeof newObj][
                                         p[0]
-                                    ] = p[1];
+                                    ] = (p[0] === "kind" ? `${p[1]} (${getNodeType(p[1])})` : p[1]);
                                 }
 
                             }
@@ -139,38 +137,43 @@ export const log = (obj: Record<string, any>, depth: number | null, omit: string
                     );
                 } else {
                     Object.assign(newObj, {
-                        [property]: obj[property as keyof typeof obj],
+                        [property]:
+                            property === "kind"
+                                ? `${
+                                      obj[property as keyof typeof obj]
+                                  } (${getNodeType(
+                                      obj[
+                                          property as keyof typeof obj
+                                      ] as unknown as number
+                                  )})`
+                                : obj[property as keyof typeof obj],
                     });
                 }
             }
         }
         return newObj
     }
-    const iterate = (out: Record<string, any>, cnt: number, key: string) => {
-        if (cnt < 0) return out;
-        for (let key in out) {
-            if (omit.includes(key)) out[key] = "__omited__";
-            else if (filter.length > 0 && !filter.includes(key)) delete out[key];
-            else if (Array.isArray(out[key])) out[key] = out[key].map((n: Record<string, any>) => iterate(n, cnt - 1, key));
-            else if (typeof out[key] === "object") out[key] = iterate(out[key], cnt - 1, key)
-        }
-        return out
-    }
-
+    // const iterate = (out: Record<string, any>, cnt: number, key: string) => {
+    //     if (cnt < 0) return out;
+    //     for (let key in out) {
+    //         if (omit.includes(key)) out[key] = "__omited__";
+    //         else if (filter.length > 0 && !filter.includes(key)) delete out[key];
+    //         else if (Array.isArray(out[key])) out[key] = out[key].map((n: Record<string, any>) => iterate(n, cnt - 1, key));
+    //         else if (typeof out[key] === "object") out[key] = iterate(out[key], cnt - 1, key)
+    //     }
+    //     return out
+    // }
     depth ??= 5;
     depth = depth < 0 ? 0 : depth > 5 ? 5 : depth;
     if (Array.isArray(obj)) {
-        const newObj = {name: obj};
+        depth++;
+        const newObj = {[arrayRoot]: obj};
         const out = clone(newObj, depth)
-        console.dir(out["name" as keyof typeof out], { depth: 2 });
-        // iterate(out["name" as keyof typeof out], depth, "");
-        // console.dir(out["name" as keyof typeof out], { depth: 2 });
+        console.dir(out[arrayRoot as keyof typeof out], { depth });
         return
     }
     const out = clone(obj, depth);
     console.dir(out, {depth})
-    // iterate(out, depth, "");
-    // console.dir(out, {depth})
 }
 
 const _defaultExtendedText = (node: ts.Node) => {
@@ -209,17 +212,8 @@ export const nodeType = (
     extension: NodeTypeExtension = 1,
     data?: Object
 ): string => {
-    //const flags = _nodeFlags(node);
 
-    // return node.kind === 1 // 1
-    //     ? _nodeType(
-    //           extension,
-    //           "EndOfFileToken",
-    //           node.flags ? "flags: " + _nodeFlags(node).join(", ") : "",
-    //           data
-    //       )
-
-    if  (!node.kind && !isNodeArray(node)) {
+    if  (!node?.kind && !isNodeArray(node)) {
         throw new SchematicsException(
             `❌  nodeType: it is not a node`
         );
@@ -230,7 +224,7 @@ export const nodeType = (
         : ts.isStringLiteral(node) // 11
         ? _nodeType(extension, "StringLiteral", '"' + node.text + '"', data)
         : ts.isIdentifier(node) // 80
-        ? _nodeType(extension, "Identifier", node.escapedText as string, data)
+        ? _nodeType(extension, "Identifier", node?.escapedText as string, data)
         : ts.isDecorator(node) // 170
         ? _nodeType(
               extension,
@@ -299,7 +293,7 @@ export const nodeType = (
         ? _nodeType(extension, "SourceFile", node.fileName, data)
         : _nodeType(
               extension,
-              getEnumIdentifier(ts.SyntaxKind, node.kind) as string,
+              getEnumIdentifier(ts.SyntaxKind, node?.kind) as string,
               _defaultExtendedText(node),
               data
           );
@@ -604,9 +598,9 @@ export const getModifiers = (
 };
 
 export const getIndentation = (
+    parent: ts.Node,
     nodes: ts.NodeArray<ts.Node> | ts.Node[] | readonly ts.Node[],
     order: number | "last",
-    eol: string
 ) => {
     if (!nodes.length) return "    ";
 
@@ -630,10 +624,11 @@ export const getIndentation = (
         nextLine = nodes[i++].getFullText();
     }
 
+    const def = parent.getFullText().match(/^[ \t]+/gm)?.[0] ?? "";
     const prev = previousLine?.match(/^[ \t]+/gm)?.[0] ?? "";
     const next = nextLine?.match(/^[ \t]+/gm)?.[0] ?? "";
 
-    return prev.length > 1 ? prev : next.length > 1 ? next : "    ";
+    return prev.length > 1 ? prev : next.length > 1 ? next : def.length > 1 ? def : "    ";
 };
 
 /**

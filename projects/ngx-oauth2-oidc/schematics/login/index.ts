@@ -3,23 +3,16 @@ import {
     SchematicContext,
     SchematicsException,
     Tree,
-    apply,
-    applyTemplates,
     chain,
-    url,
 } from "@angular-devkit/schematics";
-import { getEOL } from "@schematics/angular/utility/eol";
-import { InsertChange } from "@schematics/angular/utility/change";
 import { Schema } from "./schema";
 import { readWorkspace } from "@schematics/angular/utility";
-import { Observable, firstValueFrom } from "rxjs";
 import { ProjectDefinition } from "@angular-devkit/core/src/workspace/definitions";
-import { GlobalData, getIndentation, getSourceFile, nodeFlags, ts } from "../utils/utils";
+import { GlobalData, getData, nodeFlags, ts } from "../utils/utils";
 import { findNodes, findSources } from "../utils/find";
 import { insertInject } from "../utils/injections";
 import { cancellation } from "../utils/rules";
-import { showData } from "../utils/showData";
-import { getTemplate, insertTemplate, insertTemplateOptions } from "../utils/templates";
+import { insertTemplate } from "../utils/templates";
 import { insertImport } from "../utils/imports";
 import { insertImplementation } from "../utils/implementations";
 
@@ -78,6 +71,7 @@ export default function (options: Schema) {
 
                 insertImport(file, "ngx-oauth2-oidc", "Oauth2Service", data, rules);
                 insertImport(file, "ngx-oauth2-oidc", "IOAuth2Config", data, rules);
+                insertImport(file, "@angular/router", "Router", data, rules);
                 insertImport(file, "@angular/core", "OnInit", data, rules);
             }
 
@@ -103,40 +97,40 @@ export default function (options: Schema) {
                 rules
             );
 
-            const options: insertTemplateOptions = {
-                parentName: className,
-                parentkindOrGuard: ts.isClassDeclaration,
-                order: "last"
-            }
-
-            insertTemplate(
+            insertInject(
                 file,
-                "./files",
-                "login",
-                { id: "login" }, // templateOptions
-                options, // insertTemplateOptions
+                className,
+                "@angular/router",
+                "Router",
+                "router",
+                "private readonly",
+                "Component",
                 data,
                 rules
             );
-            // const oauth2 = getData(
-            //     data,
-            //     "injectedData",
-            //     file,
-            //     className,
-            //     "ngx-oauth2-oidc"
-            // );
-            // const code = await getTemplate(
-            //     "./files",
-            //     "loginInterceptor",
-            //     context,
-            //     { oauth2: "oauth2", router: "router", route: "route" }
-            // );
-            // const ngOnInit = getTemplate("./files", "asyncNgOnInit", context, {
-            //     code,
-            // });
-            // console.dir(data, { depth: null });
-            // getTemplate("codeId", "./files", "loginInterceptor", {}, data, rules);
-            insertImplementation(
+
+            await insertTemplate(
+                file,
+                // templateOptions
+                {
+                    templatePath: "./files",
+                    templateName: "login",
+                    vars: { id: "login" },
+                },
+                // rootFindOptions
+                {
+                    kindOrGuard: ts.isClassDeclaration,
+                    names: [className],
+                },
+                // parentFindOptions
+                undefined,
+                // itemsFindOptions
+                undefined,
+                "last",
+                rules
+            );
+
+            await insertImplementation(
                 file,
                 className,
                 "ngOnInit",
@@ -145,6 +139,52 @@ export default function (options: Schema) {
                 data,
                 rules
             )
+
+            await insertTemplate(
+                file,
+                // templateOptions
+                {
+                    templatePath: "./files",
+                    templateName: "loginInterceptor",
+                    vars: {
+                        oauth2: (): string =>
+                            getData(
+                                data,
+                                "injectedData",
+                                file,
+                                className,
+                                "ngx-oauth2-oidc",
+                                "Oauth2Service",
+                                "value"
+                            )[0],
+                        router: (): string =>
+                            getData(
+                                data,
+                                "injectedData",
+                                file,
+                                className,
+                                "@angular/router",
+                                "Router",
+                                "value"
+                            )[0],
+                        route: "route",
+                    },
+                },
+                // rootFindOptions
+                {
+                    kindOrGuard: ts.isClassDeclaration,
+                    names: [className],
+                },
+                // parentFindOptions
+                {
+                    kindOrGuard: ts.isMethodDeclaration,
+                    names: ["ngOnInit"],
+                },
+                // itemsFindOptions
+                undefined,
+                0,
+                rules
+            );
         };
 
         return chain([

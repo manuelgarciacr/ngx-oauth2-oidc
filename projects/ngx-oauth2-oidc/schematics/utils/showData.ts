@@ -1,9 +1,8 @@
 import {
     DirEntry,
-    Tree,
 } from "@angular-devkit/schematics";
 import { JsonValue, normalize, workspaces } from "@angular-devkit/core";
-import { ts, nodeType, /*getModifiers*/ } from './utils';
+import { ts, nodeType } from './utils';
 
 export const showData = (options: {
     options?: Object,

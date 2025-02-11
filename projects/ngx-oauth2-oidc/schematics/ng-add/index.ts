@@ -5,11 +5,9 @@ import {
 } from "@angular-devkit/schematics";
 import {
     RunSchematicTask,
-    NodePackageInstallTask,
 } from "@angular-devkit/schematics/tasks";
 import { readWorkspace } from "@schematics/angular/utility";
 import { Schema as NgAddOptions } from "./schema";
-import { addPackageToPackageJson } from "../utils/package";
 
 export function ngAdd(options: NgAddOptions) {
     return async (tree: Tree, context: SchematicContext) => {

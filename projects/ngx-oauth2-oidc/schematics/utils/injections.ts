@@ -1,17 +1,15 @@
 import { Rule, SchematicContext, Tree, SchematicsException } from "@angular-devkit/schematics";
 import { GlobalData, getData, getIndentation, getSourceFile, setData, ts } from "./utils";
-import { insertImport } from "./imports";
 import { findNodes } from "./find";
-//import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
 import { InsertChange, Change } from "@schematics/angular/utility/change";
 import { getEOL } from "@schematics/angular/utility/eol";
 
 /**
  * Function that returns the rules necessary to inject a specific symbol from the
- * indicated module. The symbol is imported. If the function can not verify
- * this import, an error message is logged. If the item has already been injected,
- * a warning message is logged; otherwise, the new rules will be added to the set
- * of rules to be dealt with.
+ * indicated module. If the function can not verify if the symbol is already imported,
+ * an error message is logged. If the symbol has not been imported an error message is
+ * logged. If the item has already been injected, a warning message is logged; otherwise,
+ * the new rules will be added to the set of rules to be dealt with.
  * @param {string} file File we want to add inject to. It is assumed to be an existing
  *      editable file.
  * @param {string} className Name of the class we want to add inject to.
@@ -80,7 +78,7 @@ export function injectedDataRuleFactory(
         validateImportedData(importedData, symbol);
         const imported = importedData.allValues;
         const source = getSourceFile(tree, file);
-        const classDeclaration = <ts.ClassDeclaration>findNodes(source, 1, {
+        const classDeclaration = findNodes<ts.ClassDeclaration>(source, 1, {
             kindOrGuard: ts.isClassDeclaration,
             names: [className],
             decorator,
@@ -123,7 +121,7 @@ export function injectedDataRuleFactory(
         const getData02 = (st: ts.BinaryExpression) => {
             const prefix = st.getFirstToken()?.getText(); // this
             const prop = st.left as ts.PropertyAccessExpression;
-            const name = prop?.name.escapedText.toString();
+            const name = prop?.name?.escapedText.toString();
             const call = st.right as ts.CallExpression;
             const inject = call?.expression;
             const arg = call?.arguments?.[0] as
@@ -240,7 +238,6 @@ export const insertInjectRuleFactory = (
             names: [className],
             decorator,
         })[0];
-        const pos = classDeclaration.members.pos;
         const updateRecorder = tree.beginUpdate(file);
 
         const change = _insertInject(
@@ -295,14 +292,14 @@ function _insertInject(
     const fileToEdit = source.fileName;
     const eol = getEOL(source.getText());
     const pos = classNode.members.pos;
-    const indentation = getIndentation(classNode.members, 0, eol);
+    const indentation = getIndentation(classNode, classNode.members, 0);
 
     modifiers = modifiers ? modifiers + " " : ""
 
     return new InsertChange(
         fileToEdit,
         pos,
-        `${eol}${indentation}${modifiers}${property} = inject(${imported});\n`
+        `${eol}${indentation}${modifiers}${property} = inject(${imported});`
     );
 }
 

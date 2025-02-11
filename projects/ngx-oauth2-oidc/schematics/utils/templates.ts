@@ -7,7 +7,6 @@ import {
     SchematicsException,
     Tree,
     apply,
-    chain,
     url,
     when,
     forEach,
@@ -21,14 +20,18 @@ import {
 import { InsertChange } from "@schematics/angular/utility/change";
 import { getEOL } from "@schematics/angular/utility/eol";
 import { GlobalData, NodeArray, getIndentation, getSourceFile, nodeType, setData, ts } from "./utils";
-import { findNodes } from "./find";
+import { findNodes, findOptions } from "./find";
 import { Observable, firstValueFrom } from "rxjs";
 
 type namedNode = ts.Node & { name: { getText(): string } };
 
-export type insertTemplateOptions = {
-    parentName?: string;
-    parentkindOrGuard?: ts.SyntaxKind | ((node: ts.Node) => node is any);
+export type templateOptions = {
+    templatePath: string;
+    templateName: string;
+    vars: Record<string, any>;
+};
+
+export type insertOptions = {
     itemNames?: string[];
     itemkindOrGuard?: ts.SyntaxKind | ((node: ts.Node) => node is any);
     order?: number | "last";
@@ -36,21 +39,21 @@ export type insertTemplateOptions = {
 
 export const insertTemplate = async (
     file: string,
-    templatePath: string,
-    templateName: string,
-    templateOptions: Record<string, any>,
-    options: insertTemplateOptions,
-    data: GlobalData,
+    templateOptions: templateOptions,
+    rootFindOptions: findOptions = {},
+    parentFindOptions: findOptions = {},
+    itemsFindOptions: findOptions = {},
+    order: number | "last" = 0,
     rules: Rule[]
 ): Promise<Rule[]> => {
     rules.push(
         await insertTemplateRuleFactory(
             file,
-            templatePath,
-            templateName,
             templateOptions,
-            options,
-            data
+            rootFindOptions,
+            parentFindOptions,
+            itemsFindOptions,
+            order
         )
     );
 
@@ -59,50 +62,68 @@ export const insertTemplate = async (
 
 const insertTemplateRuleFactory = async (
     file: string,
-    templatePath: string,
-    templateName: string,
-    templateOptions: Record<string, any>,
-    options: insertTemplateOptions,
-    data: GlobalData
+    templateOptions: templateOptions,
+    rootFindOptions: findOptions = {},
+    parentFindOptions: findOptions = {},
+    itemsFindOptions: findOptions = {},
+    order: number | "last" = 0
 ): Promise<Rule> => {
-
     return async (tree: Tree, context: SchematicContext) => {
-        const {
-            parentName: name,
-            parentkindOrGuard: kindOrGuard = ts.isSourceFile,
-            itemNames = [],
-            itemkindOrGuard,
-            order = 0,
-        } = options;
+        const { vars } = templateOptions;
         const source = getSourceFile(tree, file);
-        const names = name ? [name] : undefined;
-        const parent = findNodes(source, 1, { kindOrGuard, names })?.[0];
+        const root = rootFindOptions && source
+            ? findNodes(source, 4, rootFindOptions)?.[0]
+            : source;
+        const parent = parentFindOptions && root
+            ? findNodes(root, 4, parentFindOptions)?.[0]
+            : source;
+        let itemsRoot;
 
-        if (!("members" in parent)) {
+        for (let key in vars) {
+            if (typeof vars[key] === "function") {
+                vars[key] = vars[key]();
+            }
+        }
+
+        if (parent && "members" in parent) {
+            itemsRoot = parent.members as NodeArray<ts.Node>;
+        }
+
+        if (parent && (
+            ts.isFunctionDeclaration(parent) ||
+            ts.isMethodDeclaration(parent))
+        ) {
+            itemsRoot = parent.body?.statements;
+        }
+
+        if (!itemsRoot) {
             throw new SchematicsException(
-                `❌  Parent node without members: '${nodeType(parent, 1)}'`
+                `❌  Parent node without members nor body: '${nodeType(
+                    parent,
+                    1
+                )}'`
             );
         }
 
-        const itemsRoot = parent.members as NodeArray<ts.Node>;
         const eol = getEOL(source.getFullText());
-        const [pos, indentation] = getPos(itemsRoot, order, eol, itemNames, itemkindOrGuard);
+        const [pos, indentation] = getPos(
+            parent,
+            itemsRoot,
+            itemsFindOptions,
+            order,
+            eol,
+        );
 
-        if ("id" in templateOptions) {
+        if ("id" in vars) {
             const ids = findNodes<namedNode>(itemsRoot, 1)
                 .filter(n => "name" in n)
                 .map(n => n.name.getText());
 
-            templateOptions = { ...templateOptions, id: {str: templateOptions["id"], ids} }
+            Object.assign(vars, { id: { str: vars["id"], ids } });
         }
 
         const nodeText = (
-            await _getTemplate(
-                templatePath,
-                `/${templateName}`,
-                context,
-                templateOptions
-            )
+            await _getTemplate({ ...templateOptions, vars }, context)
         )?.replaceAll("    ", indentation);
         const updateRecorder = tree.beginUpdate(file);
         const change = new InsertChange(file, pos, `${eol}${nodeText}`);
@@ -112,30 +133,18 @@ const insertTemplateRuleFactory = async (
         }
 
         tree.commitUpdate(updateRecorder);
-
-        setData(data, true, "insertedTemplate", templatePath, templateName, "value");
     };
 };
 
 export const getPos = (
+    parent: ts.Node,
     itemsRoot: NodeArray<ts.Node>,
+    options: findOptions = {},
     order: "last" | number,
     eol: string,
-    itemNames: string[] = [],
-    itemkindOrGuard?: ts.SyntaxKind | ((node: ts.Node) => node is any),
 ): [number, string] => {
-    //ts.factory.createNodeArray()
-    const _items = findNodes<namedNode>(itemsRoot, 1, {
-        kindOrGuard: itemkindOrGuard,
-    })
-    const items = _items.filter(
-        n =>
-            (itemNames.length > 0 &&
-                "name" in n &&
-                itemNames.includes(n.name.getText())) ||
-            itemNames.length === 0
-    );
-    const indentation = getIndentation(items, order, eol);
+    const items = findNodes(itemsRoot, 1, options);
+    const indentation = getIndentation(parent, items, order);
     const position =
         order === "last"
             ? items.length
@@ -151,6 +160,7 @@ export const getPos = (
             : position === items.length
             ? items[position - 1].end
             : _getPos(items[position], eol);
+
     return [pos, indentation]
 };
 
@@ -164,29 +174,25 @@ const _getPos = (item: ts.Node, eol: string) => {
 
 export const getTemplate = async (
     id: string,
-    path: string,
-    fileName: string,
-    options: Record<string, any>,
+    options: templateOptions,
     data: GlobalData,
     rules: Rule[]
 ): Promise<Rule[]> => {
-    rules.push(async (tree: Tree, context: SchematicContext) => {
-        const code = await _getTemplate(path, fileName, context, options);
+    rules.push(async (_tree: Tree, context: SchematicContext) => {
+        const code = await _getTemplate(options, context);
 
         setData(data, code, "templates", id, "value");
     })
     return rules
 }
 
-export const _getTemplate = async (
-    path: string,
-    fileName: string,
+const _getTemplate = async (
+    options: templateOptions,
     context: SchematicContext,
-    options: Record<string, any>
 ) => {
 
-    const templateSource = apply(url(path), [
-        applyTemplates(fileName, {
+    const templateSource = apply(url(options.templatePath), [
+        applyTemplates(options.templateName, {
             ...strings,
             identify(val: {str: string, ids: string[]}) {
                 const {str, ids} = val;
@@ -196,14 +202,15 @@ export const _getTemplate = async (
                     id = str + (++cnt).toString().padStart(2, "0");
                 return id;
             },
-            ...options,
+            ...options.vars,
         }),
         //move(normalize(options.path as string)),
     ]);
     const tree = await firstValueFrom(
         templateSource(context) as Observable<Tree>
     );
-    return tree.read(fileName)?.toString();
+
+    return tree.read(options.templateName)?.toString();
 };
 
 export function applyTemplates<T>(name: string, options: T): Rule {

@@ -58,6 +58,7 @@ export const providedDataRuleFactory = async (
     data: GlobalData
 ): Promise<Rule> => {
     // TODO: Filter by module and provider
+    // TODO: Not standalone application
     return async (tree: Tree, _context: SchematicContext) => {
         const mainFilePath = await getMainFilePath(tree, project);
         const bootstrapCall = findBootstrapApplicationCall(tree, mainFilePath);
@@ -126,9 +127,11 @@ export const insertProviderRuleFactory = (
                 true,
                 "providedData", module, provider, "value"
             );
-            context.logger.info(
-                `\x1b[92m✅  Provider added successfully: "${provider}"\x1b[0m`
-            );
+
+        context.logger.info(
+            `\x1b[92m✅  Provider added successfully: "${provider}"\x1b[0m`
+        );
+
         return chain([rule01, rule02]);
     };
 };

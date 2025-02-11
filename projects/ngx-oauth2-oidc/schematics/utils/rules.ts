@@ -67,10 +67,15 @@ export function questionBooleanRuleFactory(
     return (_tree: Tree, _context: SchematicContext) => {
         const readline = require("readline");
         readline.emitKeypressEvents(process.stdin);
-        process.stdin.setRawMode(true);
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true)
+        }
+        if (process.stdin.isPaused()){
+            process.stdin.resume()
+        }
 
         return new Promise<void>((res, _rej) => {
-            process.stdin.on("keypress", (_str, key) => {
+            const listener = (_str: any, key: { name: string; }) => {
                 if (
                     key.name === "y" ||
                     key.name === "n" ||
@@ -89,11 +94,15 @@ export function questionBooleanRuleFactory(
                     );
                     //console.log("\x1b[2K\x1b[F\x1b[F\x1b[F\x1b[1C"); // \x1b[0J
                     console.log("\x1b[2K\x1b[F\x1b[1C"); // \x1b[0J
-                    process.stdin.setRawMode(false);
+                    if (process.stdin.isTTY) {
+                        process.stdin.setRawMode(false);
+                    }
                     process.stdin.pause();
+                    process.stdin.removeListener("keypress",listener);
                     res();
                 }
-            });
+            };
+            process.stdin.on("keypress", listener);
 
             //process.stdout.write(`\n\x1b[96m\x1b[1m❔   ${question}\x1b[0m`);
             process.stdout.write(`\x1b[96m❔   ${question}\x1b[0m`);
