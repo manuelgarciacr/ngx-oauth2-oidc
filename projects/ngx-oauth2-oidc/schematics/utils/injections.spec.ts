@@ -83,6 +83,7 @@ export class AppModule {
             "serv03",
             "public",
             decorator,
+            true,
             data,
             rules
         );
@@ -105,6 +106,7 @@ export class AppModule {
             "serv04",
             "public",
             undefined,
+            true,
             data,
             rules
         );
@@ -117,6 +119,7 @@ export class AppModule {
             "serv05",
             "public readoply",
             decorator,
+            true,
             data,
             rules
         );
@@ -185,6 +188,7 @@ export class AppModule {
                 property,
                 "private readonly",
                 decorator,
+                true,
                 data
             )
         );

@@ -4,6 +4,21 @@ import { findNodes } from "./find";
 import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
 import { InsertChange } from "@schematics/angular/utility/change";
 
+const messageText = (
+    file: string,
+    module: string,
+    symbol: string,
+    symbolId?: string,
+    asText: boolean = false
+) =>
+    asText
+        ? `${file.split("/").pop()} => ${module} => ${symbol}${
+              symbolId ? " '" + symbolId + "'" : ""
+          }`
+        : `${file.split("/").pop()} => ${module} => ${symbol}${
+              symbolId && symbolId !== symbol ? " (alias " + symbolId + ")" : ""
+          }`;
+
 /**
  * Function that returns the rules necessary to import a specific symbol from the indicated
  * module. If the item has already been imported, a warning message is logged; otherwise,
@@ -12,6 +27,7 @@ import { InsertChange } from "@schematics/angular/utility/change";
  *      editable file.
  * @param {string} module Module from which to import
  * @param {string} symbol Symbol to import
+ * @param {boolean} alreadyAddedWarning If it is true, a warning message can be displayed.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @param {Rule[]} rules Set of rules to be dealt with.
@@ -21,11 +37,12 @@ export const insertImport = (
     file: string,
     module: string,
     symbol: string,
+    alreadyAddedWarning: boolean,
     data: GlobalData,
     rules: Rule[]
 ): Rule[] => {
     rules.push(importedDataRuleFactory(file, module, symbol, data));
-    rules.push(insertImportRuleFactory(file, module, symbol, data));
+    rules.push(insertImportRuleFactory(file, module, symbol, alreadyAddedWarning, data));
 
     return rules;
 };
@@ -70,24 +87,37 @@ export const insertImportRuleFactory = (
     file: string,
     module: string,
     symbol: string,
+    alreadyAddedWarning: boolean,
     data: GlobalData
 ): Rule => {
     return (tree: Tree, context: SchematicContext): Tree => {
         const source = getSourceFile(tree, file);
         const updateRecorder = tree.beginUpdate(file);
         const change = _insertImport(source, file, symbol, module);
-        const importedData = getData(data, "importedData", file, module, symbol)
+        const importedData = getData(
+            data,
+            "importedData",
+            file,
+            module,
+            symbol
+        );
+        const _messageText = messageText(file, module, symbol, importedData?.["value"]);
 
         if (importedData === undefined) {
             throw new SchematicsException(
-                `❌  Unable to verify import declaration: '${symbol}'`
+                `❌  Unable to verify import declaration: ${_messageText}`
             );
         }
 
         if (importedData["value"] !== undefined) {
-            context.logger.warn(
-                `👁️  Import already added: '${importedData["value"]}'`
-            );
+            alreadyAddedWarning &&
+                context.logger.warn(
+                    `👁️  Import already added: ${_messageText}`
+                );
+            !alreadyAddedWarning &&
+                context.logger.info(
+                    `\x1b[92m✅  Import already added: ${_messageText}\x1b[0m`
+                );
             return tree;
         }
 
@@ -97,12 +127,17 @@ export const insertImportRuleFactory = (
 
         tree.commitUpdate(updateRecorder);
 
-        setData(data, {value: symbol, allValues: [symbol]}, "importedData", file, module, symbol);
+        setData(
+            data,
+            { value: symbol, allValues: [symbol] },
+            "importedData",
+            file,
+            module,
+            symbol
+        );
 
         context.logger.info(
-            `\x1b[92m✅  Import added successfully: ${file
-                .split("/")
-                .pop()} => ${module} => ${symbol}"\x1b[0m`
+            `\x1b[92m✅  Import added successfully: ${_messageText}\x1b[0m`
         );
 
         return tree;
@@ -159,6 +194,7 @@ export const getAllImportedIdentifiers = (
     symbol: string,
     context: SchematicContext
 ) => {
+    const file = source.fileName.split("/").pop() ?? "fileName";
     const rootNode = source;
     const allImports = findNodes(rootNode, 2, {
         kindOrGuard: ts.isImportDeclaration,
@@ -171,10 +207,17 @@ export const getAllImportedIdentifiers = (
     );
     const relevantSpecifiers = relevantImports.reduce((prev, curr) => {
         const namedImportBindings = curr.importClause?.namedBindings;
+        const _messageText = messageText(
+            file,
+            module,
+            symbol,
+            curr.getText(),
+            true
+        );
 
         if (nodeFlags(curr).includes("ThisNodeHasError")) {
             context.logger.warn(
-                `👁️  Import statement with errors: '${curr.getText()}'`
+                `👁️  Import statement with errors: ${_messageText}`
             );
             return prev;
         }
@@ -205,10 +248,17 @@ export const getAllImportedIdentifiers = (
         const propertyName = (
             curr as ts.ImportSpecifier
         ).propertyName?.escapedText.toString();
+        const _messageText = messageText(
+            file,
+            module,
+            symbol,
+            curr.getText(),
+            true
+        );
 
         if (curr.name && nodeFlags(curr.name).includes("ThisNodeHasError")) {
             context.logger.warn(
-                `👁️  Import clause with errors: '${curr.getText()}'`
+                `👁️  Import clause with errors: ${_messageText}`
             );
             return prev;
         }

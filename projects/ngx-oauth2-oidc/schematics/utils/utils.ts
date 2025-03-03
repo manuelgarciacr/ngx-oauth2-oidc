@@ -1,6 +1,7 @@
 import {
     SchematicsException,
     Tree} from "@angular-devkit/schematics";
+import { getEOL } from "@schematics/angular/utility/eol";
 import _ts, {
     SyntaxKind,
     NodeArray as _NodeArray
@@ -37,20 +38,25 @@ export const getData = (target: GlobalData, ...keys: string[]) => {
 export const __$$undefined = Symbol.for("__$$undefined");
 export const __$$anonymous = Symbol.for("__$$anonymous");
 export interface Node extends ts.Node {}
+export interface NamedNode extends ts.Node {name: ts.Identifier}
 export type NodeArray<T extends ts.Node> = _NodeArray<T> & {
     pos: number;
     end: number;
 };
 export import ts = _ts;
+import { findNodes } from "./find";
 export enum NodeTypeExtension {
     single,
     extended,
     onlyExtension,
 }
 export const getEnumIdentifier = (enumeration: any, value: number) => {
-    const key = value.toString() as keyof typeof enumeration;
+    // const key = value.toString() as keyof typeof enumeration;
+    // return enumeration[key];
 
-    return enumeration[key];
+    return Object.entries(enumeration)
+        .filter(v => isNaN(Number(v[0])))
+        .find(v => v[1] === value)?.[0];
 };
 export const getNodeType = (node: ts.Node | number) => {
     const kind = typeof node === "number" ? node : node.kind
@@ -86,19 +92,192 @@ export const nodeFlags = (node: ts.Node | undefined) => {
     return flagsArray as unknown as string[];
 };
 
-export const log = (obj: Record<string, any>, depth: number | null, _omit: string[], filter: string[]):void => {
+/**
+ *
+ * @param {ts.Node} parent Parent node with statements, properties or members
+ * @param {string} source Source file content
+ * @param {string} eol EOL string
+ * @param {"first" | "last"} order
+ * @param {ts.NodeArray<ts.Node>} nodes
+ * @returns {[string, string, string, string, boolean, boolean, boolean]}
+ */
+export const getInBlockIndentation = (
+    parent: ts.Node & {
+        statements?: ts.NodeArray<ts.Node>;
+        properties?: ts.NodeArray<ts.Node>;
+        members?: ts.NodeArray<ts.Node>;
+    },
+    source?: string,
+    eol?: string,
+    order: "first" | "last" = "last",
+    nodes?: ts.NodeArray<ts.Node> | ts.Node[]
+): [string, string, string, string, boolean, boolean, boolean] => {
+    nodes ??= "statements" in parent
+        ? parent.statements
+        : "properties" in parent
+        ? parent.properties
+        : parent.members;
+    source ??= parent.getSourceFile().getFullText();
+    eol ??= getEOL(source);
+
+    if (nodes === undefined) {
+        throw new SchematicsException(
+            `❌  Undefined block nodes: ${nodeType(parent)}`
+        );
+    }
+
+    let pos =
+        order === "last"
+            ? nodes.length
+            : 0;
+
+    const indentation = getIndentation(parent.getSourceFile(), source, eol);
+    const [parentIndentation, parentStart, parentEnd] = getNodeIndentation(parent, source, eol);
+    const inlineStart =
+        !!nodes.length &&
+        source.lastIndexOf("{", nodes[0].getStart()) >
+        source.lastIndexOf(eol, nodes[0].getStart());
+    const inlineEnd =
+        !!nodes.length &&
+        source.indexOf("}", nodes[nodes.length - 1].end) <
+            source.indexOf(eol, nodes[nodes.length - 1].end);
+
+    let previousNodeIndentation = parentIndentation + indentation;
+    let nextNodeIndentation = parentIndentation + indentation;
+
+    if (pos - 1 >= 0) {
+        const [indentation, nodeStart] = getNodeIndentation(
+            nodes[pos - 1],
+            source,
+            eol
+        );
+
+        if (nodeStart !==  parentStart) previousNodeIndentation = indentation
+    }
+
+    if (pos === 0 && pos < nodes.length) {
+        const [indentation, nodeStart] = getNodeIndentation(
+            nodes[pos],
+            source,
+            eol
+        );
+
+        if (nodeStart !== parentStart) nextNodeIndentation = indentation;
+    }
+
+    return [
+        parentIndentation,
+        indentation,
+        previousNodeIndentation,
+        nextNodeIndentation,
+        parentStart === parentEnd,
+        inlineStart,
+        inlineEnd
+    ];
+};
+
+export const getIndentation = (
+    sourceFile: ts.SourceFile,
+    source?: string,
+    eol?: string
+) => {
+    source ??= sourceFile.getFullText();
+    eol ??= getEOL(source);
+
+    const nodes = <ts.Node[]>[];
+    const parents = findNodes<
+        ts.Node & {
+            statements?: ts.NodeArray<ts.Node>;
+            properties?: ts.NodeArray<ts.Node>;
+            members?: ts.NodeArray<ts.Node>;
+        }
+    >(sourceFile, 12, {
+        test: n =>
+            Object.hasOwn(n, "statements") ||
+            Object.hasOwn(n, "properties") ||
+            Object.hasOwn(n, "members"),
+    });
+
+    parents.forEach(
+        n =>
+            n.statements &&
+            nodes.push(...(n.statements as unknown as ts.Node[]))
+    );
+    parents.forEach(
+        n =>
+            n.properties &&
+            nodes.push(...(n.properties as unknown as ts.Node[]))
+    );
+    parents.forEach(
+        n => n.members && nodes.push(...(n.members as unknown as ts.Node[]))
+    );
+
+    const indentations = nodes
+        .map(
+            n =>
+                getNodeIndentation(n, source, eol)[0].length -
+                getNodeIndentation(n.parent, source, eol)[0].length
+        )
+        .reduce(
+            (prev, curr) =>{
+                if (curr === 0) return prev;
+
+                return prev[curr] ? { ...prev, [curr]: prev[curr] + 1 } : { ...prev, [curr]: 1 }
+            },
+            <Record<number, number>>{}
+        );
+    const entries = Object.entries(indentations).sort((a, b) =>
+        b[1] - a[1] === 0 ? parseInt(b[0]) - parseInt(a[0]) : b[1] - a[1]
+    );
+
+    const len = entries.length ? parseInt(entries[0][0]) : 0;
+
+    return " ".repeat(len);
+};
+
+export const getNodeIndentation = (
+    node?: ts.Node,
+    source?: string,
+    eol?: string
+): [string, number, number] => {
+    if (!node) return ["", -1, -1];
+
+    source ??= node.getSourceFile().getFullText();
+    eol ??= getEOL(source);
+
+    const getIndentation = (pos: number) => {
+        let cnt = pos;
+        while (cnt < source.length && source.charAt(cnt).match(/[ \t]/)) cnt++;
+
+        return cnt - pos;
+    };
+    const start = source.lastIndexOf(eol, node.getStart()); //source.lastIndexOf(eol, node.pos);
+    const end = source.lastIndexOf(eol, node.end - 1);
+    const startInd = getIndentation(start + (start < 0 ? 1 : eol.length));
+    const endInd = getIndentation(end + (end < 0 ? 1 : eol.length));
+
+    return [" ".repeat(startInd < endInd ? startInd : endInd), start, end];
+};
+
+export const log = (obj: Record<string, any>, depth: number | null, options?: {omit?: string[], show?: string[], print?: boolean }) => {
+    const { omit = ["parent"], show: filter = [], print = true } = options ?? {omit: ["parent"], filter: []};
     const arrayRoot = "__arrayRoot__";
     const clone = (obj: Object, cnt: number) => {
         const newObj = {}
         if (cnt < 0) return newObj;
         for (var property in obj) {
             if (obj.hasOwnProperty(property) && ((property  === arrayRoot && cnt === depth) || filter.includes(property) || filter.length === 0 || !isNaN(property as unknown as number))) {
-                if (Array.isArray(obj[property as keyof typeof obj])) {
+                if (omit.includes(property)) {
+                    Object.assign(newObj, {
+                        [property]: "__omited__"
+                    });
+                } else if (Array.isArray(obj[property as keyof typeof obj])) {
                     Object.assign(newObj, {[property]: []});
                     Object.entries(obj[property as keyof typeof obj])
                         .filter(
                             p =>
                                 filter.includes(p[0]) ||
+                                filter.length === 0 ||
                                 !isNaN(p[0] as unknown as number)
                         )
                         .forEach(
@@ -119,7 +298,11 @@ export const log = (obj: Record<string, any>, depth: number | null, _omit: strin
                                     // @ts-ignore
                                     newObj[property as keyof typeof newObj][
                                         p[0]
-                                    ] = (p[0] === "kind" ? `${p[1]} (${getNodeType(p[1])})` : p[1]);
+                                    ] = omit.includes(p[0])
+                                        ? "__omited__"
+                                        : p[0] === "kind"
+                                        ? `${p[1]} (${getNodeType(p[1])})`
+                                        : p[1];
                                 }
 
                             }
@@ -138,7 +321,9 @@ export const log = (obj: Record<string, any>, depth: number | null, _omit: strin
                 } else {
                     Object.assign(newObj, {
                         [property]:
-                            property === "kind"
+                            omit.includes(property)
+                                ? "__omited__"
+                                : property === "kind"
                                 ? `${
                                       obj[property as keyof typeof obj]
                                   } (${getNodeType(
@@ -150,6 +335,30 @@ export const log = (obj: Record<string, any>, depth: number | null, _omit: strin
                     });
                 }
             }
+        }
+        if (
+            obj?.constructor?.name === "NodeObject" &&
+            (filter.includes("getText()") ||
+                filter.includes("getText") ||
+                filter.length === 0)
+        ) {
+            Object.assign(newObj, {
+                "getText()": omit.includes("getText()")
+                    ? "__omited__"
+                    : (obj as ts.Node).getText(),
+            });
+        }
+        if (
+            obj?.constructor?.name === "NodeObject" &&
+            (filter.includes("getFullText()") ||
+                filter.includes("getFullText") ||
+                filter.length === 0)
+        ) {
+            Object.assign(newObj, {
+                "getFullText()": omit.includes("getFullText()")
+                    ? "__omited__"
+                    : (obj as ts.Node).getFullText(),
+            });
         }
         return newObj
     }
@@ -164,16 +373,19 @@ export const log = (obj: Record<string, any>, depth: number | null, _omit: strin
     //     return out
     // }
     depth ??= 5;
-    depth = depth < 0 ? 0 : depth > 5 ? 5 : depth;
+    depth = depth < 0 ? 0 : depth > 10 ? 10 : depth;
     if (Array.isArray(obj)) {
         depth++;
         const newObj = {[arrayRoot]: obj};
         const out = clone(newObj, depth)
-        console.dir(out[arrayRoot as keyof typeof out], { depth });
-        return
+        if (print)
+            console.dir(out[arrayRoot as keyof typeof out], { depth });
+        return out[arrayRoot as keyof typeof out] as Record<string, any>;
     }
     const out = clone(obj, depth);
-    console.dir(out, {depth})
+    if (print)
+        console.dir(out, {depth});
+    return out as Record<string, any>
 }
 
 const _defaultExtendedText = (node: ts.Node) => {
@@ -212,7 +424,6 @@ export const nodeType = (
     extension: NodeTypeExtension = 1,
     data?: Object
 ): string => {
-
     if  (!node?.kind && !isNodeArray(node)) {
         throw new SchematicsException(
             `❌  nodeType: it is not a node`
@@ -595,40 +806,6 @@ export const getModifiers = (
                   })(),
         {}
     );
-};
-
-export const getIndentation = (
-    parent: ts.Node,
-    nodes: ts.NodeArray<ts.Node> | ts.Node[] | readonly ts.Node[],
-    order: number | "last",
-) => {
-    if (!nodes.length) return "    ";
-
-    const pos =
-        order === "last"
-            ? nodes.length
-            : order > nodes.length
-            ? nodes.length
-            : order < 0
-            ? 0
-            : order;
-    let previousLine, nextLine, i;
-
-    i = pos - 1;
-    if (i >= 0) {
-        previousLine = nodes[i--].getFullText();
-    }
-
-    i = pos;
-    if (i < nodes.length) {
-        nextLine = nodes[i++].getFullText();
-    }
-
-    const def = parent.getFullText().match(/^[ \t]+/gm)?.[0] ?? "";
-    const prev = previousLine?.match(/^[ \t]+/gm)?.[0] ?? "";
-    const next = nextLine?.match(/^[ \t]+/gm)?.[0] ?? "";
-
-    return prev.length > 1 ? prev : next.length > 1 ? next : def.length > 1 ? def : "    ";
 };
 
 /**

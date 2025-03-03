@@ -309,36 +309,43 @@
             }
           }
         },
-        "pepe22": {
+        "modapp": {
           "projectType": "application",
           "schematics": {
             "@schematics/angular:component": {
-              "style": "scss"
+              "style": "scss",
+              "standalone": false
+            },
+            "@schematics/angular:directive": {
+              "standalone": false
+            },
+            "@schematics/angular:pipe": {
+              "standalone": false
             }
           },
-          "root": "projects/pepe22",
-          "sourceRoot": "projects/pepe22/src",
+          "root": "projects/modapp",
+          "sourceRoot": "projects/modapp/src",
           "prefix": "app",
           "architect": {
             "build": {
               "builder": "@angular-devkit/build-angular:application",
               "options": {
-                "outputPath": "dist/pepe22",
-                "index": "projects/pepe22/src/index.html",
-                "browser": "projects/pepe22/src/main.ts",
+                "outputPath": "dist/modapp",
+                "index": "projects/modapp/src/index.html",
+                "browser": "projects/modapp/src/main.ts",
                 "polyfills": [
                   "zone.js"
                 ],
-                "tsConfig": "projects/pepe22/tsconfig.app.json",
+                "tsConfig": "projects/modapp/tsconfig.app.json",
                 "inlineStyleLanguage": "scss",
                 "assets": [
                   {
                     "glob": "**/*",
-                    "input": "projects/pepe22/public"
+                    "input": "projects/modapp/public"
                   }
                 ],
                 "styles": [
-                  "projects/pepe22/src/styles.scss"
+                  "projects/modapp/src/styles.scss"
                 ],
                 "scripts": []
               },
@@ -370,10 +377,10 @@
               "builder": "@angular-devkit/build-angular:dev-server",
               "configurations": {
                 "production": {
-                  "buildTarget": "pepe22:build:production"
+                  "buildTarget": "modapp:build:production"
                 },
                 "development": {
-                  "buildTarget": "pepe22:build:development"
+                  "buildTarget": "modapp:build:development"
                 }
               },
               "defaultConfiguration": "development"
@@ -388,16 +395,16 @@
                   "zone.js",
                   "zone.js/testing"
                 ],
-                "tsConfig": "projects/pepe22/tsconfig.spec.json",
+                "tsConfig": "projects/modapp/tsconfig.spec.json",
                 "inlineStyleLanguage": "scss",
                 "assets": [
                   {
                     "glob": "**/*",
-                    "input": "projects/pepe22/public"
+                    "input": "projects/modapp/public"
                   }
                 ],
                 "styles": [
-                  "projects/pepe22/src/styles.scss"
+                  "projects/modapp/src/styles.scss"
                 ],
                 "scripts": []
               }

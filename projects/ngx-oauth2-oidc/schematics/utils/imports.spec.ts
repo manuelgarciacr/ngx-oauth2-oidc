@@ -107,7 +107,7 @@ export class AppModule {
         let symbol = "FooComponent";
 
         // Import added
-        insertImport(file, module, symbol, data, rules);
+        insertImport(file, module, symbol, true, data, rules);
 
         await firstValueFrom(callRule(chain(rules), tree, context));
 
@@ -125,13 +125,13 @@ export class AppModule {
         rules = [];
 
         // Import already added
-        insertImport(file, module, "FooComponent", data, rules);
+        insertImport(file, module, "FooComponent", true, data, rules);
         // Import added
-        insertImport(file, module, "FooComponent02", data, rules);
+        insertImport(file, module, "FooComponent02", true, data, rules);
         // Import added
-        insertImport(file, "./foo.component03", "FooComponent03", data, rules);
+        insertImport(file, "./foo.component03", "FooComponent03", true, data, rules);
         // Import clause with errors & Import already added
-        insertImport(file, "./foo", "newService", data, rules);
+        insertImport(file, "./foo", "newService", true, data, rules);
 
         await firstValueFrom(
             callRule(chain(rules), tree, context)
@@ -189,6 +189,7 @@ export class AppModule {
                 file,
                 module,
                 symbol,
+                true,
                 data
             )
         );

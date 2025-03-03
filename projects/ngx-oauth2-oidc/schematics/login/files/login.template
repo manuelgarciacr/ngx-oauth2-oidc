@@ -1,9 +1,9 @@
-    <%= identify(id) %> = async (cfg: IOAuth2Config) => {
-        try {
-            this.oauth2.setConfig(cfg);
-            await this.oauth2.discovery();
-            await this.oauth2.authorization()
-        } catch (err) {
-            console.error(err);
-        }
-    };
+<%= identify(id) %> = async (cfg: <%= isFunction(ioauth2config) %>) => {
+    try {
+        this.<%= isFunction(oauth2) %>.setConfig(cfg);
+        await this.<%= isFunction(oauth2) %>.discovery();
+        await this.<%= isFunction(oauth2) %>.authorization()
+    } catch (err) {
+        console.error(err);
+    }
+}

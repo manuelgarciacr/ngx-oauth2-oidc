@@ -17,9 +17,9 @@ import {
     FileEntry,
     TEMPLATE_FILENAME_RE
 } from "@angular-devkit/schematics";
-import { InsertChange } from "@schematics/angular/utility/change";
+import { ReplaceChange } from "@schematics/angular/utility/change";
 import { getEOL } from "@schematics/angular/utility/eol";
-import { GlobalData, NodeArray, getIndentation, getSourceFile, nodeType, setData, ts } from "./utils";
+import { GlobalData, getInBlockIndentation, getSourceFile, nodeType, setData, ts } from "./utils";
 import { findNodes, findOptions } from "./find";
 import { Observable, firstValueFrom } from "rxjs";
 
@@ -42,9 +42,11 @@ export const insertTemplate = async (
     templateOptions: templateOptions,
     rootFindOptions: findOptions = {},
     parentFindOptions: findOptions = {},
-    itemsFindOptions: findOptions = {},
-    order: number | "last" = 0,
-    rules: Rule[]
+    rules: Rule[],
+    source?: string,
+    eol?: string,
+    order: "first" | "last" = "last",
+    nodes?: ts.NodeArray<ts.Node>,
 ): Promise<Rule[]> => {
     rules.push(
         await insertTemplateRuleFactory(
@@ -52,8 +54,11 @@ export const insertTemplate = async (
             templateOptions,
             rootFindOptions,
             parentFindOptions,
-            itemsFindOptions,
-            order
+            // itemsFindOptions,
+            source,
+            eol,
+            order,
+            nodes
         )
     );
 
@@ -65,19 +70,32 @@ const insertTemplateRuleFactory = async (
     templateOptions: templateOptions,
     rootFindOptions: findOptions = {},
     parentFindOptions: findOptions = {},
-    itemsFindOptions: findOptions = {},
-    order: number | "last" = 0
+    source?: string,
+    eol?: string,
+    order: "first" | "last" = "last",
+    nodes?: ts.NodeArray<ts.Node>
 ): Promise<Rule> => {
     return async (tree: Tree, context: SchematicContext) => {
         const { vars } = templateOptions;
-        const source = getSourceFile(tree, file);
-        const root = rootFindOptions && source
-            ? findNodes(source, 4, rootFindOptions)?.[0]
-            : source;
-        const parent = parentFindOptions && root
-            ? findNodes(root, 4, parentFindOptions)?.[0]
-            : source;
-        let itemsRoot;
+        const sourceFile = getSourceFile(tree, file);
+        const root = rootFindOptions && sourceFile
+            ? findNodes(sourceFile, 4, rootFindOptions)?.[0]
+            : sourceFile;
+        const parent: ts.Node & {
+            statements?: ts.NodeArray<ts.Node>;
+            properties?: ts.NodeArray<ts.Node>;
+            members?: ts.NodeArray<ts.Node>;
+        } =
+            parentFindOptions && root
+                ? findNodes(root, 4, parentFindOptions)?.[0]
+                : sourceFile;
+        nodes ??= "statements" in parent //Object.hasOwn(parent, "statements")
+            ? parent.statements
+            : "properties" in parent //Object.hasOwn(parent, "properties")
+            ? parent.properties
+            : parent.members;
+        source ??= parent.getSourceFile().getFullText();
+        eol ??= getEOL(source);
 
         for (let key in vars) {
             if (typeof vars[key] === "function") {
@@ -85,34 +103,23 @@ const insertTemplateRuleFactory = async (
             }
         }
 
-        if (parent && "members" in parent) {
-            itemsRoot = parent.members as NodeArray<ts.Node>;
-        }
+        let itemsRoot;
 
-        if (parent && (
-            ts.isFunctionDeclaration(parent) ||
-            ts.isMethodDeclaration(parent))
-        ) {
-            itemsRoot = parent.body?.statements;
+        if (parent && "statements" in parent) {
+            itemsRoot = parent.statements;
+        } else if (parent && "properties" in parent) {
+            itemsRoot = parent.properties;
+        } else {
+            itemsRoot = parent?.members;
         }
 
         if (!itemsRoot) {
             throw new SchematicsException(
-                `❌  Parent node without members nor body: '${nodeType(
-                    parent,
-                    1
-                )}'`
+                `❌  Parent node without members nor body: '${
+                    parent ? nodeType(parent, 1) : parent
+                }'`
             );
         }
-
-        const eol = getEOL(source.getFullText());
-        const [pos, indentation] = getPos(
-            parent,
-            itemsRoot,
-            itemsFindOptions,
-            order,
-            eol,
-        );
 
         if ("id" in vars) {
             const ids = findNodes<namedNode>(itemsRoot, 1)
@@ -122,54 +129,52 @@ const insertTemplateRuleFactory = async (
             Object.assign(vars, { id: { str: vars["id"], ids } });
         }
 
-        const nodeText = (
-            await _getTemplate({ ...templateOptions, vars }, context)
-        )?.replaceAll("    ", indentation);
-        const updateRecorder = tree.beginUpdate(file);
-        const change = new InsertChange(file, pos, `${eol}${nodeText}`);
+        const template = await _getTemplate(
+            { ...templateOptions, vars },
+            context
+        ) ?? "";
+        const [
+            parentIndentation,
+            indentation,
+            previousNodeIndentation,
+            nextNodeIndentation,
+        ] = getInBlockIndentation(parent, source, eol, order);
+        const nodeText = template
+                ?.trim()
+                ?.replaceAll("    ", indentation)
+                ?.replaceAll("\n", `\n${previousNodeIndentation}`);
+        const blockContent = parent.getText().slice(1, -1);
+        const blockLength = blockContent.length;
+        const getInlineContent = (template: string, block: string) => {
+            const first = (order === "first" ? template : block).trim();
+            const last = (order === "first" ? block : template).trim();
+            const sufix =
+                first &&
+                last &&
+                !first.endsWith(";") &&
+                !first.endsWith("}")
+                    ? ";"
+                    : "";
+            const indentation = order === "first" ? nextNodeIndentation : previousNodeIndentation;
+            const separator = first && last ? eol + indentation : "";
+            return first + sufix + separator + last
+        }
 
-        if (change instanceof InsertChange) {
-            updateRecorder.insertRight(change.pos, change.toAdd);
+        let newContent = eol + parentIndentation + indentation;
+
+        newContent += getInlineContent(nodeText, blockContent);
+        newContent += eol + parentIndentation
+
+        const updateRecorder = tree.beginUpdate(file);
+        const change = new ReplaceChange(file, itemsRoot.pos, blockContent, newContent);
+
+        if (change instanceof ReplaceChange) {
+            updateRecorder.remove(change.order, blockLength);
+            updateRecorder.insertRight(change.order, change.newText);
         }
 
         tree.commitUpdate(updateRecorder);
     };
-};
-
-export const getPos = (
-    parent: ts.Node,
-    itemsRoot: NodeArray<ts.Node>,
-    options: findOptions = {},
-    order: "last" | number,
-    eol: string,
-): [number, string] => {
-    const items = findNodes(itemsRoot, 1, options);
-    const indentation = getIndentation(parent, items, order);
-    const position =
-        order === "last"
-            ? items.length
-            : order > items.length
-            ? items.length
-            : order < 0
-            ? 0
-            : order;
-
-    const pos =
-        items.length === 0
-            ? itemsRoot.pos
-            : position === items.length
-            ? items[position - 1].end
-            : _getPos(items[position], eol);
-
-    return [pos, indentation]
-};
-
-const _getPos = (item: ts.Node, eol: string) => {
-    let offset = 0;
-    while (item.getFullText().startsWith(eol + eol, offset))
-        offset += eol.length;
-
-    return item.pos + offset;
 };
 
 export const getTemplate = async (
@@ -181,7 +186,7 @@ export const getTemplate = async (
     rules.push(async (_tree: Tree, context: SchematicContext) => {
         const code = await _getTemplate(options, context);
 
-        setData(data, code, "templates", id, "value");
+        setData(data, code, "template", id, "value");
     })
     return rules
 }
@@ -196,11 +201,27 @@ const _getTemplate = async (
             ...strings,
             identify(val: {str: string, ids: string[]}) {
                 const {str, ids} = val;
+                if (!str || !ids) {
+                    throw new SchematicsException(
+                        `❌  Invalid argument type: 'var.id'`
+                    );
+                }
                 let cnt = 0;
                 let id = str;
                 while (ids.includes(id))
                     id = str + (++cnt).toString().padStart(2, "0");
                 return id;
+            },
+            isFunction(val: () => string) {
+                let str;
+                try {
+                    str = val()
+                } catch(err) {
+                    throw new SchematicsException(
+                        `❌  inFunction(${val.name}) execution error: '${err}'`
+                    );
+                }
+                return str
             },
             ...options.vars,
         }),
@@ -209,8 +230,9 @@ const _getTemplate = async (
     const tree = await firstValueFrom(
         templateSource(context) as Observable<Tree>
     );
+    const str  = tree.read(options.templateName)?.toString();
 
-    return tree.read(options.templateName)?.toString();
+    return str;
 };
 
 export function applyTemplates<T>(name: string, options: T): Rule {
