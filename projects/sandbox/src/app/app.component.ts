@@ -1,7 +1,5 @@
-import { Component, OnDestroy, inject, OnInit } from '@angular/core';
-import { RouterOutlet, Router } from '@angular/router';
-import { DialogComponent } from '../../../demo/src/app';
-import { Oauth2Service, IOAuth2Config } from 'ngx-oauth2-oidc';
+import { Component, OnDestroy } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 // import { Foo } from './foo';
 // import { Foo as fooAlias} from './foo';
@@ -45,9 +43,8 @@ export class AppComponent implements OnDestroy {
 }
 
 @Component({})
-class logincomponent implements OnInit {
-    private readonly router = inject(Router);
-    private readonly oauth2 = inject(Oauth2Service);constructor(){}
+class logincomponent {
+    constructor(){}
    async ngOnInit():/* UU */ void {
 
    }
@@ -56,9 +53,7 @@ class logincomponent implements OnInit {
 }
 
 @Component({ template: "<body></body>" })
-export class LoginCOMPONENT implements OnDestroy, OnInit extends Component, DialogComponent{
-    private readonly router = inject(Router);
-    private readonly oauth2 = inject(Oauth2Service);
+export class LoginCOMPONENT implements OnDestroy extends Component, DialogComponent{
 
     a = inject(def01);
 

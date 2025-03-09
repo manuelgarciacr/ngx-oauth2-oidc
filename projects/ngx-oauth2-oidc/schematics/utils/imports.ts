@@ -4,7 +4,9 @@ import { findNodes } from "./find";
 import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
 import { InsertChange } from "@schematics/angular/utility/change";
 
-const messageText = (
+// TODO: To add an import alias
+
+export const messageText = (
     file: string,
     module: string,
     symbol: string,
@@ -27,6 +29,7 @@ const messageText = (
  *      editable file.
  * @param {string} module Module from which to import
  * @param {string} symbol Symbol to import
+ * @param {string | null | undefined} _alias Symbol alias (Future use)
  * @param {boolean} alreadyAddedWarning If it is true, a warning message can be displayed.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
@@ -37,12 +40,13 @@ export const insertImport = (
     file: string,
     module: string,
     symbol: string,
+    _alias: string | null | undefined,
     alreadyAddedWarning: boolean,
     data: GlobalData,
     rules: Rule[]
 ): Rule[] => {
-    rules.push(importedDataRuleFactory(file, module, symbol, data));
-    rules.push(insertImportRuleFactory(file, module, symbol, alreadyAddedWarning, data));
+    rules.push(importedDataRuleFactory(file, module, symbol, _alias, data));
+    rules.push(insertImportRuleFactory(file, module, symbol, _alias, alreadyAddedWarning, data));
 
     return rules;
 };
@@ -53,6 +57,7 @@ export const insertImport = (
  *      editable file.
  * @param {string} module Module from which to import
  * @param {string} symbol Symbol to import
+ * @param {string | null | undefined} _alias Symbol alias (Future use)
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @returns {Rule} The rule that adds the imported identifier, if any, into the global
@@ -62,6 +67,7 @@ export function importedDataRuleFactory(
     file: string,
     module: string,
     symbol: string,
+    _alias: string | null | undefined,
     data: GlobalData
 ): Rule {
     return (tree: Tree, context: SchematicContext) => {
@@ -87,6 +93,7 @@ export const insertImportRuleFactory = (
     file: string,
     module: string,
     symbol: string,
+    _alias: string | null | undefined,
     alreadyAddedWarning: boolean,
     data: GlobalData
 ): Rule => {
@@ -94,12 +101,10 @@ export const insertImportRuleFactory = (
         const source = getSourceFile(tree, file);
         const updateRecorder = tree.beginUpdate(file);
         const change = _insertImport(source, file, symbol, module);
+        const dataKeys = ["importedData", file, module, symbol];
         const importedData = getData(
             data,
-            "importedData",
-            file,
-            module,
-            symbol
+            ...dataKeys
         );
         const _messageText = messageText(file, module, symbol, importedData?.["value"]);
 
@@ -130,10 +135,7 @@ export const insertImportRuleFactory = (
         setData(
             data,
             { value: symbol, allValues: [symbol] },
-            "importedData",
-            file,
-            module,
-            symbol
+            ...dataKeys
         );
 
         context.logger.info(

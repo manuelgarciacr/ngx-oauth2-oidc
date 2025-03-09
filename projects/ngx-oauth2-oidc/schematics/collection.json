@@ -1,19 +1,24 @@
 {
-  "$schema": "../../../node_modules/@angular-devkit/schematics/collection-schema.json",
-  "schematics": {
-      "ng-add": {
-          "description": "Add my library to the project.",
-          "factory": "./ng-add/index#ngAdd",
-          "schema": "./ng-add/schema.json"
-      },
-      "providers": {
-          "description": "Add provideOauth2 and provideHttpClient.",
-          "factory": "./providers/index"
-      },
-      "login": {
-          "description": "Generate/actulizes a login component in the project.",
-          "factory": "./login/index",
-          "schema": "./login/schema.json"
-      }
-  }
+    "$schema": "../../../node_modules/@angular-devkit/schematics/collection-schema.json",
+    "schematics": {
+        "ng-add": {
+            "description": "Add my library to the project.",
+            "factory": "./ng-add/index#ngAdd",
+            "schema": "./ng-add/schema.json"
+        },
+        "providers": {
+            "description": "Add provideOauth2 and provideHttpClient.",
+            "factory": "./providers/index"
+        },
+        "login": {
+            "description": "Actulizes the login component in the project.",
+            "factory": "./login/index",
+            "schema": "./login/schema.json"
+        },
+        "guard": {
+            "description": "Adds the idTokenGuard from ngx-oauth2-oidc to a route.",
+            "factory": "./guard/index",
+            "schema": "./guard/schema.json"
+        }
+    }
 }

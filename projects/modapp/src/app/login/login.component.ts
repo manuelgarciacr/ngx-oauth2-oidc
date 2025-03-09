@@ -17,27 +17,26 @@ export class LoginComponent {
 
 @Component({})
 class logincomponent implements DoCheck {
-    private readonly router = pepe(Router.Router);
+    private readonly routerProperty = pepe(Router.Router);
     protected constructor() {}
     public static override readonly /* private protected */ ngAfterViewChecked = 3;
 
     //public static readonly ngOnInit  : () => void =     ()  :  void => {};
-      ngDoCheck: () => void = (): void => {
-    };
-//     private ngOnInit():   void   {
-//       const  a = 3;
-//           const b  =  2;
-//    const  c  =  1
-//     }
-//     private ngOnInit():   void   {  const  a = 3;
-//           const b  =  2;
-//    const  c  =  1
-//     }
-//     private ngOnInit():   void   {  const  a = 3;
-//           const b  =  2;
-//    const  c  =  1}
+    ngDoCheck: () => void = (): void => {};
+    //     private ngOnInit():   void   {
+    //       const  a = 3;
+    //           const b  =  2;
+    //    const  c  =  1
+    //     }
+    //     private ngOnInit():   void   {  const  a = 3;
+    //           const b  =  2;
+    //    const  c  =  1
+    //     }
+    //     private ngOnInit():   void   {  const  a = 3;
+    //           const b  =  2;
+    //    const  c  =  1}
     // private ngOnInit():   void   {  const  a = 3; const b  =  2;  const  c  =  1}
-    private ngOnInit():   void   { };
+    private ngOnInit(): void {}
     public static override async /* private protected */ ngAfterViewInit() {}
     public static set property(a: string) {
         if (true) {
@@ -49,6 +48,6 @@ class logincomponent implements DoCheck {
         if (true) console.log(a);
         //return "";
     }
-  login() {}
+    login() {}
 }
 

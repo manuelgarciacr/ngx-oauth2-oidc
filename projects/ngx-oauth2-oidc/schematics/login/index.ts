@@ -47,18 +47,19 @@ const loginTemplateOptions = (
                 "injectedData",
                 file,
                 className,
+                "Component",
                 "ngx-oauth2-oidc",
                 "Oauth2Service",
-                "Component",
-                "value"
-            )?.[0],
+                "value",
+                "propertyId"
+            ),
     },
 });
 
 const loginInterceptorTemplateOptions = (
     data: GlobalData,
     file: string,
-    className:  string
+    className: string
 ) => ({
     templatePath: "./files",
     templateName: "loginInterceptor",
@@ -69,22 +70,24 @@ const loginInterceptorTemplateOptions = (
                 "injectedData",
                 file,
                 className,
+                "Component",
                 "ngx-oauth2-oidc",
                 "Oauth2Service",
-                "Component",
-                "value"
-            )?.[0],
+                "value",
+                "propertyId"
+            ),
         router: (): string =>
             getData(
                 data,
                 "injectedData",
                 file,
                 className,
+                "Component",
                 "@angular/router",
                 "Router",
-                "Component",
-                "value"
-            )?.[0],
+                "value",
+                "propertyId"
+            ),
         route: "routeName",
     },
 });
@@ -141,11 +144,11 @@ export default function (options: Schema) {
             if (file != sourceFile) {
                 sourceFile = file;
 
-                insertImport(file, "ngx-oauth2-oidc", "Oauth2Service", true, data, rules);
-                insertImport(file, "ngx-oauth2-oidc", "IOAuth2Config", true, data, rules);
-                insertImport(file, "@angular/router", "Router", false, data, rules);
-                insertImport(file, "@angular/core", "OnInit", false, data, rules);
-                insertImport(file, "@angular/core", "inject", false, data, rules);
+                insertImport(file, "ngx-oauth2-oidc", "Oauth2Service", null, true, data, rules);
+                insertImport(file, "ngx-oauth2-oidc", "IOAuth2Config", null, true, data, rules);
+                insertImport(file, "@angular/router", "Router", null, false, data, rules);
+                insertImport(file, "@angular/core", "OnInit", null, false, data, rules);
+                insertImport(file, "@angular/core", "inject", null, false, data, rules);
             }
 
             if (nodeFlags(node).includes("ThisNodeHasError")) {
@@ -161,11 +164,11 @@ export default function (options: Schema) {
             insertInject(
                 file,
                 className,
+                "Component",
                 "ngx-oauth2-oidc",
                 "Oauth2Service",
                 "oauth2",
                 "private readonly",
-                "Component",
                 true,
                 data,
                 rules
@@ -174,11 +177,11 @@ export default function (options: Schema) {
             insertInject(
                 file,
                 className,
+                "Component",
                 "@angular/router",
                 "Router",
                 "router",
                 "private readonly",
-                "Component",
                 false,
                 data,
                 rules
@@ -205,13 +208,13 @@ export default function (options: Schema) {
             await insertImplementation(
                 file,
                 className,
+                "Component",
                 "ngOnInit",
                 ["async"],
-                "Component",
                 false,
                 data,
                 rules
-            )
+            );
 
             // TODO: create insertStatement function
             await insertTemplate(

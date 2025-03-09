@@ -3,30 +3,26 @@ import { GlobalData, getData, getInBlockIndentation, getSourceFile, setData, ts 
 import { findNodes } from "./find";
 import { InsertChange, Change } from "@schematics/angular/utility/change";
 import { getEOL } from "@schematics/angular/utility/eol";
+import { messageText as importMessageText} from "./imports";
 
-const importMessageText = (
-    file: string,
-    module: string,
-    symbol: string,
-    symbolId?: string
-) =>
-    `${file.split("/").pop()} => ${module} => ${symbol}${
-        symbolId && symbolId !== symbol ? " (alias " + symbolId + ")" : ""
-    }`;
 const injectionMessageText = (
     file: string,
     className: string,
+    decorator: string | null | undefined,
     module: string,
     symbol: string,
+    symbolId: string | null | undefined,
     property: string,
-    decorator?: string,
-    symbolId?: string,
-    propertyId?: string
+    propertyId: string | null | undefined
 ) =>
-    `${file.split("/").pop()} => ${className}${decorator ? "@" + decorator : ""} => ${module} => ${symbol}${
+    `${file.split("/").pop()} => ${className}${
+        decorator ? "@" + decorator : ""
+    } => ${module} => ${symbol}${
         symbolId && symbolId !== symbol ? " (alias " + symbolId + ")" : ""
     } => ${property}${
-        propertyId && propertyId !== property ? " (alias " + propertyId + ")" : ""
+        propertyId && propertyId !== property
+            ? " (alias " + propertyId + ")"
+            : ""
     }`;
 
 /**
@@ -38,11 +34,11 @@ const injectionMessageText = (
  * @param {string} file File we want to add inject to. It is assumed to be an existing
  *      editable file.
  * @param {string} className Name of the class we want to add inject to.
+ * @param {string | null | undefined} decorator Optional name of one of the decorators in the class.
  * @param {string} module Module from which to import
  * @param {string} symbol Symbol to import
  * @param {string} property Property where to inject the symbol
  * @param {string} modifiers Modifiers for the property
- * @param {string | undefined} decorator Optional name of one of the decorators in the class.
  * @param {boolean} alreadyAddedWarning If it is true, a warning message can be displayed.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
@@ -52,11 +48,11 @@ const injectionMessageText = (
 export const insertInject = (
     file: string,
     className: string,
+    decorator: string | null | undefined,
     module: string,
     symbol: string,
     property: string,
     modifiers: string,
-    decorator: string | undefined,
     alreadyAddedWarning: boolean,
     data: GlobalData,
     rules: Rule[] = []
@@ -66,9 +62,9 @@ export const insertInject = (
         injectedDataRuleFactory(
             file,
             className,
+            decorator,
             module,
             symbol,
-            decorator,
             data
         )
     );
@@ -76,11 +72,11 @@ export const insertInject = (
         insertInjectRuleFactory(
             file,
             className,
+            decorator,
             module,
             symbol,
             property,
             modifiers,
-            decorator,
             alreadyAddedWarning,
             data
         )
@@ -95,9 +91,9 @@ export const insertInject = (
 export function injectedDataRuleFactory(
     file: string,
     className: string,
+    decorator: string | null | undefined,
     module: string,
     symbol: string,
-    decorator: string | undefined,
     data: GlobalData
 ): Rule {
     // TODO: Optimize and clean the code
@@ -130,8 +126,8 @@ export function injectedDataRuleFactory(
             symbolImportedData?.["value"]
         );
         validateImportedData(symbolImportedData, _symbolImportMessageText);
-        const injectImported = injectImportedData.allValues;
-        const symbolImported = symbolImportedData.allValues;
+        const allInjectId = injectImportedData.allValues;
+        const allSymbolId = symbolImportedData.allValues;
         const source = getSourceFile(tree, file);
         const classDeclaration = findNodes<ts.ClassDeclaration>(source, 1, {
             kindOrGuard: ts.isClassDeclaration,
@@ -141,25 +137,30 @@ export function injectedDataRuleFactory(
         const getData01 = (st: ts.PropertyDeclaration) => {
             // const modifiers = st.modifiers; // [private, readonly] Future use
             const prop = st as ts.PropertyDeclaration;
-            const name = prop.name?.getText();
+            const propertyId = prop.name?.getText() ?? "";
             const call = prop.initializer as ts.CallExpression;
             const injectCall = call?.expression as ts.Identifier;
             const arg = call?.arguments?.[0] as
                 | ts.Identifier
                 | ts.PropertyAccessExpression;
-            const symbolId = arg?.getText();
-            const injectId = injectCall?.escapedText?.toString();
+            const symbolId = arg?.getText() ?? "";
+            const injectId = injectCall?.escapedText?.toString() ?? "";
             // Filter condition
             const condition =
-                name &&
+                propertyId &&
                 call &&
                 ts.isCallExpression(call) &&
                 injectCall &&
                 ts.isIdentifier(injectCall) &&
                 arg &&
-                (ts.isIdentifier(arg) || ts.isPropertyAccessExpression(arg));
+                (ts.isIdentifier(arg) || ts.isPropertyAccessExpression(arg)) &&
+                symbolId;
             // Map output
-            const mapOutput: [string, string, string | undefined] = [name, symbolId, injectId];
+            const mapOutput = {
+                propertyId,
+                symbolId,
+                injectId,
+            };
 
             return {
                 // modifiers,
@@ -170,25 +171,26 @@ export function injectedDataRuleFactory(
         const getData02 = (st: ts.BinaryExpression) => {
             // const prefix = st.getFirstToken()?.getText(); // this. Future use
             const prop = st.left as ts.PropertyAccessExpression;
-            const name = prop?.name?.escapedText?.toString();
+            const propertyId = prop?.name?.escapedText?.toString() ?? "";
             const call = st.right as ts.CallExpression;
             const injectCall = call?.expression as ts.Identifier;
             const arg = call?.arguments?.[0] as
                 | ts.Identifier
                 | ts.PropertyAccessExpression;
-            const symbolId = arg?.getText();
-            const injectId = injectCall?.escapedText?.toString();
+            const symbolId = arg?.getText() ?? "";
+            const injectId = injectCall?.escapedText?.toString() ?? "";
             // Filter condition
             const condition =
-                name &&
+                propertyId &&
                 call &&
                 ts.isCallExpression(call) &&
                 injectCall &&
                 ts.isIdentifier(injectCall) &&
                 arg &&
-                (ts.isIdentifier(arg) || ts.isPropertyAccessExpression(arg));
+                (ts.isIdentifier(arg) || ts.isPropertyAccessExpression(arg)) &&
+                symbolId;
             // Map output
-            const mapOutput: [string | undefined, string, string | undefined] = [name, symbolId, injectId];
+            const mapOutput = { propertyId, symbolId, injectId };
 
             return {
                 // prefix,
@@ -197,13 +199,13 @@ export function injectedDataRuleFactory(
             };
         };
         const getData03 = (st: ts.ParameterDeclaration) => {
-            const name = st.name?.getText();
+            const propertyId = st.name?.getText();
             const type = st.type as ts.TypeReferenceNode;
-            const symbolId = st.type?.getText();
+            const symbolId = st.type?.getText() ?? "";
             // Filter condition
-            const condition = name && type && ts.isTypeReferenceNode(type);
+            const condition = propertyId && type && ts.isTypeReferenceNode(type) && symbolId;
             // Map output
-            const mapOutput: [string, string | undefined] = [name, symbolId];
+            const mapOutput = {propertyId, symbolId, injectId: undefined};
 
             return { condition, mapOutput };
         };
@@ -232,14 +234,21 @@ export function injectedDataRuleFactory(
             .map(st => getData03(st).mapOutput);
         const injections = [...injections01, ...injections02, ...injections03];
         const allValues = injections
-            .filter(inj => inj[1] && symbolImported.includes(inj[1]))
-            .filter(inj => inj.length === 2 || ( inj[2] && injectImported.includes(inj[2]) ));
+            .filter(inj => inj.symbolId && allSymbolId.includes(inj.symbolId))
+            .filter(inj => inj.injectId && allInjectId.includes(inj.injectId));
         const value = allValues[0];
 
         setData(
             data,
             { value, allValues },
-            ...["injectedData", file, className, module, symbol, decorator ?? ""]
+            ...[
+                "injectedData",
+                file,
+                className,
+                decorator ?? "",
+                module,
+                symbol,
+            ]
         );
 
         return tree;
@@ -249,15 +258,59 @@ export function injectedDataRuleFactory(
 export const insertInjectRuleFactory = (
     file: string,
     className: string,
+    decorator: string | null | undefined,
     module: string,
     symbol: string,
     property: string,
     modifiers: string,
-    decorator: string | undefined,
     alreadyAddedWarning: boolean,
     data: GlobalData
 ): Rule => {
     return (tree: Tree, context: SchematicContext) => {
+        const dataKeys = [
+            "injectedData",
+            file,
+            className,
+            decorator ?? "",
+            module,
+            symbol,
+        ];
+        const injectedData = getData(
+            data,
+            ...dataKeys
+        );
+        let { propertyId = null, symbolId = null } = injectedData?.value ?? {}
+        let _injectionMessageText = injectionMessageText(
+            file,
+            className,
+            decorator,
+            module,
+            symbol,
+            symbolId,
+            property,
+            propertyId
+        );
+
+        validateInjectedData(injectedData, _injectionMessageText);
+
+        if (propertyId) {
+            alreadyAddedWarning &&
+                context.logger.warn(
+                    `👁️  Property already injected: ${_injectionMessageText}`
+                );
+            !alreadyAddedWarning &&
+                context.logger.info(
+                    `\x1b[92m✅  Property already injected: ${_injectionMessageText}\x1b[0m`
+                );
+            return tree;
+        }
+
+        const source = getSourceFile(tree, file);
+        const classDeclaration = <ts.ClassDeclaration>findNodes(source, 1, {
+            kindOrGuard: ts.isClassDeclaration,
+            names: [className],
+            decorator,
+        })[0];
         const injectImportedData = getData(
             data,
             "importedData",
@@ -272,58 +325,25 @@ export const insertInjectRuleFactory = (
             module,
             symbol
         );
-        const injectedData = getData(
-            data,
-            "injectedData",
+        const injectId = injectImportedData.value;
+        symbolId = symbolImportedData.value;
+        _injectionMessageText = injectionMessageText(
             file,
             className,
+            decorator,
             module,
             symbol,
-            decorator ?? ""
-        );
-        const _injectionMessageText = injectionMessageText(
-            file,
-            className,
-            module,
-            symbol,
+            symbolId,
             property,
-            decorator,
-            injectedData?.["value"]?.[1],
-            injectedData?.["value"]?.[0]
+            null
         );
-        //
-        // TODO: Test till here
-        //
-        validateInjectedData(injectedData, _injectionMessageText);
-        const injectImported = injectImportedData.value;
-        const symbolImported = symbolImportedData.value;
-        const injected = injectedData.value;
-
-        if (injected !== undefined) {
-            alreadyAddedWarning &&
-                context.logger.warn(
-                    `👁️  Inject statement already added: ${_injectionMessageText}`
-                );
-            !alreadyAddedWarning &&
-                context.logger.info(
-                    `\x1b[92m✅  Inject statement already added: ${_injectionMessageText}\x1b[0m`
-                );
-            return tree;
-        }
-
-        const source = getSourceFile(tree, file);
-        const classDeclaration = <ts.ClassDeclaration>findNodes(source, 1, {
-            kindOrGuard: ts.isClassDeclaration,
-            names: [className],
-            decorator,
-        })[0];
         const updateRecorder = tree.beginUpdate(file);
 
         const change = _insertInject(
             source,
             classDeclaration,
-            injectImported,
-            symbolImported,
+            injectId,
+            symbolId,
             property,
             modifiers
         );
@@ -334,12 +354,12 @@ export const insertInjectRuleFactory = (
 
         tree.commitUpdate(updateRecorder);
 
-        const value = [property, symbolImported];
+        const value = {propertyId: property, symbolId, injectId};
 
         setData(
             data,
             { value, allValues: [value] },
-            ...["injectedData", file, className, module, symbol, decorator ?? ""]
+            ...dataKeys
         );
 
         context.logger.info(

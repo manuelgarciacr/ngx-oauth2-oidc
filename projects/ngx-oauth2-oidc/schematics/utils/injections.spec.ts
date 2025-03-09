@@ -78,11 +78,11 @@ export class AppModule {
         insertInject(
             file,
             className,
+            decorator,
             "./FooService",
             "FooService02",
             "serv03",
             "public",
-            decorator,
             true,
             data,
             rules
@@ -101,11 +101,11 @@ export class AppModule {
         insertInject(
             file,
             className,
+            undefined,
             "./FooService04",
             "FooService04",
             "serv04",
             "public",
-            undefined,
             true,
             data,
             rules
@@ -114,11 +114,11 @@ export class AppModule {
         insertInject(
             file,
             className,
+            decorator,
             "./FooService04",
             "FooService05",
             "serv05",
             "public readoply",
-            decorator,
             true,
             data,
             rules

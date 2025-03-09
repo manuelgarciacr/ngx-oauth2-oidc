@@ -5,7 +5,7 @@ import { NodeArray, getSourceFile, isNodeArray, ts } from "./utils"
 export type findOptions = {
     test?: (node: ts.Node) => boolean;
     kindOrGuard?: ts.SyntaxKind | ((node: ts.Node) => node is any);
-    decorator?: string;
+    decorator?: string | null;
     names?: string[];
     caseSensitive?: boolean;
 };

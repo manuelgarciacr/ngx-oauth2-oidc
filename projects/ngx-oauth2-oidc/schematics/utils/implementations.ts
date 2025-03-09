@@ -68,9 +68,9 @@ export const implementationsCode = {
 const messageText = (
     file: string,
     className: string,
+    decorator: string | null | undefined,
     implementation: string,
-    modifiers: string[],
-    decorator?: string
+    modifiers: string[]
 ) =>
     `${file.split("/").pop()} => ${className}${
         decorator ? "@" + decorator : ""
@@ -83,9 +83,9 @@ const messageText = (
  * @param {string} file File we want to add implementation to. It is assumed to be an existing
  *      editable file.
  * @param {string} className Name of the class we want to add implementation to.
+ * @param {string | null | undefined} decorator Optional name of one of the decorators in the class.
  * @param {string} implementation Implementation to include
  * @param {string[]} modifiers Implementation modifiers
- * @param {string | undefined} decorator Optional name of one of the decorators in the class.
  * @param {boolean} alreadyAddedWarning If it is true, a warning message can be displayed.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
@@ -95,9 +95,9 @@ const messageText = (
 export const insertImplementation = async (
     file: string,
     className: string,
+    decorator: string | undefined,
     implementation: string,
     modifiers: string[],
-    decorator: string | undefined,
     alreadyAddedWarning: boolean,
     data: GlobalData,
     rules: Rule[] = []
@@ -106,9 +106,9 @@ export const insertImplementation = async (
         implementedDataRuleFactory(
             file,
             className,
+            decorator,
             implementation,
             modifiers,
-            decorator,
             data
         )
     );
@@ -116,9 +116,9 @@ export const insertImplementation = async (
         insertImplementationRuleFactory(
             file,
             className,
+            decorator,
             implementation,
             modifiers,
-            decorator,
             alreadyAddedWarning,
             data
         )
@@ -132,9 +132,9 @@ export const insertImplementation = async (
  * @param {string} file File we want to add implementation to. It is assumed to be an existing
  *      editable file.
  * @param {string} className Name of the class we want to include implementation to.
+ * @param {string | null | undefined} decorator Optional name of one of the decorators in the class.
  * @param {string} implementation Implementation to include
  * @param {string[]} modifiers Implementation modifiers
- * @param {string | undefined} decorator Optional name of one of the decorators in the class.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
  * @returns {Rule} The rule that adds the implemented data, if any, into the global
@@ -143,9 +143,9 @@ export const insertImplementation = async (
 export function implementedDataRuleFactory(
     file: string,
     className: string,
+    decorator: string | null | undefined,
     implementation: string,
     modifiers: string[],
-    decorator: string | undefined,
     data: GlobalData
 ): Rule {
     return (tree: Tree, context: SchematicContext) => {
@@ -155,7 +155,13 @@ export function implementedDataRuleFactory(
             names: [className],
             decorator,
         })[0];
-        const _messageText = messageText(file, className, implementation, modifiers, decorator);
+        const _messageText = messageText(
+            file,
+            className,
+            decorator,
+            implementation,
+            modifiers
+        );
 
         if (!Object.keys(implementationsCode).includes(implementation)) {
             throw new SchematicsException(
@@ -194,7 +200,7 @@ export function implementedDataRuleFactory(
             impl.modifiers?.forEach(n =>
                 implementedModifiers.push(n.getText())
             );
-            type = "CONSTRUCTOR"
+            type = "CONSTRUCTOR";
         }
 
         if (impl && ts.isMethodDeclaration(impl)) {
@@ -227,9 +233,14 @@ export function implementedDataRuleFactory(
             implementedModifiers,
             _messageText
         );
-        const canReturnAPromise = !returnType || returnType.replaceAll(/\s/g, "").startsWith("Promise<");
+        const canReturnAPromise =
+            !returnType ||
+            returnType.replaceAll(/\s/g, "").startsWith("Promise<");
         const isAsync = requiredModifiers.includes("async");
-        const promiseRequired = isAsync && !canReturnAPromise ? `Promise<${returnType}>` : undefined;
+        const promiseRequired =
+            isAsync && !canReturnAPromise
+                ? `Promise<${returnType}>`
+                : undefined;
 
         if (isEqual(implementedModifiers, requiredModifiers, true))
             requiredModifiers.splice(0);
@@ -240,21 +251,35 @@ export function implementedDataRuleFactory(
             );
         }
 
-        const interfaceOrClass = implementation.startsWith("ng") ? implementation.substring(2) : undefined;
+        const interfaceOrClass = implementation.startsWith("ng")
+            ? implementation.substring(2)
+            : undefined;
         const heritageClauses = classDeclaration.heritageClauses;
         const implementClause = heritageClauses?.filter(
             n => n.token === ts.SyntaxKind.ImplementsKeyword
         )?.[0];
-        const implementClauseItems = implementClause?.types.map(
-            n => (n.expression as ts.Identifier)?.escapedText?.toString()
+        const implementClauseItems = implementClause?.types.map(n =>
+            (n.expression as ts.Identifier)?.escapedText?.toString()
         );
         const inHeritageClause =
             implementClauseItems?.includes(interfaceOrClass ?? "") ?? false;
 
         setData(
             data,
-            { interfaceOrClass, inHeritageClause, requiredModifiers, promiseRequired, type },
-            ...["implementedData", file, className, implementation, decorator ?? ""]
+            {
+                interfaceOrClass,
+                inHeritageClause,
+                requiredModifiers,
+                promiseRequired,
+                type,
+            },
+            ...[
+                "implementedData",
+                file,
+                className,
+                implementation,
+                decorator ?? "",
+            ]
         );
 
         return tree;
@@ -266,9 +291,9 @@ export function implementedDataRuleFactory(
  * @param {string} file File we want to add implementation to. It is assumed to be an existing
  *      editable file.
  * @param {string} className Name of the class we want to include implementation to.
+ * @param {string | null | undefined} decorator Optional name of one of the decorators in the class.
  * @param {string} implementation Implementation to include
  * @param {string[]} modifiers Implementation modifiers
- * @param {string | undefined} decorator Optional name of one of the decorators in the class.
  * @param {boolean} alreadyAddedWarning If it is true, a warning message can be displayed.
  * @param {GlobalData} data Global object that allows sharing
  *      data between rules.
@@ -278,26 +303,41 @@ export function implementedDataRuleFactory(
 export const insertImplementationRuleFactory = (
     file: string,
     className: string,
+    decorator: string | null | undefined,
     implementation: string,
     modifiers: string[],
-    decorator: string | undefined,
     alreadyAddedWarning: boolean,
     data: GlobalData
 ): Rule => {
     return (tree: Tree, context: SchematicContext) => {
-        const implementedData: Record<string, any> & {requiredModifiers:  string[]} = getData(
-            data,
+        const dataKeys = [
             "implementedData",
             file,
             className,
             implementation,
-            decorator ?? ""
+            decorator ?? "",
+        ];
+        const implementedData: Record<string, any> & {
+            requiredModifiers: string[];
+        } = getData(
+            data,
+            ...dataKeys
         );
-        const _messageText = messageText(file, className, implementation, modifiers, decorator);
+        const _messageText = messageText(
+            file,
+            className,
+            decorator,
+            implementation,
+            modifiers
+        );
 
-        const isAllOk = validateImplementedData(implementedData, _messageText, context);
+        const isAllOk = validateImplementedData(
+            implementedData,
+            _messageText,
+            context
+        );
 
-        if ( isAllOk ) {
+        if (isAllOk) {
             alreadyAddedWarning &&
                 context.logger.warn(
                     `👁️  Method already added: ${_messageText}`
@@ -322,7 +362,8 @@ export const insertImplementationRuleFactory = (
         )?.[0];
         const eol = getEOL(source);
         const members = classDeclaration.members;
-        const { interfaceOrClass, requiredModifiers, promiseRequired } = implementedData;
+        const { interfaceOrClass, requiredModifiers, promiseRequired } =
+            implementedData;
         const updateRecorder = tree.beginUpdate(file);
 
         let { inHeritageClause, type } = implementedData;
@@ -330,13 +371,13 @@ export const insertImplementationRuleFactory = (
         let arrowFn: ts.ArrowFunction | undefined;
 
         if (type === "CONSTRUCTOR") {
-            impl = members.filter(
-                n => ts.isConstructorDeclaration(n)
-            )[0];
+            impl = members.filter(n => ts.isConstructorDeclaration(n))[0];
         }
         if (type === "METHOD") {
             impl = members.filter(
-                n => ts.isMethodDeclaration(n) && n.name.getText() === implementation
+                n =>
+                    ts.isMethodDeclaration(n) &&
+                    n.name.getText() === implementation
             )[0];
         }
         if (type === "PROPERTY") {
@@ -345,7 +386,8 @@ export const insertImplementationRuleFactory = (
                     ts.isPropertyDeclaration(n) &&
                     n.name.getText() === implementation
             )[0];
-            arrowFn = (impl as ts.PropertyDeclaration).initializer as ts.ArrowFunction
+            arrowFn = (impl as ts.PropertyDeclaration)
+                .initializer as ts.ArrowFunction;
         }
         const returnType = arrowFn
             ? arrowFn.type
@@ -403,7 +445,12 @@ export const insertImplementationRuleFactory = (
             const replacePos = impl!.getStart();
             const endPos = impl!.name!.getStart();
             const replaceLength = endPos - replacePos;
-            const change = new ReplaceChange(file, replacePos, "", newModifiers.join(" ") + " ");
+            const change = new ReplaceChange(
+                file,
+                replacePos,
+                "",
+                newModifiers.join(" ") + " "
+            );
 
             if (change instanceof ReplaceChange) {
                 updateRecorder.remove(change.order, replaceLength);
@@ -415,12 +462,7 @@ export const insertImplementationRuleFactory = (
             const replacePos = arrowFn!.pos;
             const endPos = arrowFn!.getStart();
             const replaceLength = endPos - replacePos;
-            const change = new ReplaceChange(
-                file,
-                replacePos,
-                "",
-                " async "
-            );
+            const change = new ReplaceChange(file, replacePos, "", " async ");
 
             if (change instanceof ReplaceChange) {
                 updateRecorder.remove(change.order, replaceLength);
@@ -431,12 +473,8 @@ export const insertImplementationRuleFactory = (
         if (type === "") {
             // Implementation not added
             // TODO: Insert the method based on declarations order (properties, implementations, methods)
-            const [_parentIndentation, _indentation, previousNodeIndentation] = getInBlockIndentation(
-                classDeclaration,
-                source,
-                eol,
-                "last"
-            );
+            const [_parentIndentation, _indentation, previousNodeIndentation] =
+                getInBlockIndentation(classDeclaration, source, eol, "last");
             const change = new InsertChange(
                 file,
                 classDeclaration.members.end,
@@ -462,14 +500,8 @@ export const insertImplementationRuleFactory = (
                 inHeritageClause,
                 requiredModifiers,
                 type,
-             },
-            ...[
-                "implementedData",
-                file,
-                className,
-                implementation,
-                decorator ?? "",
-            ]
+            },
+            ...dataKeys
         );
 
         context.logger.info(
