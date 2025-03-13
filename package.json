@@ -39,8 +39,10 @@
         "exec2": "npm --loglevel notice run build:schematics:dev && cd projects/sandbox && ng generate ngx-oauth2-oidc:login --component loginComponent",
         "exec:mod": "npm --loglevel notice run build:schematics:dev && npm --loglevel verbose run test:mod",
         "exec:sta": "npm --loglevel notice run build:schematics:dev && npm --loglevel verbose run test:sta",
-        "test:mod": "cd projects/modapp && ng generate ngx-oauth2-oidc:login --component loginComponent",
-        "test:sta": "cd projects/sandbox && ng generate ngx-oauth2-oidc:login --component loginComponent",
+        "---test:mod": "cd projects/modapp && ng generate ngx-oauth2-oidc:login --component loginComponent",
+        "test:mod": "cd projects/modapp && ng generate ngx-oauth2-oidc:guard --route foo",
+        "---test:sta": "cd projects/sandbox && ng generate ngx-oauth2-oidc:login --component loginComponent",
+        "test:sta": "cd projects/sandbox && ng generate ngx-oauth2-oidc:guard --route foo",
         "test:schematics": "npm --loglevel notice run build:schematics:dev && jasmine --verbose dist/ngx-oauth2-oidc/schematics/**/*.spec.js"
     },
     "private": true,

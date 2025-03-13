@@ -1,11 +1,16 @@
 import {
+    NodeArray as _NodeArray,
     SchematicsException,
-    Tree} from "@angular-devkit/schematics";
-import { getEOL } from "@schematics/angular/utility/eol";
-import _ts, {
     SyntaxKind,
-    NodeArray as _NodeArray
-} from "@schematics/angular/third_party/github.com/Microsoft/TypeScript/lib/typescript";
+    Tree,
+    getDecoratorMetadata,
+    getEOL,
+    getMetadataField,
+    getSourceFile,
+    isNodeArray,
+    ts,
+} from ".";
+import { dirname, join } from "node:path";
 
 export type GlobalData = Record<string, any>;
 export const setData = (target: GlobalData, value: any, ...keys: string[]) => {
@@ -39,11 +44,7 @@ export const __$$undefined = Symbol.for("__$$undefined");
 export const __$$anonymous = Symbol.for("__$$anonymous");
 export interface Node extends ts.Node {}
 export interface NamedNode extends ts.Node {name: ts.Identifier}
-export type NodeArray<T extends ts.Node> = _NodeArray<T> & {
-    pos: number;
-    end: number;
-};
-export import ts = _ts;
+
 import { findNodes } from "./find";
 export enum NodeTypeExtension {
     single,
@@ -259,6 +260,170 @@ export const getNodeIndentation = (
     return [" ".repeat(startInd < endInd ? startInd : endInd), start, end];
 };
 
+export const findImportLocalName = (
+    sourceFile: ts.SourceFile,
+    moduleName: string,
+    name: string
+): string | null => {
+    for (const node of sourceFile.statements) {
+        // Only look for top-level imports.
+        if (
+            !ts.isImportDeclaration(node) ||
+            !ts.isStringLiteral(node.moduleSpecifier) ||
+            node.moduleSpecifier.text !== moduleName
+        ) {
+            continue;
+        }
+
+        // Filter out imports that don't have the right shape.
+        if (
+            !node.importClause ||
+            !node.importClause.namedBindings ||
+            !ts.isNamedImports(node.importClause.namedBindings)
+        ) {
+            continue;
+        }
+
+        // Look through the elements of the declaration for the specific import.
+        for (const element of node.importClause.namedBindings.elements) {
+            if ((element.propertyName || element.name).text === name) {
+                // The local name is always in `name`.
+                return element.name.text;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Resolves a value from an identifier referring to it.
+ * @param tree File tree of the project.
+ * @param fileName Path of the identifier.
+ * @param identifier Identifier referring to the value.
+ */
+export const resolveValueFromIdentifier = (
+    tree: Tree,
+    fileName: string,
+    identifier: ts.Identifier
+) => {
+    const sourceFile = identifier.getSourceFile();
+
+    for (const node of sourceFile.statements) {
+        // Only look at relative imports. This will break if the app uses a path
+        // mapping to refer to the import, but in order to resolve those, we would
+        // need knowledge about the entire program.
+        if (
+            !ts.isImportDeclaration(node) ||
+            !node.importClause?.namedBindings ||
+            !ts.isNamedImports(node.importClause.namedBindings) ||
+            !ts.isStringLiteralLike(node.moduleSpecifier) ||
+            !node.moduleSpecifier.text.startsWith(".")
+        ) {
+            continue;
+        }
+
+        for (const specifier of node.importClause.namedBindings.elements) {
+            if (specifier.name.text !== identifier.text) {
+                continue;
+            }
+
+            // Look for a variable with the imported name in the file. Note that ideally we would use
+            // the type checker to resolve this, but we can't because these utilities are set up to
+            // operate on individual files, not the entire program.
+            const filePath = join(
+                dirname(fileName),
+                node.moduleSpecifier.text + ".ts"
+            );
+            const importedSourceFile = getSourceFile(tree, filePath);
+            const resolvedVariable = findValueFromVariableName(
+                importedSourceFile,
+                (specifier.propertyName || specifier.name).text
+            );
+
+            if (resolvedVariable) {
+                return { filePath, node: resolvedVariable };
+            }
+        }
+    }
+
+    const variableInSameFile = findValueFromVariableName(
+        sourceFile,
+        identifier.text
+    );
+
+    return variableInSameFile
+        ? { filePath: fileName, node: variableInSameFile }
+        : null;
+};
+
+/**
+ * Finds a value within the top-level variables of a file.
+ * @param sourceFile File in which to search for the value.
+ * @param variableName Name of the variable containing the config.
+ */
+function findValueFromVariableName(
+    sourceFile: ts.SourceFile,
+    variableName: string
+): ts.LiteralExpression | ts.ObjectLiteralExpression | ts.ArrayLiteralExpression | null {
+
+    for (const node of sourceFile.statements) {
+        if (ts.isVariableStatement(node)) {
+            for (const decl of node.declarationList.declarations) {
+                if (
+                    ts.isIdentifier(decl.name) &&
+                    decl.name.text === variableName &&
+                    decl.initializer &&
+                    (ts.isLiteralExpression(decl.initializer) ||
+                        ts.isObjectLiteralExpression(decl.initializer) ||
+                        ts.isArrayLiteralExpression(decl.initializer))
+                ) {
+                    return decl.initializer;
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Returns the RouterModule declaration from NgModule metadata, if any.
+ */
+export function getRouterModuleDeclarations(
+    source: ts.SourceFile
+): ts.CallExpression[] {
+    const result = getDecoratorMetadata(source, "NgModule", "@angular/core");
+    const declarations = <ts.CallExpression[]>[];
+
+    for (const node of result) {
+        if (!node || !ts.isObjectLiteralExpression(node)) {
+            continue
+        }
+
+        const matchingProperties = getMetadataField(node, "imports");
+
+        if (!matchingProperties) {
+            continue
+        }
+
+        const assignment = matchingProperties[0] as ts.PropertyAssignment;
+
+        if (assignment.initializer.kind !== ts.SyntaxKind.ArrayLiteralExpression) {
+            continue
+        }
+
+        const arrLiteral = assignment.initializer as ts.ArrayLiteralExpression;
+
+        const decl = arrLiteral.elements
+            .filter(el => el.kind === ts.SyntaxKind.CallExpression)
+            .find(el => (el as ts.Identifier).getText().startsWith("RouterModule"));
+        decl && declarations.push(decl as ts.CallExpression)
+    }
+
+    return declarations
+}
+
 export const log = (obj: Record<string, any>, depth: number | null, options?: {omit?: string[], show?: string[], print?: boolean }) => {
     const { omit = ["parent"], show: filter = [], print = true } = options ?? {omit: ["parent"], filter: []};
     const arrayRoot = "__arrayRoot__";
@@ -401,24 +566,6 @@ const _defaultExtendedText = (node: ts.Node) => {
     return id + dec + (id + dec ? " " : "") + (flags ? flags : "");
 };
 
-const _nodeType = (
-    extension: NodeTypeExtension,
-    singleText: string,
-    extendedText: string,
-    data?: Object
-) =>
-    `${extension < 2 ? singleText : ""}${
-        extension === 1 && extendedText !== "" ? ", " : ""
-    }${extension > 0 ? extendedText : ""}${
-        data
-            ? " " +
-              JSON.stringify(data ?? "", (_key, value) => {
-                  if (value === __$$undefined) return "Symbol(__$$undefined)";
-                  return value;
-              })
-            : ""
-    }`;
-
 export const nodeType = (
     node: Node,
     extension: NodeTypeExtension = 1,
@@ -509,6 +656,24 @@ export const nodeType = (
               data
           );
 };
+
+const _nodeType = (
+    extension: NodeTypeExtension,
+    singleText: string,
+    extendedText: string,
+    data?: Object
+) =>
+    `${extension < 2 ? singleText : ""}${
+        extension === 1 && extendedText !== "" ? ", " : ""
+    }${extension > 0 ? extendedText : ""}${
+        data
+            ? " " +
+              JSON.stringify(data ?? "", (_key, value) => {
+                  if (value === __$$undefined) return "Symbol(__$$undefined)";
+                  return value;
+              })
+            : ""
+    }`;
 
 export type callExpressionType = {
     identifier?: string;
@@ -743,12 +908,6 @@ export const getPropertyName = (node?: ts.PropertyName): any => {
     return expression;
 };
 
-// NodeArray
-
-export const isNodeArray = <T extends ts.Node>(obj: any): obj is NodeArray<T> =>{
-    return Array.isArray(obj) && "pos" in obj && "end" in obj && "hasTrailingComma" in obj
-}
-
 // Modifiers
 
 export const getModifiers = (
@@ -807,42 +966,6 @@ export const getModifiers = (
         {}
     );
 };
-
-/**
- * Gets a TypeScript source file at a specific path.
- * @param tree File tree of a project.
- * @param path Path to the file.
- */
-export function getSourceFile(
-    tree: Tree,
-    path: string
-): ts.SourceFile | ts.JsonSourceFile {
-    const content = tree.readText(path);
-    const extension = path.split(".").pop() ?? "";
-
-    /**
-     * Convert the json syntax tree into the json value
-     */
-    // function convertToObject(
-    //     sourceFile: JsonSourceFile,
-    //     errors: Diagnostic[]
-    // ): any;
-
-    if (["json", "scss", "sass", "css"].includes(extension)) {
-        const src = ts.parseJsonText(path, content);
-
-        return src;
-    }
-
-    const source = ts.createSourceFile(
-        path,
-        content,
-        ts.ScriptTarget.Latest,
-        true
-    );
-
-    return source;
-}
 
 export function getFileContent(tree: Tree, path: string): string {
     const fileEntry = tree.get(path);

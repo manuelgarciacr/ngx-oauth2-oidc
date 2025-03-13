@@ -2,13 +2,13 @@ import { logging } from "@angular-devkit/core";
 import {
     HostTree,
     Rule,
+    SchematicContext /*, TaskConfigurationGenerator */,
+    SchematicTestRunner,
     chain,
     callRule,
-    SchematicContext /*, TaskConfigurationGenerator */,
-} from "@angular-devkit/schematics";
-import { SchematicTestRunner } from "@angular-devkit/schematics/testing";
-import { ts, getFileContent, GlobalData, setData, getData } from "./utils";
-//import { Change, InsertChange } from "@schematics/angular/utility/change";
+    ts
+} from ".";
+import { getFileContent, GlobalData, setData, getData } from "./utils";
 import {
     insertImport,
     importedDataRuleFactory,

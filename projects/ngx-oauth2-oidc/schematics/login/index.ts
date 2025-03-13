@@ -4,12 +4,13 @@ import {
     SchematicsException,
     Tree,
     chain,
-} from "@angular-devkit/schematics";
+    getSources,
+    readWorkspace,
+    ts,
+} from "../utils";
 import { Schema } from "./schema";
-import { readWorkspace } from "@schematics/angular/utility";
-import { ProjectDefinition } from "@angular-devkit/core/src/workspace/definitions";
-import { GlobalData, NamedNode, getData, nodeFlags, ts } from "../utils/utils";
-import { findNodes, findSources } from "../utils/find";
+import { GlobalData, NamedNode, getData, nodeFlags } from "../utils/utils";
+import { findNodes } from "../utils/find";
 import { insertInject } from "../utils/injections";
 import { cancellation } from "../utils/rules";
 import { getTemplate, insertTemplate } from "../utils/templates";
@@ -251,21 +252,6 @@ export default function (options: Schema) {
                 ),
         ]);
     };
-}
-
-const getSources = (tree: Tree, projectWorkspace: ProjectDefinition) => {
-    let sources = findSources(tree, projectWorkspace, {
-        fileName: "*.ts",
-    });
-
-    if (!sources.length) {
-        sources = findSources(tree, projectWorkspace, {
-            fileName: "*.ts",
-            caseSensitive: false,
-        });
-    }
-
-    return sources
 }
 
 const getNodes = (sources: ts.SourceFile[], name: string) => {

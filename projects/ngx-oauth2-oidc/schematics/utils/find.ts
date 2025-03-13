@@ -1,6 +1,4 @@
-import { DirEntry, Tree } from "@angular-devkit/schematics";
-import { workspaces } from "@angular-devkit/core";
-import { NodeArray, getSourceFile, isNodeArray, ts } from "./utils"
+import { NodeArray, isNodeArray, match, ts } from ".";
 
 export type findOptions = {
     test?: (node: ts.Node) => boolean;
@@ -9,6 +7,7 @@ export type findOptions = {
     names?: string[];
     caseSensitive?: boolean;
 };
+
 export const findNodes = <T extends ts.Node>(
     rootNode: ts.Node | NodeArray<ts.Node>,
     depth: number = Infinity,
@@ -89,76 +88,5 @@ export const findNodes = <T extends ts.Node>(
     } else ts.visitNode(rootNode, visit);
 
     return nodes;
-};
-
-/**
- * Resolve source nodes
- */
-export const findSources = (
-    tree: Tree,
-    projectWorkspace: workspaces.ProjectDefinition,
-    options: { path?: string; fileName?: string, caseSensitive?: boolean }
-) => {
-    const { path = "", fileName = "", caseSensitive = true } = { ...options };
-    const sourceFiles: (string | ts.SourceFile)[] = [];
-    let newPath = path;
-    let dirEntry: DirEntry;
-
-    while (newPath.includes("//")) newPath = newPath.replaceAll("//", "/");
-
-    if (newPath.charAt(0) !== "/") newPath = "/" + newPath;
-
-    dirEntry = tree.getDir(projectWorkspace.root + newPath);
-
-    dirEntry.visit(visitor => {
-        let sourceFile: string | ts.SourceFile;
-
-        if (fileName) {
-            const visitorName = visitor.split('/').pop()
-
-            if (!match(visitorName!, fileName, caseSensitive)) return
-        }
-
-        try {
-            const extension = visitor.split(".").pop() ?? "";
-
-            if (extension === "html") throw "html"
-
-            sourceFile = getSourceFile(tree, visitor);
-        } catch(err) {
-            sourceFile = visitor
-        }
-
-        sourceFiles.push(sourceFile);
-    });
-
-
-    return sourceFiles
-};
-
-const match = (text: string, mask: string, caseSensitive = true) => {
-
-    if (!caseSensitive) {
-        text = text.toLowerCase();
-        mask = mask.toLowerCase();
-    }
-
-    const maskArray = mask.replaceAll(" ", "").split("*");
-    const len = text.length;
-    let idx = 0;
-
-    for (let i = 0; i < maskArray.length; i++) {
-        const mask = maskArray[i];
-        const pos = text.indexOf(mask, idx);
-
-        if (pos < 0) return false;
-        if (pos > idx && !i) return false;
-
-        idx = pos + mask.length;
-    }
-
-    if (idx < len && maskArray.pop()) return false
-
-    return true;
 };
 

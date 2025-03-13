@@ -1,8 +1,15 @@
-import { Rule, SchematicContext, Tree, SchematicsException } from "@angular-devkit/schematics";
-import { ts, getSourceFile, nodeFlags, GlobalData, setData, getData } from "./utils";
+import {
+    InsertChange,
+    Rule,
+    SchematicContext,
+    SchematicsException,
+    Tree,
+    getSourceFile,
+    insertImport as _insertImport,
+    ts,
+} from ".";
+import { GlobalData, getData, nodeFlags, setData } from "./utils";
 import { findNodes } from "./find";
-import { insertImport as _insertImport } from "@schematics/angular/utility/ast-utils";
-import { InsertChange } from "@schematics/angular/utility/change";
 
 // TODO: To add an import alias
 

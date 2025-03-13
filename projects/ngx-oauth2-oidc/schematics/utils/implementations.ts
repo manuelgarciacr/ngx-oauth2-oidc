@@ -1,20 +1,21 @@
 import {
+    InsertChange,
+    ReplaceChange,
     Rule,
     SchematicContext,
-    Tree,
     SchematicsException,
-} from "@angular-devkit/schematics";
+    Tree,
+    getEOL,
+    getSourceFile,
+    ts,
+} from ".";
 import {
     GlobalData,
     getData,
     getInBlockIndentation,
-    getSourceFile,
     setData,
-    ts,
 } from "./utils";
 import { findNodes } from "./find";
-import { InsertChange, ReplaceChange } from "@schematics/angular/utility/change";
-import { getEOL } from "@schematics/angular/utility/eol";
 
 export const implementationsCode = {
     constructor: `    __mod__constructor() {

@@ -1,15 +1,18 @@
-import { Rule, SchematicContext, SchematicsException, Tree, chain } from "@angular-devkit/schematics";
-import { GlobalData, getData, setData, ts } from "./utils";
 import {
+    ResolvedAppConfig,
+    Rule,
+    SchematicContext,
+    SchematicsException,
+    Tree,
+    addRootProvider,
+    chain,
+    findAppConfig,
     findBootstrapApplicationCall,
     findProvidersLiteral,
     getMainFilePath,
-} from "@schematics/angular/utility/standalone/util";
-import {
-    findAppConfig,
-    ResolvedAppConfig,
-} from "@schematics/angular/utility/standalone/app_config";
-import { addRootProvider } from "@schematics/angular/utility";
+    ts,
+} from ".";
+import { GlobalData, getData, setData } from "./utils";
 
 /**
  * Function that returns the rules necessary to add a specific root provider. If the item

@@ -1,21 +1,21 @@
 import {
+    InsertChange,
     Rule,
     SchematicContext,
-    Tree,
     SchematicsException,
-} from "@angular-devkit/schematics";
+    Tree,
+    getEOL,
+    getSourceFile,
+    ts,
+} from ".";
 import {
     GlobalData,
     NamedNode,
     getData,
     getInBlockIndentation,
-    getSourceFile,
     setData,
-    ts,
 } from "./utils";
 import { findNodes } from "./find";
-import { InsertChange } from "@schematics/angular/utility/change";
-import { getEOL } from "@schematics/angular/utility/eol";
 import { implementationsCode } from "./implementations";
 
 const messageText = (

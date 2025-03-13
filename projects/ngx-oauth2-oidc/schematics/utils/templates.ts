@@ -1,25 +1,28 @@
-import { strings } from "@angular-devkit/core";
-import * as _path from "path";
 
 import {
+    FileEntry,
+    PathTemplateData,
+    ReplaceChange,
     Rule,
     SchematicContext,
     SchematicsException,
+    TEMPLATE_FILENAME_RE,
     Tree,
     apply,
-    url,
-    when,
-    forEach,
-    composeFileOperators,
     applyContentTemplate,
     applyPathTemplate,
-    PathTemplateData,
-    FileEntry,
-    TEMPLATE_FILENAME_RE
-} from "@angular-devkit/schematics";
-import { ReplaceChange } from "@schematics/angular/utility/change";
-import { getEOL } from "@schematics/angular/utility/eol";
-import { GlobalData, getInBlockIndentation, getSourceFile, nodeType, setData, ts } from "./utils";
+    composeFileOperators,
+    forEach,
+    getEOL,
+    getSourceFile,
+    strings,
+    ts,
+    url,
+    when,
+} from ".";
+import * as _path from "path";
+
+import { GlobalData, getInBlockIndentation, nodeType, setData } from "./utils";
 import { findNodes, findOptions } from "./find";
 import { Observable, firstValueFrom } from "rxjs";
 
