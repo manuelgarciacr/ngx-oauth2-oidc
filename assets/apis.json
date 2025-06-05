@@ -1,6 +1,6 @@
 {
     "google": {
-        "url": "https://www.googleapis.com/drive/:version/files",
+        "url": "https://www.googleapis.com/drive/:version/about.get",
         "ids": {"version": "v3"}
     },
     "gitlab": {
