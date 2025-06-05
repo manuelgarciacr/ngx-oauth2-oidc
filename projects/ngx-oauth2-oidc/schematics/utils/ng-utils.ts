@@ -1,4 +1,5 @@
 import { match, ts } from ".";
+import { dirname, join } from "node:path";
 
 // @angular
 import {
@@ -209,3 +210,93 @@ export function getSourceFile(
     return source;
 }
 
+/**
+ * Resolves a value from an identifier referring to it.
+ * @param tree File tree of the project.
+ * @param fileName Path of the identifier.
+ * @param identifier Identifier referring to the value.
+ */
+export const resolveValueFromIdentifier = (
+    tree: Tree,
+    fileName: string,
+    identifier: ts.Identifier
+) => {
+    const sourceFile = identifier.getSourceFile();
+
+    for (const node of sourceFile.statements) {
+        // Only look at relative imports. This will break if the app uses a path
+        // mapping to refer to the import, but in order to resolve those, we would
+        // need knowledge about the entire program.
+        if (
+            !ts.isImportDeclaration(node) ||
+            !node.importClause?.namedBindings ||
+            !ts.isNamedImports(node.importClause.namedBindings) ||
+            !ts.isStringLiteralLike(node.moduleSpecifier) ||
+            !node.moduleSpecifier.text.startsWith(".")
+        ) {
+            continue;
+        }
+
+        for (const specifier of node.importClause.namedBindings.elements) {
+            if (specifier.name.text !== identifier.text) {
+                continue;
+            }
+
+            // Look for a variable with the imported name in the file. Note that ideally we would use
+            // the type checker to resolve this, but we can't because these utilities are set up to
+            // operate on individual files, not the entire program.
+            const filePath = join(
+                dirname(fileName),
+                node.moduleSpecifier.text + ".ts"
+            );
+            const importedSourceFile = getSourceFile(tree, filePath);
+            const resolvedVariable = findValueFromVariableName(
+                importedSourceFile,
+                (specifier.propertyName || specifier.name).text
+            );
+
+            if (resolvedVariable) {
+                return { filePath, node: resolvedVariable };
+            }
+        }
+    }
+
+    const variableInSameFile = findValueFromVariableName(
+        sourceFile,
+        identifier.text
+    );
+
+    return variableInSameFile
+        ? { filePath: fileName, node: variableInSameFile }
+        : null;
+};
+
+/**
+ * Finds a value within the top-level variables of a file.
+ * @param sourceFile File in which to search for the value.
+ * @param variableName Name of the variable containing the config.
+ */
+export function findValueFromVariableName(
+    sourceFile: ts.SourceFile,
+    variableName: string
+): ts.LiteralExpression | ts.ObjectLiteralExpression | ts.ArrayLiteralExpression | null {
+
+    for (const node of sourceFile.statements) {
+        if (ts.isVariableStatement(node)) {
+            for (const decl of node.declarationList.declarations) {
+                if (
+                    ts.isIdentifier(decl.name) &&
+                    decl.name.text === variableName &&
+                    decl.initializer &&
+                    (ts.isLiteralExpression(decl.initializer) ||
+                        ts.isObjectLiteralExpression(decl.initializer) ||
+                        ts.isArrayLiteralExpression(decl.initializer))
+                ) {
+                    return decl.initializer;
+                }
+            }
+        }
+    }
+
+    return null;
+}

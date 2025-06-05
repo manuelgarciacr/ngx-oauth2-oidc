@@ -1,16 +1,15 @@
 import {
     NodeArray as _NodeArray,
     SchematicsException,
-    SyntaxKind,
     Tree,
     getDecoratorMetadata,
     getEOL,
     getMetadataField,
     getSourceFile,
-    isNodeArray,
     ts,
+    isNodeArray,
 } from ".";
-import { dirname, join } from "node:path";
+
 
 export type GlobalData = Record<string, any>;
 export const setData = (target: GlobalData, value: any, ...keys: string[]) => {
@@ -297,97 +296,6 @@ export const findImportLocalName = (
 }
 
 /**
- * Resolves a value from an identifier referring to it.
- * @param tree File tree of the project.
- * @param fileName Path of the identifier.
- * @param identifier Identifier referring to the value.
- */
-export const resolveValueFromIdentifier = (
-    tree: Tree,
-    fileName: string,
-    identifier: ts.Identifier
-) => {
-    const sourceFile = identifier.getSourceFile();
-
-    for (const node of sourceFile.statements) {
-        // Only look at relative imports. This will break if the app uses a path
-        // mapping to refer to the import, but in order to resolve those, we would
-        // need knowledge about the entire program.
-        if (
-            !ts.isImportDeclaration(node) ||
-            !node.importClause?.namedBindings ||
-            !ts.isNamedImports(node.importClause.namedBindings) ||
-            !ts.isStringLiteralLike(node.moduleSpecifier) ||
-            !node.moduleSpecifier.text.startsWith(".")
-        ) {
-            continue;
-        }
-
-        for (const specifier of node.importClause.namedBindings.elements) {
-            if (specifier.name.text !== identifier.text) {
-                continue;
-            }
-
-            // Look for a variable with the imported name in the file. Note that ideally we would use
-            // the type checker to resolve this, but we can't because these utilities are set up to
-            // operate on individual files, not the entire program.
-            const filePath = join(
-                dirname(fileName),
-                node.moduleSpecifier.text + ".ts"
-            );
-            const importedSourceFile = getSourceFile(tree, filePath);
-            const resolvedVariable = findValueFromVariableName(
-                importedSourceFile,
-                (specifier.propertyName || specifier.name).text
-            );
-
-            if (resolvedVariable) {
-                return { filePath, node: resolvedVariable };
-            }
-        }
-    }
-
-    const variableInSameFile = findValueFromVariableName(
-        sourceFile,
-        identifier.text
-    );
-
-    return variableInSameFile
-        ? { filePath: fileName, node: variableInSameFile }
-        : null;
-};
-
-/**
- * Finds a value within the top-level variables of a file.
- * @param sourceFile File in which to search for the value.
- * @param variableName Name of the variable containing the config.
- */
-function findValueFromVariableName(
-    sourceFile: ts.SourceFile,
-    variableName: string
-): ts.LiteralExpression | ts.ObjectLiteralExpression | ts.ArrayLiteralExpression | null {
-
-    for (const node of sourceFile.statements) {
-        if (ts.isVariableStatement(node)) {
-            for (const decl of node.declarationList.declarations) {
-                if (
-                    ts.isIdentifier(decl.name) &&
-                    decl.name.text === variableName &&
-                    decl.initializer &&
-                    (ts.isLiteralExpression(decl.initializer) ||
-                        ts.isObjectLiteralExpression(decl.initializer) ||
-                        ts.isArrayLiteralExpression(decl.initializer))
-                ) {
-                    return decl.initializer;
-                }
-            }
-        }
-    }
-
-    return null;
-}
-
-/**
  * Returns the RouterModule declaration from NgModule metadata, if any.
  */
 export function getRouterModuleDeclarations(
@@ -567,7 +475,7 @@ const _defaultExtendedText = (node: ts.Node) => {
 };
 
 export const nodeType = (
-    node: Node,
+    node: ts.Node,
     extension: NodeTypeExtension = 1,
     data?: Object
 ): string => {
@@ -807,10 +715,10 @@ export const isEvaluatedExpression = (
     ts.isArrayLiteralExpression(node) ||
     ts.isObjectLiteralExpression(node) ||
     // Keyword
-    node.kind === SyntaxKind.FalseKeyword ||
-    node.kind === SyntaxKind.NullKeyword ||
-    node.kind === SyntaxKind.TrueKeyword ||
-    node.kind === SyntaxKind.UndefinedKeyword ||
+    node.kind === ts.SyntaxKind.FalseKeyword ||
+    node.kind === ts.SyntaxKind.NullKeyword ||
+    node.kind === ts.SyntaxKind.TrueKeyword ||
+    node.kind === ts.SyntaxKind.UndefinedKeyword ||
     // Identifier
     ts.isIdentifier(node);
 
@@ -824,42 +732,42 @@ export const getEvaluatedExpression = (node: ts.Expression): any => {
 
     switch (kind) {
         // Literal
-        case SyntaxKind.NumericLiteral:
+        case ts.SyntaxKind.NumericLiteral:
             expression = Number(text);
             break;
-        case SyntaxKind.BigIntLiteral:
+        case ts.SyntaxKind.BigIntLiteral:
             expression = BigInt(text);
             break;
-        case SyntaxKind.StringLiteral:
+        case ts.SyntaxKind.StringLiteral:
             expression = text;
             break;
-        case SyntaxKind.RegularExpressionLiteral:
+        case ts.SyntaxKind.RegularExpressionLiteral:
             break;
-        case SyntaxKind.NoSubstitutionTemplateLiteral:
+        case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
             break;
-        case SyntaxKind.ArrayLiteralExpression:
+        case ts.SyntaxKind.ArrayLiteralExpression:
             expression = elements.map(v => getEvaluatedExpression(v));
             break;
-        case SyntaxKind.ObjectLiteralExpression:
+        case ts.SyntaxKind.ObjectLiteralExpression:
             expression = getObjectLiteralExpression(
                 node as ts.ObjectLiteralExpression
             );
             break;
         // Keywords
-        case SyntaxKind.FalseKeyword:
+        case ts.SyntaxKind.FalseKeyword:
             expression = false;
             break;
-        case SyntaxKind.NullKeyword:
+        case ts.SyntaxKind.NullKeyword:
             expression = null;
             break;
-        case SyntaxKind.TrueKeyword:
+        case ts.SyntaxKind.TrueKeyword:
             expression = true;
             break;
-        case SyntaxKind.UndefinedKeyword:
+        case ts.SyntaxKind.UndefinedKeyword:
             expression = undefined;
             break;
         // Identifier
-        case SyntaxKind.Identifier:
+        case ts.SyntaxKind.Identifier:
             expression = text;
             break;
         default:
@@ -884,16 +792,16 @@ export const getPropertyName = (node?: ts.PropertyName): any => {
     let expression;
 
     switch (kind) {
-        case SyntaxKind.Identifier:
-        case SyntaxKind.StringLiteral:
-        case SyntaxKind.NoSubstitutionTemplateLiteral:
-        case SyntaxKind.PrivateIdentifier:
+        case ts.SyntaxKind.Identifier:
+        case ts.SyntaxKind.StringLiteral:
+        case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
+        case ts.SyntaxKind.PrivateIdentifier:
             expression = text;
             break;
-        case SyntaxKind.NumericLiteral:
+        case ts.SyntaxKind.NumericLiteral:
             expression = Number(text);
             break;
-        case SyntaxKind.ComputedPropertyName:
+        case ts.SyntaxKind.ComputedPropertyName:
             expression = getEvaluatedExpression(node.expression);
             break;
         default:
@@ -917,37 +825,37 @@ export const getModifiers = (
 
     return modifiers.reduce<modifiersType>(
         (prev: modifiersType, cur: ts.ModifierLike) =>
-            cur.kind === SyntaxKind.AbstractKeyword
+            cur.kind === ts.SyntaxKind.AbstractKeyword
                 ? { ...prev, isAbstract: true }
-                : cur.kind === SyntaxKind.AccessorKeyword // ?????
+                : cur.kind === ts.SyntaxKind.AccessorKeyword // ?????
                 ? { ...prev, isAccessor: true }
-                : cur.kind === SyntaxKind.AsyncKeyword
+                : cur.kind === ts.SyntaxKind.AsyncKeyword
                 ? { ...prev, isAsync: true }
-                : cur.kind === SyntaxKind.ConstKeyword
+                : cur.kind === ts.SyntaxKind.ConstKeyword
                 ? { ...prev, isConst: true }
-                : cur.kind === SyntaxKind.DeclareKeyword
+                : cur.kind === ts.SyntaxKind.DeclareKeyword
                 ? { ...prev, isDeclare: true }
-                : cur.kind === SyntaxKind.DefaultKeyword
+                : cur.kind === ts.SyntaxKind.DefaultKeyword
                 ? { ...prev, isDefault: true }
-                : cur.kind === SyntaxKind.ExportKeyword
+                : cur.kind === ts.SyntaxKind.ExportKeyword
                 ? { ...prev, isExport: true }
-                : cur.kind === SyntaxKind.InKeyword
+                : cur.kind === ts.SyntaxKind.InKeyword
                 ? { ...prev, isIn: true }
-                : cur.kind === SyntaxKind.PrivateKeyword
+                : cur.kind === ts.SyntaxKind.PrivateKeyword
                 ? { ...prev, isPrivate: true }
-                : cur.kind === SyntaxKind.ProtectedKeyword
+                : cur.kind === ts.SyntaxKind.ProtectedKeyword
                 ? { ...prev, isProtected: true }
-                : cur.kind === SyntaxKind.PublicKeyword // ?????
+                : cur.kind === ts.SyntaxKind.PublicKeyword // ?????
                 ? { ...prev, isPublic: true }
-                : cur.kind === SyntaxKind.ReadonlyKeyword
+                : cur.kind === ts.SyntaxKind.ReadonlyKeyword
                 ? { ...prev, isReadonly: true }
-                : cur.kind === SyntaxKind.OutKeyword
+                : cur.kind === ts.SyntaxKind.OutKeyword
                 ? { ...prev, isOut: true }
-                : cur.kind === SyntaxKind.OverrideKeyword
+                : cur.kind === ts.SyntaxKind.OverrideKeyword
                 ? { ...prev, isOverride: true }
-                : cur.kind === SyntaxKind.StaticKeyword
+                : cur.kind === ts.SyntaxKind.StaticKeyword
                 ? { ...prev, isStatic: true }
-                : cur.kind === SyntaxKind.Decorator
+                : cur.kind === ts.SyntaxKind.Decorator
                 ? {
                       ...prev,
                       decorators: [

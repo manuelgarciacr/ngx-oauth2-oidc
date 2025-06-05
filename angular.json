@@ -154,7 +154,7 @@
                             "budgets": [
                                 {
                                     "type": "initial",
-                                    "maximumWarning": "500kB",
+                                    "maximumWarning": "1MB",
                                     "maximumError": "1MB"
                                 },
                                 {
@@ -163,7 +163,15 @@
                                     "maximumError": "4kB"
                                 }
                             ],
-                            "outputHashing": "all"
+                            "outputHashing": "all",
+                            "optimization": {
+                                "scripts": true,
+                                "styles": {
+                                    "minify": true,
+                                    "inlineCritical": false
+                                },
+                                "fonts": true
+                            }
                         },
                         "development": {
                             "optimization": false,
@@ -209,7 +217,10 @@
                     }
                 },
                 "deploy": {
-                  "builder": "angular-cli-ghpages:deploy"
+                    "builder": "angular-cli-ghpages:deploy",
+                    "options": {
+                        "buildTarget": "demo:build:production"
+                    }
                 }
             }
         },

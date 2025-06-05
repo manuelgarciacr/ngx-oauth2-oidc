@@ -17,6 +17,7 @@ import {
     getProjectMainFile,
     getSourceFile,
     getSources,
+    isNode,
     // getWorkspace,
     isStandaloneApp,
     // isStandaloneSchematic,
@@ -31,10 +32,13 @@ import {
     findImportLocalName,
     // getData,
     getRouterModuleDeclarations,
-    // log,
+    log,
     // nodeFlags,
-    resolveValueFromIdentifier,
+    //resolveValueFromIdentifier,
 } from "../utils/utils";
+import { Route } from "@angular/router";
+import { NodeRecord, getElements, getProperties, getValue, nodeError, nodeRecordsArray, nodeRecordsInPlaceSort } from "../utils/nodeRecords";
+import { ObjectLiteralExpression, ObjectLiteralExpressionBase } from "typescript";
 // import { findNodes } from "../utils/find";
 // import { insertInject } from "../utils/injections";
 // import { cancellation } from "../utils/rules";
@@ -44,21 +48,20 @@ import {
 // import { insertMethod } from "../utils/methods";
 // import login from "../login";
 
-type NodeRecord<T extends ts.Node = ts.Node> = {label: string, fileName: string, start: number, final: number, node: T, parent: NodeRecord | null, children: number, route?: ts.ObjectLiteralExpression, idx?: number}
-// const log2 = (p: any) =>
-//     log(p, 5, {
-//         show: [
-//             "label",
-//             "fileName",
-//             "start",
-//             "final",
-//             "node",
-//             "children",
-//             "kind",
-//             "getText",
-//             "initializer"
-//         ],
-//     });
+const log2 = (p: any) =>
+    log(p, 5, {
+        show: [
+            "label",
+            "fileName",
+            "start",
+            "final",
+            "node",
+            "children",
+            "kind",
+            "getText",
+            "initializer"
+        ],
+    });
 
 export default function (options: Schema) {
     return async (tree: Tree, _context: SchematicContext) => {
@@ -92,9 +95,8 @@ export default function (options: Schema) {
                 `❌  No typescript source files in the project`
             );
         }
-console.log("AAA")
+
         const mainPath = getProjectMainFile(projectWorkspace);
-console.log("AAA")
         // Legacy projects might not have a `build` target, but they're likely
         // not on an Angular version that supports standalone either.
         const isStandalone = !projectWorkspace?.targets?.has("build")
@@ -103,7 +105,7 @@ console.log("AAA")
 
         if (!isStandalone) {
             const declarations = getDeclarations(sources);
-            arrayLiteralArray = getArrayLiteralArray(tree, declarations)
+            arrayLiteralArray = getRoutes(tree, declarations)
 
         } else {
             const {filePath: configPath, node: config} = getConfig(tree, mainPath);
@@ -152,6 +154,11 @@ console.log("AAA")
     }
 }
 
+/**
+ * Gets a NodeRecord array with the router module declarations inside a ts.SourceFile array.
+ * @param sourceFiles
+ * @returns
+ */
 const getDeclarations = (sourceFiles: ts.SourceFile[]) => {
     const declarations = sourceFiles
         .flatMap(sf => getRouterModuleDeclarations(sf).map(decl => ({fileName: sf.fileName, decl})))
@@ -183,120 +190,134 @@ const getDeclarations = (sourceFiles: ts.SourceFile[]) => {
     return declarations as NodeRecord<ts.CallExpression>[]
 }
 
-const getArrayLiteralArray = (tree: Tree, declarations: NodeRecord<ts.CallExpression>[]) => {
-    const arrayLiteralArray = <NodeRecord[]>[];
-
+/**
+ * Gets a NodeRecord array with the routes and route arrays inside the route declarations,
+ * including the children routes.
+ * @param tree
+ * @param declarations
+ * @returns
+ */
+const getRoutes = (tree: Tree, declarations: NodeRecord<ts.CallExpression>[]) => {
+    const routeRecords = <NodeRecord[]>[];
+    const routes: NodeRecord<ts.ObjectLiteralExpression>[] = [];
+    const pathRecords = <NodeRecord[]>[];
+    const paths: NodeRecord<ts.StringLiteralLike>[] = [];
+    const children: NodeRecord[] = [];
     declarations.forEach(decl => {
-        const sourceFile = decl.node.getSourceFile();
-        const fileName = sourceFile.fileName;
-        const arrayLiteral = getArrayLiteral(tree, sourceFile, fileName, decl);
+        const nodeRecord = getRoutesArray(tree, decl);
+        const nodeRecordArray = getElements(
+            tree,
+            nodeRecord,
+            ts.isObjectLiteralExpression,
+            "ROUTE",
+            "route declaration",
+            true
+        );
 
-        arrayLiteralArray.push(arrayLiteral)
-        const routes = getRoutes(tree, sourceFile, arrayLiteral, 0);
-        const children = getChildren(tree, routes);
-        arrayLiteralArray.push(...routes, ...children);
+        routeRecords.push(nodeRecord, ...nodeRecordArray);
     })
 
-    arrayLiteralArray.sort((a, b) => {
-        const posOrder = a.start - b.start;
-        const endOrder = b.final - a.final;
-        return a.fileName < b.fileName ? -1 : a.fileName > b.fileName ? 1 :
-        posOrder < 0 ? -1 : posOrder > 0 ? 1 :
-        endOrder < 0 ? -1 : endOrder > 0 ? 1 :
-        0
-    })
+    nodeRecordsInPlaceSort(routeRecords);
+    console.table(nodeRecordsArray(routeRecords));
+    let nodeRecordArray = routeRecords.filter(
+        route => route.label === "ROUTE"
+    );
+    routes.push(
+        ...(nodeRecordArray as NodeRecord<ts.ObjectLiteralExpression>[])
+    );
+    console.table(nodeRecordsArray(routes));
 
-// arrayLiteralArray.forEach(node => console.log(node.fileName.split("/").pop(), node.start, node.final, node.label, node.children))
-// console.log(arrayLiteralArray.length);
-    return arrayLiteralArray
+    routes.forEach(route => {
+        const nodeRecordArray = getProperties(
+            tree,
+            route,
+            "path",
+            (node: ts.Node): node is any => eval(node.getText()) === "foo",
+            "PATH",
+            "route path",
+            true
+        );
+
+        pathRecords.push(...nodeRecordArray);
+    });
+
+    nodeRecordsInPlaceSort(pathRecords);
+    console.table(nodeRecordsArray(pathRecords));
+    nodeRecordArray = pathRecords.filter(
+        prop => prop.label === "PATH"
+    );
+    paths.push(...(nodeRecordArray as NodeRecord<ts.StringLiteralLike>[]));
+    console.table(nodeRecordsArray(paths));
+
+    nodeRecordArray = paths.filter(
+        prop => prop.node.text === "foo"
+    );
+
+    routes.splice(0);
+    declarations.forEach(decl => {
+        const nodeRecord = getRoutesArray(tree, decl);
+        const nodeRecordArray = getElements(
+            tree,
+            nodeRecord,
+            ts.isObjectLiteralExpression,
+            "ROUTE",
+            "route declaration"
+        );
+
+        routes.push(...nodeRecordArray as NodeRecord<ts.ObjectLiteralExpression>[]);
+    });
+
+    const childRecords = <NodeRecord<ts.ArrayLiteralExpression>[]>[];
+    routes.forEach(route => {
+        const nodeRecordArray = getProperties(
+            tree,
+            route,
+            "children",
+            ts.isArrayLiteralExpression,
+            "CHILD",
+            "child route",
+        );
+
+        childRecords.push(...nodeRecordArray as  NodeRecord<ts.ArrayLiteralExpression>[]);
+    });
+    nodeRecordsInPlaceSort(childRecords);
+    console.table(nodeRecordsArray(childRecords));
+
+    return routeRecords
 };
 
-const getArrayLiteral = (
+const removeArrayObject = <T extends Object>(arr: T[], value: T) => {
+    const idx = arr.indexOf(value);
+
+    return idx < 0 ? undefined : arr.splice(idx, 1)
+}
+
+const getRoutesArray = (
     tree: Tree,
-    sourceFile: ts.SourceFile,
-    fileName: string,
     declaration: NodeRecord<ts.CallExpression>,
 ): NodeRecord<ts.ArrayLiteralExpression> => {
     const scopeConfigMethodArgs = declaration.node.arguments;
 
     if (!scopeConfigMethodArgs.length) {
-        const { line } = sourceFile.getLineAndCharacterOfPosition(
-            declaration.node.getStart()
-        );
-        throw new SchematicsException(
-            `❌  The router module method doesn't have arguments ` +
-                `at line ${line} in ${fileName}`
+        nodeError(declaration,
+            "❌  The router module method doesn't have arguments"
         );
     }
 
     const routesArg = scopeConfigMethodArgs[0];
-    const array = getValue(tree, fileName, routesArg, ts.isArrayLiteralExpression, declaration, "ROUTEARRAY");
-
-    if (!array || !ts.isArrayLiteralExpression(array.node)) {
-        const { line } = sourceFile.getLineAndCharacterOfPosition(
-            routesArg.getStart()
-        );
-        throw new SchematicsException(
-            `❌  No route declaration array was found that corresponds ` +
-                `to router module at line ${line} in ${fileName}`
-        );
-    }
-
-    declaration.children++;
+    const array = getValue(
+        tree,
+        declaration,
+        routesArg,
+        ts.isArrayLiteralExpression,
+        "DECLARATIONS_ARRAY",
+        "route declaration array",
+        "❌  No route declaration array was found that corresponds to router module"
+    );
 
     return array as NodeRecord<ts.ArrayLiteralExpression>;
 };
 
-const getValue = (
-    tree: Tree,
-    fileName: string,
-    argument: ts.Expression,
-    kindOrGuard: ts.SyntaxKind | ((node: ts.Node) => node is any) | null | undefined,
-    parent: NodeRecord,
-    label: string
-) => {
-    const guard =
-        typeof kindOrGuard === "function"
-            ? kindOrGuard
-            : typeof kindOrGuard === "number"
-            ? (node: ts.Node): node is any => node.kind === kindOrGuard
-            : (node: ts.Node): node is any =>
-                  (ts.isArrayLiteralExpression(node) ||
-                  ts.isObjectLiteralExpression(node) ||
-                  ts.isLiteralExpression(node));
-
-    // Check if the route declarations array is
-    // an inlined argument of RouterModule or an imported variable
-    if (guard(argument)) {
-        return {
-            label,
-            fileName,
-            start: argument.getStart(),
-            final: argument.getEnd(),
-            node: argument,
-            parent,
-            children: 0,
-        } as NodeRecord<typeof argument>;
-    }
-
-    if (ts.isIdentifier(argument)) {
-        const value = resolveValueFromIdentifier(tree, fileName, argument);
-
-        if (value && guard(value.node)) {
-            return {
-                label,
-                fileName: value.filePath,
-                start: value.node.getStart(),
-                final: value.node.getEnd(),
-                node: value.node,
-                parent,
-                children: 0
-            } as NodeRecord<typeof value.node>;
-        }
-    }
-
-    return null;
-};
 
 // const getRoute = (
 //     sourceFile: ts.SourceFile,
@@ -320,146 +341,142 @@ const getValue = (
 //         );
 
 //     if (arr.length > 1) {
-//         const { line } = sourceFile.getLineAndCharacterOfPosition(
-//             arr[1].route.getStart()
-//         );
-
-//         throw new SchematicsException(
-//             `❌  Duplicated route declaration was found at line ` +
-//             `${line + 1} in ${fileName}`
-//         );
+//         nodeError(arr[1].route, "❌  Duplicated route declaration was found")
 //     }
 
 //     return {...array, ...arr[0] as {route: ts.ObjectLiteralExpression, idx: number}}
 // }
 
-const getRoutes = (
+
+const getChildren = (tree: Tree, routes: NodeRecord[]) =>
+    getChildProperties(tree, routes, {
+        filterLabels: "ROUTE",
+        propertyName: "children",
+        arrayLabel: "CHILDROUTE_ARRAY",
+        arrayElementLabel: "CHILDROUTE",
+        errorMsg:
+            "❌  No child route declaration array was found that corresponds to the expression",
+    });
+;
+
+const getChildProperties = (
     tree: Tree,
-    sourceFile: ts.SourceFile,
-    arrayLiteral: NodeRecord<ts.ArrayLiteralExpression>,
-    loopCnt: number
+    nodeRecords: NodeRecord[],
+    options: {
+        filterLabels?: string | string[];
+        propertyName?: string;
+        arrayLabel?: string,
+        arrayElementLabel?: string,
+        errorMsg?: string
+    }
 ) => {
     const arrayLiteralArray = <NodeRecord[]>[];
-    const elements = arrayLiteral.node.elements.map(
-        elem => elem as ts.Expression
-    );
+    const properties: {
+        property: ts.ObjectLiteralElementLike;
+        parent: NodeRecord<ts.Node>;
+    }[] = [];
+    const { propertyName, arrayLabel, arrayElementLabel, errorMsg } = options;
+    let { filterLabels } = options;
 
-    elements.forEach(elem => {
-        if (ts.isIdentifier(elem)) {
-            const value = getValue(
-                tree,
-                arrayLiteral.fileName,
-                elem,
-                ts.isObjectLiteralExpression,
-                arrayLiteral,
-                "ROUTE"
+    if (arrayElementLabel !== undefined && arrayLabel === undefined) {
+        console.warn(`\t👁️  arrayLabel is undefined, so arrayElementLabel is ignored`);
+    }
+const e = "E";
+const f = {f: "F"}
+const a = {get a() {return "A"}, b(){return "B"}, c: () => {return "C"}, d: "D", e, ...f, ...{g: "G"}}
+// console.dir(a)
+// console.log(a.a, a.b(), a.c(), a.d, a.e, a.f)
+//if (nodeRecords[0].start === 193) log(a, 4);
+
+    typeof filterLabels === "string" && (filterLabels = [filterLabels]);
+
+    nodeRecords
+        .filter(node => !filterLabels || filterLabels.includes(node.label))
+        .forEach(node => {
+            const { node: obj } = node;
+            const elements = (
+                obj as ts.ObjectLiteralExpression
+            ).properties.filter(
+                prop =>
+                    propertyName === undefined ||
+                    (ts.isPropertyAssignment(prop) ||
+                        ts.isShorthandPropertyAssignment(prop)) &&
+                    ts.isIdentifier(prop.name) &&
+                    prop.name.text === propertyName
             );
 
-            if (!value || !ts.isObjectLiteralExpression(value.node)) {
-                const { line } = sourceFile.getLineAndCharacterOfPosition(
-                    elem.getStart()
-                );
-                throw new SchematicsException(
-                    `❌  No route declaration was found that corresponds ` +
-                        `to the identifier at line ${line + 1} in ${arrayLiteral.fileName}`
-                );
+            if (elements.length > 1) {
+                nodeError(
+                    elements[1],
+                    `❌  More than one "${propertyName}"" property`
+                )
             }
 
-            arrayLiteral.children++;
-            arrayLiteralArray.push(
-                value as NodeRecord<ts.ObjectLiteralExpression>
-            );
-            return
-        }
+            if (!elements.length) return;
 
-        if (ts.isObjectLiteralExpression(elem)) {
-            const value =  {
-                label: "ROUTE",
-                fileName: arrayLiteral.fileName,
-                start: elem.getStart(),
-                final: elem.getEnd(),
-                node: elem,
-                parent: arrayLiteral,
-                children: 0,
-            } as NodeRecord<ts.ObjectLiteralExpression>;
+            properties.push({
+                property: elements[0],
+                parent: node,
+            });
+        });
 
-            arrayLiteral.children++;
-            arrayLiteralArray.push(
-                value as NodeRecord<ts.ObjectLiteralExpression>
-            );
-            return
-        }
+    properties.forEach(prop => {
+        const { property, parent } = prop;
+        const argument = ts.isPropertyAssignment(property)
+            ? (property as ts.PropertyAssignment).initializer
+            : (property.name as ts.Identifier);
+        let value: NodeRecord | undefined;
 
-        if (ts.isSpreadElement(elem)) {
-            const value = getValue(
+        if (arrayLabel !== undefined) {
+            value = getValue(
                 tree,
-                arrayLiteral.fileName,
-                elem.expression,
+                parent,
+                argument,
                 ts.isArrayLiteralExpression,
-                arrayLiteral,
-                "ROUTEARRAY"
+                arrayLabel
             ) as NodeRecord<ts.ArrayLiteralExpression>;
-
-            if (!value) {
-                const { line } = sourceFile.getLineAndCharacterOfPosition(
-                    elem.getStart()
-                );
-                throw new SchematicsException(
-                    `❌  No route declaration was found that corresponds ` +
-                        `to the spreed at line ${line + 1} in ${arrayLiteral.fileName}`
-                );
-            }
-
-            arrayLiteral.children++;
-            arrayLiteralArray.push(
-                value
-            );
-            loopCnt++;
-
-            const valueSourceFile = getSourceFile(tree, value.fileName);
-
-            if (loopCnt > 10) {
-                const { line } = sourceFile.getLineAndCharacterOfPosition(
-                    elem.getStart()
-                );
-                throw new SchematicsException(
-                    `❌  More than ten nested spreads at line ${line + 1} in ${
-                            arrayLiteral.fileName
-                        }`
-                );
-            }
-
-            const routes = getRoutes(tree, valueSourceFile, value, loopCnt);
-            arrayLiteralArray.push(...routes)
-            return
         }
 
-        const { line } = sourceFile.getLineAndCharacterOfPosition(
-            elem.getStart()
-        );
+        if (value && arrayElementLabel !== undefined) {
+            arrayLiteralArray.push(value);
+//log(value.parent?.node ?? {}, 1);
+//log(value.node, 1);
+            const childRoutes = getElements(
+                tree,
+                value as NodeRecord<ts.ArrayLiteralExpression>,
+                undefined,
+                "CHILDROUTE",
+                "child route declaration"
+            );
+//log(childRoutes, 1);
+            arrayLiteralArray.push(...childRoutes);
+        }
 
-        throw new SchematicsException(
-            `❌  No route declaration was found at line ${line + 1} in ${
-                arrayLiteral.fileName
-            }`
-        );
-    })
+        if (errorMsg && !value) {
+            nodeError(argument, errorMsg)
+        }
+
+        if (!value) return;
+
+    });
 
     return arrayLiteralArray;
 };
 
-const getChildren = (
+const getChildren2 = (
     tree: Tree,
     routes: NodeRecord[]
 ) => {
     const arrayLiteralArray = <NodeRecord[]>[];
-    const children: any[] = [];
+    const children: {
+        property: ts.ObjectLiteralElementLike;
+        parent: NodeRecord<ts.Node>;
+    }[] = [];
 
     routes
         .filter(node => node.label === "ROUTE")
         .forEach(node => {
-            const { fileName, node: route } = node;
-            const sourceFile = getSourceFile(tree, fileName);
+            const { node: route } = node;
             const elements = (
                 route as ts.ObjectLiteralExpression
             ).properties.filter(
@@ -470,64 +487,35 @@ const getChildren = (
                     prop.name.text === "children"
             );
             if (elements.length > 1) {
-                const { line } = sourceFile.getLineAndCharacterOfPosition(
-                    elements[1].getStart()
-                );
-
-                throw new SchematicsException(
-                    `❌  More than one children property ` +
-                        `at line ${line + 1} in ${fileName}`
-                );
+                nodeError(elements[1], `❌  More than one children property`)
             }
 
             if (!elements.length) return;
 
             children.push({
-                fileName,
-                sourceFile,
                 property: elements[0],
                 parent: node,
             });
         });
 
     children.forEach(child => {
-        const { fileName, sourceFile, property, parent } = child;
-        const value = ts.isPropertyAssignment(property)
-            ? (getValue(
-                  tree,
-                  fileName,
-                  (property as ts.PropertyAssignment).initializer,
-                  ts.isArrayLiteralExpression,
-                  parent,
-                  "ROUTEARRAY"
-              ) as NodeRecord<ts.ArrayLiteralExpression>)
-            : (getValue(
-                  tree,
-                  fileName,
-                  property.name as ts.Identifier,
-                  ts.isArrayLiteralExpression,
-                  parent,
-                  "ROUTEARRAY"
-              ) as NodeRecord<ts.ArrayLiteralExpression>);
+        const { property, parent } = child;
+        const argument = ts.isPropertyAssignment(property)
+            ? (property as ts.PropertyAssignment).initializer
+            : property.name as ts.Identifier;
+        const value = getValue(
+            tree,
+            parent,
+            argument,
+            ts.isArrayLiteralExpression,
+            "ROUTEARRAY",
+            "route declaration",
+            "❌  No child route declaration array was found that corresponds to the expression"
+        ) as NodeRecord<ts.ArrayLiteralExpression>
 
-        if (!value) {
-            const expr = ts.isPropertyAssignment(property)
-                ? (property as ts.PropertyAssignment).initializer
-                : (property.name as ts.Identifier);
-            const { line } = sourceFile.getLineAndCharacterOfPosition(
-                expr.getStart()
-            );
-            throw new SchematicsException(
-                `❌  No child route declaration array was found that corresponds ` +
-                    `to the expression at line ${line + 1} in ${fileName}`
-            );
-        }
-
-        parent.children++;
         arrayLiteralArray.push(value)
 
-        const valueSourceFile = getSourceFile(tree, value.fileName);
-        const childRoutes = getRoutes(tree, valueSourceFile, value, 0);
+        const childRoutes = getElements(tree, value);
 
         arrayLiteralArray.push(...childRoutes)
     });
@@ -572,14 +560,9 @@ const getProvider = (
     const providers = findProvidersLiteral(config);
 
     if (!providers) {
-        const { line } = sourceFile.getLineAndCharacterOfPosition(
-            config.getStart()
-        );
-
-        // TODO: Add providers ​​if there are no
-        throw new SchematicsException(
-            `❌  Can not find providers in the config object at line ` +
-                `${line + 1} in ${fileName}`
+        return nodeError(
+            config,
+            `❌  Can not find providers in the config object`
         );
     }
 
@@ -593,15 +576,10 @@ const getProvider = (
         }
     }
 
-    const { line } = sourceFile.getLineAndCharacterOfPosition(
-        providers.getStart()
-    );
-
-    // TODO: Add a provider if it does not exist
-    throw new SchematicsException(
-        `❌  Can not find the provider named "${localName}" in the config object at line ` +
-            `${line + 1} in ${fileName}`
-    );
+    nodeError(
+        providers,
+        `❌  Can not find the provider named "${localName}" in the config object`
+    )
 };
 
     // console.log(route)
@@ -654,13 +632,7 @@ const getProvider = (
 //         .arguments;
 
 //     if (!scopeConfigMethodArgs.length) {
-//         const { line } = source.getLineAndCharacterOfPosition(
-//             routerModuleExpr.getStart()
-//         );
-//         throw new Error(
-//             `The router module method doesn't have arguments ` +
-//                 `at line ${line} in ${fileToAdd}`
-//         );
+//         nodeError(routerModuleExpr, "The router module method doesn't have arguments")
 //     }
 
 //     let routesArr: ts.ArrayLiteralExpression | undefined;
@@ -685,13 +657,8 @@ const getProvider = (
 //         }
 
 //         if (!routesVar) {
-//             const { line } = source.getLineAndCharacterOfPosition(
-//                 routesArg.getStart()
-//             );
-//             throw new Error(
-//                 `No route declaration array was found that corresponds ` +
-//                     `to router module at line ${line} in ${fileToAdd}`
-//             );
+//             nodeError(routesArg, `No route declaration array was found that corresponds ` +
+//                     `to router module`)
 //         }
 
 //         routesArr = findNodes(

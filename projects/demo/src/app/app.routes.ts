@@ -12,8 +12,8 @@ export const routes: Routes = [
         canActivate: [idTokenGuard()],
     },
     {
-        path: "luis",
-        loadComponent: () => import(".").then(c => c.LoginComponent),
+        path: "privacy-policy",
+        loadComponent: () => import(".").then(c => c.PrivacyPolicyComponent),
     },
     {
         path: "",

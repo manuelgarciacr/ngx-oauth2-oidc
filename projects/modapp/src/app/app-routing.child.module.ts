@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Route, RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from "./login/login.component";
 
 const routes: Routes = [
@@ -19,11 +19,26 @@ const routes: Routes = [
 })
 export class AppRoutingChildModule {}
 
-const routeA = {path: "foo"};
-const routeB = {path: "anotherPath"}
+
+const children = [{ path: "foo" }, { path: "anotherPath" }]
+const spreadChildren: Route = {
+    children
+};
+const spreadFooPath = {
+    path: "fo" + "o"
+}
+const spreadAnotherPath = {
+    path: "anotherPath",
+};
+
+const routeA = {...spreadFooPath, children};
+const routeB: Route = {...spreadAnotherPath, children: [spreadChildren], ...spreadChildren}
+const routeC = {...spreadFooPath, ...spreadChildren}
+
 const localRoutes: Routes = [
     routeA,
-    routeB
+    routeB,
+    routeC
 ]
 
 @NgModule({
