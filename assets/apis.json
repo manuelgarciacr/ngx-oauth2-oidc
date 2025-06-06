@@ -1,7 +1,7 @@
 {
     "https://accounts.google.com": {
         "method": "GET",
-        "url": "https://www.googleapis.com/drive/v3/about.get"
+        "url": "https://www.googleapis.com/drive/v3/about.get?fields=*"
     },
     "https://gitlab.com": {
         "method": "GET",
